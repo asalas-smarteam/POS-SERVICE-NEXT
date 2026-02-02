@@ -7,6 +7,8 @@ export const useAuthStore = create(
       token: null,
       tenant: null,
       navMain: [],
+      // Cachea permisos derivados de navMain para no recalcular en cada render.
+      permissionsMap: {},
       isAuthenticated: false,
       hasHydrated: false,
       loginSuccess: (data = {}) => {
@@ -19,11 +21,14 @@ export const useAuthStore = create(
           : Array.isArray(currentNavMain)
             ? currentNavMain
             : [];
+        // Se construye UNA sola vez al hacer login y se persiste.
+        const permissionsMap = buildPermissionsMap(navMain);
         set({
           token,
           user,
           tenant,
           navMain,
+          permissionsMap,
           isAuthenticated: Boolean(token),
         });
       },
@@ -33,9 +38,23 @@ export const useAuthStore = create(
           user: null,
           tenant: null,
           navMain: [],
+          permissionsMap: {},
           isAuthenticated: false,
         });
         api.persist?.clearStorage?.();
+      },
+      // Helper centralizado para validar permisos desde cualquier layout/guard.
+      hasAccess: (path) => {
+        const normalizedPath = normalizePath(path);
+        const permissionsMap = get?.()?.permissionsMap ?? {};
+        const hasConfiguredPermissions =
+          Object.keys(permissionsMap).length > 0;
+
+        if (!hasConfiguredPermissions) {
+          return normalizedPath === "/home";
+        }
+
+        return Boolean(permissionsMap[normalizedPath]);
       },
       hydrate: () => {
         api.persist?.rehydrate();
@@ -48,14 +67,51 @@ export const useAuthStore = create(
         token: state.token,
         tenant: state.tenant,
         navMain: state.navMain,
+        permissionsMap: state.permissionsMap,
       }),
       onRehydrateStorage: (set, get) => () => {
         const currentState = get?.() ?? {};
+        const nextPermissionsMap =
+          currentState.permissionsMap &&
+          Object.keys(currentState.permissionsMap).length > 0
+            ? currentState.permissionsMap
+            : buildPermissionsMap(currentState.navMain);
         set({
           isAuthenticated: Boolean(currentState.token),
+          permissionsMap: nextPermissionsMap,
           hasHydrated: true,
         });
       },
     }
   )
 );
+
+const normalizePath = (path = "") => {
+  if (!path) {
+    return "/";
+  }
+  const normalized = path.startsWith("/") ? path : `/${path}`;
+  if (normalized === "/") {
+    return normalized;
+  }
+  return normalized.endsWith("/") ? normalized.slice(0, -1) : normalized;
+};
+
+const collectUrls = (items = []) => {
+  return items.flatMap((item) => {
+    if (!item) {
+      return [];
+    }
+    const url = item.url ?? item.href;
+    const children = Array.isArray(item.items) ? item.items : [];
+    return [url, ...collectUrls(children)].filter(Boolean);
+  });
+};
+
+const buildPermissionsMap = (navMain = []) => {
+  const urls = collectUrls(navMain);
+  return urls.reduce((acc, path) => {
+    acc[normalizePath(path)] = true;
+    return acc;
+  }, {});
+};
