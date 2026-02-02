@@ -90,6 +90,7 @@ export default function LoginPage() {
       loginSuccess({
         token: data.token,
         user: data.user,
+        navMain: data.navMain,
         tenant: data.tenant ?? {
           ...tenant,
           slug: resolvedTenantSlug,
