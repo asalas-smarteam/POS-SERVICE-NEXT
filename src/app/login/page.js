@@ -32,6 +32,7 @@ export default function LoginPage() {
   };
 
   const handleSubmit = async (event) => {
+    debugger
     event.preventDefault();
     setError("");
 

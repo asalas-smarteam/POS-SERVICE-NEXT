@@ -38,8 +38,9 @@ export const useAuthStore = create(
         tenant: state.tenant,
       }),
       onRehydrateStorage: (set, get) => () => {
+        const currentState = get?.() ?? {};
         set({
-          isAuthenticated: Boolean(get().token),
+          isAuthenticated: Boolean(currentState.token),
           hasHydrated: true,
         });
       },
