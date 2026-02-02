@@ -18,12 +18,17 @@ import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
 import { useAuthStore } from "../../store/authStore";
 
 const emailRegex = /^[^@]+@[^@]+\.[^@]+$/;
+const slugRegex = /^[a-z0-9-]+$/;
 
 export default function LoginPage() {
   const router = useRouter();
   const loginSuccess = useAuthStore((state) => state.loginSuccess);
   const tenant = useAuthStore((state) => state.tenant);
-  const [formData, setFormData] = useState({ email: "", password: "" });
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+    tenantSlug: "",
+  });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -32,7 +37,6 @@ export default function LoginPage() {
   };
 
   const handleSubmit = async (event) => {
-    debugger
     event.preventDefault();
     setError("");
 
@@ -46,10 +50,17 @@ export default function LoginPage() {
       return;
     }
 
-    if (!tenant?.slug) {
+    const resolvedTenantSlug = tenant?.slug || formData.tenantSlug.trim();
+
+    if (!resolvedTenantSlug) {
       setError(
-        "Necesitas un tenant activo. Registra tu restaurante o verifica tu slug antes de iniciar sesión."
+        "Ingresa el slug del tenant para continuar con el inicio de sesión."
       );
+      return;
+    }
+
+    if (!slugRegex.test(resolvedTenantSlug)) {
+      setError("El slug solo puede contener minúsculas, números y guiones.");
       return;
     }
 
@@ -59,7 +70,7 @@ export default function LoginPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-tenant": tenant.slug,
+          "x-tenant": resolvedTenantSlug,
         },
         body: JSON.stringify({
           email: formData.email,
@@ -79,7 +90,10 @@ export default function LoginPage() {
       loginSuccess({
         token: data.token,
         user: data.user,
-        tenant,
+        tenant: data.tenant ?? {
+          ...tenant,
+          slug: resolvedTenantSlug,
+        },
       });
 
       router.push("/home");
@@ -123,6 +137,18 @@ export default function LoginPage() {
                 required
               />
             </div>
+            {!tenant?.slug ? (
+              <div className="ui-field">
+                <Label htmlFor="tenantSlug">Slug del tenant</Label>
+                <Input
+                  id="tenantSlug"
+                  placeholder="mirestaurante"
+                  value={formData.tenantSlug}
+                  onChange={handleChange("tenantSlug")}
+                  required
+                />
+              </div>
+            ) : null}
             {error ? (
               <Alert variant="destructive">
                 <AlertTitle>Ups</AlertTitle>
