@@ -81,6 +81,7 @@ export function persist(config, options) {
     api.persist = {
       rehydrate,
       hasHydrated: () => hasHydrated,
+      clearStorage: () => storage?.removeItem(options.name),
     };
 
     const state = config(setState, get, api);
