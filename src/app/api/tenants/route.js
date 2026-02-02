@@ -6,8 +6,11 @@ import { seedTenantDB } from '@/lib/tenant/seedTenant';
 
 export async function POST(req) {
   try {
-    const body = await req.json();
-    const { name, slug, plan = 'basic' } = body;
+    const formData = await req.formData();
+    const name = formData.get('name')?.toString();
+    const slug = formData.get('slug')?.toString();
+    const plan = formData.get('plan')?.toString() ?? 'basic';
+    const logo = formData.get('logo');
 
     if (!name || !slug) {
       return NextResponse.json(
@@ -28,6 +31,14 @@ export async function POST(req) {
     }
 
     const dbName = `${slug}_pos_db`;
+    let logoPath = null;
+
+    if (logo) {
+      const logoName = typeof logo === 'string' ? logo : logo?.name || 'logo';
+      logoPath = `/uploads/tenants/${slug}/${logoName}`;
+      // TODO: Upload logo file to S3/Cloudinary and store its URL.
+      // TODO: Replace local placeholder path with cloud URL once integrated.
+    }
 
     // Crear tenant en MASTER
     const tenant = await Tenant.create({
@@ -35,6 +46,7 @@ export async function POST(req) {
       slug,
       dbName,
       plan,
+      logo: logoPath,
     });
 
     // Crear conexión tenant DB
