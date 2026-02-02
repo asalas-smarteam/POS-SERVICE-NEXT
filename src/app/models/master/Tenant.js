@@ -14,6 +14,7 @@ const TenantSchema = new mongoose.Schema({
     enum: ['active', 'inactive'],
     default: 'active',
   },
+  logo: { type: String },
 }, { timestamps: true });
 
 export function TenantModel(conn) {
