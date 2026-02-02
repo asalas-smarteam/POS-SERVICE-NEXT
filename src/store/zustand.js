@@ -70,7 +70,8 @@ export function persist(config, options) {
       const stored = storage.getItem(options.name);
       if (stored) {
         const data = JSON.parse(stored);
-        set(data, true);
+        // Merge persisted data to keep store methods intact.
+        set((currentState) => ({ ...currentState, ...data }));
       }
       hasHydrated = true;
       if (typeof postRehydrate === "function") {

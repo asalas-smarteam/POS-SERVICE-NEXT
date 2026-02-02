@@ -97,7 +97,7 @@ export default function LoginPage() {
         },
       });
 
-      router.push("/home");
+      router.push("/dashboard");
     } catch (err) {
       setError("Ocurrió un error inesperado. Intenta más tarde.");
     } finally {

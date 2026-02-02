@@ -29,7 +29,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
-import { useAuthStore } from "@/store/authStore"
+import { useAuthStore } from "../../store/authStore"
 
 export function NavUser({
   user

@@ -24,7 +24,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { useAuthStore } from "@/store/authStore"
+import { useAuthStore } from "../../store/authStore"
 
 const navSecondary = [
   {
