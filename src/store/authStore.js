@@ -6,26 +6,32 @@ export const useAuthStore = create(
       user: null,
       token: null,
       tenant: null,
+      navMain: [],
       isAuthenticated: false,
       hasHydrated: false,
       loginSuccess: (data = {}) => {
         const token = data.token ?? null;
         const user = data.user ?? null;
         const tenant = data.tenant ?? null;
+        const navMain = Array.isArray(data.navMain) ? data.navMain : [];
         set({
           token,
           user,
           tenant,
+          navMain,
           isAuthenticated: Boolean(token),
         });
       },
-      logout: () =>
+      logout: () => {
         set({
           token: null,
           user: null,
           tenant: null,
+          navMain: [],
           isAuthenticated: false,
-        }),
+        });
+        api.persist?.clearStorage?.();
+      },
       hydrate: () => {
         api.persist?.rehydrate();
       },
@@ -36,6 +42,7 @@ export const useAuthStore = create(
         user: state.user,
         token: state.token,
         tenant: state.tenant,
+        navMain: state.navMain,
       }),
       onRehydrateStorage: (set, get) => () => {
         const currentState = get?.() ?? {};
