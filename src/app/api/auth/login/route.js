@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { resolveTenant } from '@/lib/tenant/resolveTenant';
 import { getTenantConnection } from '@/lib/db/connections';
 import { UserModel } from '@/models/tenant/User';
+import { RoleNavModel } from '@/models/tenant/RoleNav';
 import { comparePassword } from '@/lib/auth/hash';
 import { signToken } from '@/lib/auth/jwt';
 
@@ -22,6 +23,7 @@ export async function POST(req) {
     // Conectar DB tenant
     const tenantConn = await getTenantConnection(tenant.dbName);
     const User = UserModel(tenantConn);
+    const RoleNav = RoleNavModel(tenantConn);
 
     // Buscar usuario
     const user = await User.findOne({ email });
@@ -50,12 +52,20 @@ export async function POST(req) {
       tenant: tenant.slug,
     });
 
+    const roleNav = await RoleNav.findOne({ role: user.role });
+    const navMain = Array.isArray(roleNav?.navItems) ? roleNav.navItems : [];
+    const resolvedName = user.name ?? user.email;
+    const resolvedAvatar = user.avatar ?? tenant.logo ?? null;
+
     return NextResponse.json({
       token,
       user: {
+        name: resolvedName,
         email: user.email,
+        avatar: resolvedAvatar,
         role: user.role,
       },
+      navMain,
     });
 
   } catch (error) {
