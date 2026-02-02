@@ -13,7 +13,12 @@ export const useAuthStore = create(
         const token = data.token ?? null;
         const user = data.user ?? null;
         const tenant = data.tenant ?? null;
-        const navMain = Array.isArray(data.navMain) ? data.navMain : [];
+        const currentNavMain = get?.()?.navMain;
+        const navMain = Array.isArray(data.navMain)
+          ? data.navMain
+          : Array.isArray(currentNavMain)
+            ? currentNavMain
+            : [];
         set({
           token,
           user,
