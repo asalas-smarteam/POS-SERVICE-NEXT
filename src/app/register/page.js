@@ -27,6 +27,7 @@ export default function RegisterPage() {
     name: "",
     slug: "",
     plan: "basic",
+    logo: null,
   });
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -38,6 +39,24 @@ export default function RegisterPage() {
 
   const handlePlanChange = (value) => {
     setFormData((prev) => ({ ...prev, plan: value }));
+  };
+
+  const handleLogoChange = (event) => {
+    const file = event.target.files?.[0] ?? null;
+    if (!file) {
+      setFormData((prev) => ({ ...prev, logo: null }));
+      return;
+    }
+
+    const allowedTypes = ["image/png", "image/jpeg", "image/webp"];
+    if (!allowedTypes.includes(file.type)) {
+      setError("El logo debe ser un PNG, JPG o WEBP.");
+      event.target.value = "";
+      setFormData((prev) => ({ ...prev, logo: null }));
+      return;
+    }
+
+    setFormData((prev) => ({ ...prev, logo: file }));
   };
 
   const handleSubmit = async (event) => {
@@ -57,17 +76,17 @@ export default function RegisterPage() {
 
     try {
       setLoading(true);
+      const payload = new FormData();
+      payload.append("name", formData.name);
+      payload.append("slug", formData.slug);
+      payload.append("plan", formData.plan || "basic");
+      if (formData.logo) {
+        payload.append("logo", formData.logo);
+      }
       // TODO: reemplazar opciones de plan con fetch a /api/plans cuando exista.
       const response = await fetch("http://localhost:3000/api/tenants", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: formData.name,
-          slug: formData.slug,
-          plan: formData.plan || "basic",
-        }),
+        body: payload,
       });
 
       const data = await response.json().catch(() => ({}));
@@ -149,6 +168,15 @@ export default function RegisterPage() {
                   </SelectContent>
                 </SelectTrigger>
               </Select>
+            </div>
+            <div className="ui-field">
+              <Label htmlFor="logo">Logo (opcional)</Label>
+              <Input
+                id="logo"
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                onChange={handleLogoChange}
+              />
             </div>
             {error ? (
               <Alert variant="destructive">
