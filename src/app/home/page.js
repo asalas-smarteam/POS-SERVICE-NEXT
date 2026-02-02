@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "../../store/authStore";
 
+
 export default function HomePage() {
   const router = useRouter();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -24,8 +25,6 @@ export default function HomePage() {
 
   return (
     <div className="ui-home">
-      <h1>Home</h1>
-      <p>Home (placeholder)</p>
     </div>
   );
 }
