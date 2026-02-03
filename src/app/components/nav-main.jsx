@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link";
 import {
   IconCashRegister,
   IconChartBar,
@@ -70,13 +71,16 @@ export function NavMain({ items }) {
               item.title ??
               item.label ??
               `nav-item-${index}`;
+            const href = item.href ?? item.url ?? "#";
             return (
               <SidebarMenuItem key={key}>
-              <SidebarMenuButton tooltip={item.title ?? item.label}>
-                {ResolvedIcon && <ResolvedIcon />}
-                <span>{item.title ?? item.label}</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
+                <SidebarMenuButton asChild tooltip={item.title ?? item.label}>
+                  <Link href={href}>
+                    {ResolvedIcon && <ResolvedIcon />}
+                    <span>{item.title ?? item.label}</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             );
           })}
         </SidebarMenu>

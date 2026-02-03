@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from "react";
+import { useSyncExternalStoreWithSelector } from "use-sync-external-store/shim/with-selector";
 
 export function create(createState) {
   let state;
@@ -25,10 +25,12 @@ export function create(createState) {
   state = createState(setState, getState, api);
 
   const useStore = (selector = (storeState) => storeState) => {
-    return useSyncExternalStore(
+    return useSyncExternalStoreWithSelector(
       subscribe,
-      () => selector(getState()),
-      () => selector(getState())
+      getState,
+      getState,
+      selector,
+      Object.is
     );
   };
 
