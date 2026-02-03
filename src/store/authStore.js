@@ -1,5 +1,35 @@
 import { create, persist } from "./zustand";
 
+const normalizePath = (path = "") => {
+  if (!path) {
+    return "/";
+  }
+  const normalized = path.startsWith("/") ? path : `/${path}`;
+  if (normalized === "/") {
+    return normalized;
+  }
+  return normalized.endsWith("/") ? normalized.slice(0, -1) : normalized;
+};
+
+const collectUrls = (items = []) => {
+  return items.flatMap((item) => {
+    if (!item) {
+      return [];
+    }
+    const url = item.url ?? item.href;
+    const children = Array.isArray(item.items) ? item.items : [];
+    return [url, ...collectUrls(children)].filter(Boolean);
+  });
+};
+
+const buildPermissionsMap = (navMain = []) => {
+  const urls = collectUrls(navMain);
+  return urls.reduce((acc, path) => {
+    acc[normalizePath(path)] = true;
+    return acc;
+  }, {});
+};
+
 export const useAuthStore = create(
   persist(
     (set, get, api) => ({
@@ -85,33 +115,3 @@ export const useAuthStore = create(
     }
   )
 );
-
-const normalizePath = (path = "") => {
-  if (!path) {
-    return "/";
-  }
-  const normalized = path.startsWith("/") ? path : `/${path}`;
-  if (normalized === "/") {
-    return normalized;
-  }
-  return normalized.endsWith("/") ? normalized.slice(0, -1) : normalized;
-};
-
-const collectUrls = (items = []) => {
-  return items.flatMap((item) => {
-    if (!item) {
-      return [];
-    }
-    const url = item.url ?? item.href;
-    const children = Array.isArray(item.items) ? item.items : [];
-    return [url, ...collectUrls(children)].filter(Boolean);
-  });
-};
-
-const buildPermissionsMap = (navMain = []) => {
-  const urls = collectUrls(navMain);
-  return urls.reduce((acc, path) => {
-    acc[normalizePath(path)] = true;
-    return acc;
-  }, {});
-};
