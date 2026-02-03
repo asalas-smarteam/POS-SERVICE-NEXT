@@ -1,6 +1,12 @@
 import { create } from "./zustand";
+import { useAuthStore } from "./authStore";
 
 const INITIAL_PAGE_SIZE = 9;
+const getTenantHeader = () => {
+  const tenant = useAuthStore.getState().tenant;
+  const tenantSlug = tenant?.slug ?? tenant ?? null;
+  return tenantSlug ? { "x-tenant": tenantSlug } : {};
+};
 
 export const useProductsStore = create((set, get) => ({
   products: [],
@@ -19,7 +25,11 @@ export const useProductsStore = create((set, get) => ({
   fetchProducts: async () => {
     set({ loading: true, error: null });
     try {
-      const response = await fetch("/api/products");
+      const response = await fetch("/api/products", {
+      headers: {
+        ...getTenantHeader(),
+      },
+    });
       if (!response.ok) {
         throw new Error("No se pudieron cargar los productos.");
       }
@@ -37,7 +47,11 @@ export const useProductsStore = create((set, get) => ({
       return;
     }
     try {
-      const response = await fetch("/api/ingredients");
+      const response = await fetch("/api/ingredients", {
+        headers: {
+          ...getTenantHeader(),
+        },
+      });
       if (!response.ok) {
         throw new Error("No se pudieron cargar los ingredientes.");
       }
@@ -52,7 +66,9 @@ export const useProductsStore = create((set, get) => ({
     try {
       const response = await fetch("/api/products", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json",
+        ...getTenantHeader(),
+      },
         body: JSON.stringify(payload),
       });
       if (!response.ok) {
@@ -70,11 +86,14 @@ export const useProductsStore = create((set, get) => ({
     }
   },
   updateProduct: async (id, payload) => {
+      debugger
     set({ actionLoading: true, error: null });
     try {
       const response = await fetch(`/api/products/${id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json",
+        ...getTenantHeader(),
+      },
         body: JSON.stringify(payload),
       });
       if (!response.ok) {
@@ -92,3 +111,5 @@ export const useProductsStore = create((set, get) => ({
     }
   },
 }));
+
+
