@@ -2,6 +2,7 @@ import { RoleModel } from '@/models/tenant/Role';
 import { RoleNavModel } from '@/models/tenant/RoleNav';
 import { UserModel } from '@/models/tenant/User';
 import { hashPassword } from '@/lib/auth/hash';
+import { ensureDefaultSettings } from '@/lib/tenant/settingsDefaults';
 
 export async function seedTenantDB(conn, tenantSlug) {
   const Role = RoleModel(conn);
@@ -83,6 +84,8 @@ export async function seedTenantDB(conn, tenantSlug) {
       { upsert: true }
     );
   }
+
+  await ensureDefaultSettings(conn);
 
   console.log(`🌱 Secure seed completed for tenant: ${tenantSlug}`);
 }
