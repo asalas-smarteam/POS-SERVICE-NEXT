@@ -31,6 +31,7 @@ export function SettingsEditorDialog({
   }, [editorData, settingId]);
 
   const handleSave = () => {
+    debugger
     if (!canSave) {
       return;
     }

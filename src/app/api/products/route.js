@@ -22,7 +22,6 @@ export async function POST(req) {
 
 export async function GET(req) {
   try {
-    debugger;
     const tenant = await resolveTenant(req);
     const conn = await getTenantConnection(tenant.dbName);
     IngredientModel(conn);

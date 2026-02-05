@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import mongoose from 'mongoose';
 import { resolveTenant } from '@/lib/tenant/resolveTenant';
 import { getTenantConnection } from '@/lib/db/connections';
 import { TenantSettingModel } from '@/models/tenant/TenantSetting';
@@ -7,11 +6,11 @@ import { TenantSettingModel } from '@/models/tenant/TenantSetting';
 const isPlainObject = (value) =>
   Object.prototype.toString.call(value) === '[object Object]';
 
-export async function PUT(req, context) {
+export async function PUT(req, { params }) {
   try {
-    const { id } = context.params;
-
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    const { id: id } = await params;
+    
+    if (!id) {
       return NextResponse.json({ error: 'Invalid id' }, { status: 400 });
     }
 

@@ -70,7 +70,7 @@ export function SettingsPage() {
   const handleSave = async (id, data) => {
     setSaving(true);
     setDialogAlert(null);
-
+    
     try {
       const response = await fetch(`/api/settings/${id}`, {
         method: "PUT",
@@ -80,6 +80,8 @@ export function SettingsPage() {
         },
         body: JSON.stringify({ data }),
       });
+
+      console.log(JSON.stringify({ data }))
 
       const body = await response.json();
       if (!response.ok) {
