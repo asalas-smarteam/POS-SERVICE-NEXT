@@ -2,21 +2,23 @@ import { NextResponse } from 'next/server';
 import { resolveTenant } from '@/lib/tenant/resolveTenant';
 import { getTenantConnection } from '@/lib/db/connections';
 import { ProductModel } from '@/models/tenant/Product';
+import { IngredientModel } from '@/models/tenant/Ingredient';
 
 export async function PUT(req, { params }) {
   try {
-    const { id } = params;
+    const { id: orderId } = await params;
 
-    if (!id) {
+    if (!orderId) {
       return NextResponse.json({ error: 'Product id is required.' }, { status: 400 });
     }
 
     const tenant = await resolveTenant(req);
     const conn = await getTenantConnection(tenant.dbName);
+    IngredientModel(conn);
     const Product = ProductModel(conn);
 
     const body = await req.json();
-    const updated = await Product.findByIdAndUpdate(id, body, {
+    const updated = await Product.findByIdAndUpdate(orderId, body, {
       new: true,
       runValidators: true,
     });

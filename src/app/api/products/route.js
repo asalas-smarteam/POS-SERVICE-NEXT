@@ -2,11 +2,13 @@ import { NextResponse } from 'next/server';
 import { resolveTenant } from '@/lib/tenant/resolveTenant';
 import { getTenantConnection } from '@/lib/db/connections';
 import { ProductModel } from '@/models/tenant/Product';
+import { IngredientModel } from '@/models/tenant/Ingredient';
 
 export async function POST(req) {
   try {
     const tenant = await resolveTenant(req);
     const conn = await getTenantConnection(tenant.dbName);
+    IngredientModel(conn);
     const Product = ProductModel(conn);
 
     const body = await req.json();
@@ -20,8 +22,10 @@ export async function POST(req) {
 
 export async function GET(req) {
   try {
+    debugger;
     const tenant = await resolveTenant(req);
     const conn = await getTenantConnection(tenant.dbName);
+    IngredientModel(conn);
     const Product = ProductModel(conn);
 
     const list = await Product.find().populate('ingredients.ingredientId');
@@ -30,3 +34,4 @@ export async function GET(req) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
 }
+
