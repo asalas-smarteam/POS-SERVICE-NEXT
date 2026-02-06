@@ -1,6 +1,6 @@
 "use client";
 
-import { Minus, Plus, Trash2 } from "lucide-react";
+import { MessageSquarePlus, Minus, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -15,8 +15,20 @@ export function OrderItem({
   onIncrease,
   onDecrease,
   onRemove,
+  onUpdateNotes,
   className,
 }) {
+  const handleNotesClick = () => {
+    const nextNotes = window.prompt(
+      "Agregar observaciones para este producto:",
+      item.notes ?? ""
+    );
+    if (nextNotes === null) {
+      return;
+    }
+    onUpdateNotes?.(item.id, nextNotes.trim() || "Sin observaciones");
+  };
+
   return (
     <div
       className={cn(
@@ -57,15 +69,26 @@ export function OrderItem({
             <Plus className="size-3" />
           </Button>
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 text-muted-foreground hover:text-destructive"
-          onClick={() => onRemove(item.id)}
-          aria-label="Eliminar producto"
-        >
-          <Trash2 className="size-4" />
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-muted-foreground hover:text-primary"
+            onClick={handleNotesClick}
+            aria-label="Agregar observaciones"
+          >
+            <MessageSquarePlus className="size-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-muted-foreground hover:text-destructive"
+            onClick={() => onRemove(item.id)}
+            aria-label="Eliminar producto"
+          >
+            <Trash2 className="size-4" />
+          </Button>
+        </div>
       </div>
     </div>
   );

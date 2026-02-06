@@ -63,6 +63,13 @@ export const useOrderStore = create((set, get) => ({
       }),
     }));
   },
+  updateNotes: (productId, notes) => {
+    set((state) => ({
+      items: state.items.map((item) =>
+        item.id === productId ? { ...item, notes } : item
+      ),
+    }));
+  },
   clearOrder: () => set({ items: [] }),
   getSubtotal: () => {
     const { items } = get();

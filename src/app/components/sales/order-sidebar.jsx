@@ -22,6 +22,7 @@ export function OrderSidebar({
   onIncrease,
   onDecrease,
   onRemove,
+  onUpdateNotes,
   onClear,
   className,
 }) {
@@ -59,6 +60,7 @@ export function OrderSidebar({
                 onIncrease={onIncrease}
                 onDecrease={onDecrease}
                 onRemove={onRemove}
+                onUpdateNotes={onUpdateNotes}
               />
             ))
           ) : (
