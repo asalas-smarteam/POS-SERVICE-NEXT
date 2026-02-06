@@ -24,15 +24,23 @@ export default function SalesPage() {
     fetchSettings: state.fetchSettings,
   }));
 
-  const { items, addItem, increaseQty, decreaseQty, removeItem, clearOrder } =
-    useOrderStore((state) => ({
-      items: state.items,
-      addItem: state.addItem,
-      increaseQty: state.increaseQty,
-      decreaseQty: state.decreaseQty,
-      removeItem: state.removeItem,
-      clearOrder: state.clearOrder,
-    }));
+  const {
+    items,
+    addItem,
+    increaseQty,
+    decreaseQty,
+    removeItem,
+    updateNotes,
+    clearOrder,
+  } = useOrderStore((state) => ({
+    items: state.items,
+    addItem: state.addItem,
+    increaseQty: state.increaseQty,
+    decreaseQty: state.decreaseQty,
+    removeItem: state.removeItem,
+    updateNotes: state.updateNotes,
+    clearOrder: state.clearOrder,
+  }));
 
   const [searchTerm, setSearchTerm] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
@@ -109,6 +117,7 @@ export default function SalesPage() {
             onIncrease={increaseQty}
             onDecrease={decreaseQty}
             onRemove={removeItem}
+            onUpdateNotes={updateNotes}
             onClear={clearOrder}
           />
         </div>
