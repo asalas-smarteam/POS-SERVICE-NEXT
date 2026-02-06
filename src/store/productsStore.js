@@ -45,9 +45,6 @@ export const useProductsStore = create((set, get) => ({
     }
   },
   fetchIngredients: async () => {
-    if (get().ingredients.length > 0) {
-      return;
-    }
     try {
       const response = await fetch("/api/ingredients", {
         headers: {
@@ -88,7 +85,6 @@ export const useProductsStore = create((set, get) => ({
     }
   },
   updateProduct: async (id, payload) => {
-      debugger
     set({ actionLoading: true, error: null });
     try {
       const response = await fetch(`/api/products/${id}`, {

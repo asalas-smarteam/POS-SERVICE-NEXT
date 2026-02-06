@@ -12,12 +12,6 @@ import {
 } from "@/components/ui/table";
 import { AppSpinner } from "@/components/app-spinner";
 
-const unitLabelMap = {
-  unit: "Unidad",
-  g: "gramos",
-  kg: "kilos",
-};
-
 const formatStock = (value) => {
   if (value === 0) {
     return "Sin stock";
@@ -25,7 +19,13 @@ const formatStock = (value) => {
   return Number(value || 0).toLocaleString("es-CL");
 };
 
-export function IngredientTable({ ingredients, onEdit, onDelete, deletingId }) {
+export function IngredientTable({
+  ingredients,
+  onEdit,
+  onDelete,
+  deletingId,
+  getUnitLabel,
+}) {
   return (
     <Table>
       <TableHeader>
@@ -39,7 +39,9 @@ export function IngredientTable({ ingredients, onEdit, onDelete, deletingId }) {
       </TableHeader>
       <TableBody>
         {ingredients.map((ingredient) => {
-          const unitLabel = unitLabelMap[ingredient.unit] ?? ingredient.unit ?? "-";
+          const unitLabel = getUnitLabel
+            ? getUnitLabel(ingredient?.unit)
+            : ingredient?.unit ?? "-";
           const isDeleting = deletingId === ingredient._id;
           return (
             <TableRow key={ingredient._id ?? ingredient.name}>

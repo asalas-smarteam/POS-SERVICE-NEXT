@@ -23,12 +23,7 @@ import {
 import { AppAlert } from "@/components/app-alert";
 import { AppSpinner } from "@/components/app-spinner";
 import { useIngredientsStore } from "../../../store/ingredientsStore";
-
-const unitOptions = [
-  { value: "unit", label: "Unidad" },
-  { value: "g", label: "gramos" },
-  { value: "kg", label: "kilos" },
-];
+import { useSettingsStore } from "../../../store/settingsStore";
 
 const emptyForm = {
   name: "",
@@ -47,11 +42,26 @@ export function IngredientDialog({ open, onOpenChange, ingredient, onSuccess }) 
     createIngredient: state.createIngredient,
     updateIngredient: state.updateIngredient,
   }));
+  const {
+    ingredientUnits,
+    ingredientUnitLookup,
+    fetchSettings,
+  } = useSettingsStore((state) => ({
+    ingredientUnits: state.ingredientUnits,
+    ingredientUnitLookup: state.ingredientUnitLookup,
+    fetchSettings: state.fetchSettings,
+  }));
 
   const [form, setForm] = useState(emptyForm);
   const [alert, setAlert] = useState(null);
 
   const isEditing = Boolean(ingredient?._id);
+
+  useEffect(() => {
+    if (open) {
+      fetchSettings();
+    }
+  }, [open, fetchSettings]);
 
   useEffect(() => {
     if (!open) {
@@ -71,6 +81,24 @@ export function IngredientDialog({ open, onOpenChange, ingredient, onSuccess }) 
       setForm(emptyForm);
     }
   }, [open, ingredient]);
+
+  const unitOptions = Array.isArray(ingredientUnits)
+    ? ingredientUnits.map((unit) => ({
+        value: unit?.id,
+        label: unit?.label ?? unit?.id,
+      }))
+    : [];
+
+  const normalizedUnitOptions =
+    form.unit && !unitOptions.some((option) => option.value === form.unit)
+      ? [
+          ...unitOptions,
+          {
+            value: form.unit,
+            label: ingredientUnitLookup[form.unit] ?? form.unit,
+          },
+        ]
+      : unitOptions;
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -139,27 +167,27 @@ export function IngredientDialog({ open, onOpenChange, ingredient, onSuccess }) 
             </div>
             <div className="space-y-2">
               <Label>Unidad</Label>
-              <Select
-                value={form.unit}
-                onValueChange={(value) =>
-                  setForm((current) => ({
-                    ...current,
+                <Select
+                  value={form.unit}
+                  onValueChange={(value) =>
+                    setForm((current) => ({
+                      ...current,
                     unit: value,
                   }))
                 }
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Selecciona una unidad" />
-                </SelectTrigger>
-                <SelectContent>
-                  {unitOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Selecciona una unidad" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {normalizedUnitOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">

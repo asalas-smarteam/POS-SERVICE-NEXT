@@ -12,12 +12,6 @@ import {
 } from "@/components/ui/card";
 import { AppSpinner } from "@/components/app-spinner";
 
-const unitLabelMap = {
-  unit: "Unidad",
-  g: "gramos",
-  kg: "kilos",
-};
-
 const formatStock = (value) => {
   if (value === 0) {
     return "Sin stock";
@@ -25,8 +19,16 @@ const formatStock = (value) => {
   return Number(value || 0).toLocaleString("es-CL");
 };
 
-export function IngredientCard({ ingredient, onEdit, onDelete, deleting }) {
-  const unitLabel = unitLabelMap[ingredient?.unit] ?? ingredient?.unit ?? "-";
+export function IngredientCard({
+  ingredient,
+  onEdit,
+  onDelete,
+  deleting,
+  getUnitLabel,
+}) {
+  const unitLabel = getUnitLabel
+    ? getUnitLabel(ingredient?.unit)
+    : ingredient?.unit ?? "-";
 
   return (
     <Card className="h-full">

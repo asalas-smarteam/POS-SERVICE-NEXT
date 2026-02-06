@@ -12,6 +12,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useIngredientsStore } from "../../../store/ingredientsStore";
+import { useSettingsStore } from "../../../store/settingsStore";
 
 const viewOptions = [
   { value: "grid", label: "Grid", icon: LayoutGrid },
@@ -24,12 +25,6 @@ const formatResults = (total, term) => {
     return `${total} ingredientes`;
   }
   return `${total} resultados para "${term}"`;
-};
-
-const unitLabelMap = {
-  unit: "Unidad",
-  g: "gramos",
-  kg: "kilos",
 };
 
 const formatStock = (value) => {
@@ -69,6 +64,10 @@ export default function IngredientsPage() {
     setPage: state.setPage,
     deleteIngredient: state.deleteIngredient,
   }));
+  const { ingredientUnitLookup, fetchSettings } = useSettingsStore((state) => ({
+    ingredientUnitLookup: state.ingredientUnitLookup,
+    fetchSettings: state.fetchSettings,
+  }));
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingIngredient, setEditingIngredient] = useState(null);
@@ -78,6 +77,17 @@ export default function IngredientsPage() {
   useEffect(() => {
     fetchIngredients();
   }, [fetchIngredients]);
+
+  useEffect(() => {
+    fetchSettings();
+  }, [fetchSettings]);
+
+  const resolveUnitLabel = (unitId) => {
+    if (!unitId) {
+      return "-";
+    }
+    return ingredientUnitLookup[unitId] ?? unitId;
+  };
 
   const filteredIngredients = useMemo(() => {
     const list = Array.isArray(ingredients) ? ingredients : [];
@@ -173,6 +183,7 @@ export default function IngredientsPage() {
           onEdit={handleEdit}
           onDelete={handleDelete}
           deletingId={deletingId}
+          getUnitLabel={resolveUnitLabel}
         />
       );
     }
@@ -181,7 +192,7 @@ export default function IngredientsPage() {
       return (
         <div className="space-y-3">
           {paginatedIngredients.map((ingredient) => {
-            const unitLabel = unitLabelMap[ingredient?.unit] ?? ingredient?.unit ?? "-";
+            const unitLabel = resolveUnitLabel(ingredient?.unit);
             return (
               <Card key={ingredient._id ?? ingredient.name}>
                 <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
@@ -224,6 +235,7 @@ export default function IngredientsPage() {
             onEdit={handleEdit}
             onDelete={handleDelete}
             deleting={actionLoading && deletingId === ingredient._id}
+            getUnitLabel={resolveUnitLabel}
           />
         ))}
       </div>
