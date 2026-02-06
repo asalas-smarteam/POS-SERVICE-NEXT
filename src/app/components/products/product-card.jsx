@@ -2,6 +2,7 @@
 
 import { Package, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
@@ -17,7 +18,7 @@ const formatPrice = (price) =>
     currency: "CLP",
   });
 
-export function ProductCard({ product, onEdit }) {
+export function ProductCard({ product, onEdit, categoryLabel }) {
   const ingredientsCount = product?.ingredients?.length ?? 0;
   const typeLabel = product?.type === "COMPOSED" ? "Compuesto" : "Simple";
 
@@ -28,7 +29,10 @@ export function ProductCard({ product, onEdit }) {
           <Package className="size-4 text-muted-foreground" />
           {product?.name ?? "Producto"}
         </CardTitle>
-        <CardDescription>{typeLabel}</CardDescription>
+        <CardDescription className="flex flex-wrap items-center gap-2">
+          <span>{typeLabel}</span>
+          {categoryLabel ? <Badge variant="secondary">{categoryLabel}</Badge> : null}
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-2 text-sm">
         <div className="flex items-center justify-between">

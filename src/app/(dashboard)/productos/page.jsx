@@ -7,11 +7,20 @@ import { AppSkeleton } from "@/components/app-skeleton";
 import { ProductCard } from "@/components/products/product-card";
 import { ProductDialog } from "@/components/products/product-dialog";
 import { ProductTable } from "@/components/products/product-table";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useProductsStore } from "../../../store/productsStore";
+import { useSettingsStore } from "../../../store/settingsStore";
 
 const viewOptions = [
   { value: "grid", label: "Grid", icon: LayoutGrid },
@@ -33,11 +42,13 @@ export default function ProductsPage() {
     error,
     viewMode,
     searchTerm,
+    categoryFilter,
     page,
     pageSize,
     fetchProducts,
     setViewMode,
     setSearchTerm,
+    setCategoryFilter,
     setPage,
   } = useProductsStore((state) => ({
     products: state.products,
@@ -45,13 +56,23 @@ export default function ProductsPage() {
     error: state.error,
     viewMode: state.viewMode,
     searchTerm: state.searchTerm,
+    categoryFilter: state.categoryFilter,
     page: state.page,
     pageSize: state.pageSize,
     fetchProducts: state.fetchProducts,
     setViewMode: state.setViewMode,
     setSearchTerm: state.setSearchTerm,
+    setCategoryFilter: state.setCategoryFilter,
     setPage: state.setPage,
   }));
+
+  const { categories, categoryLookup, settingsLoading, fetchSettings } =
+    useSettingsStore((state) => ({
+      categories: state.categories,
+      categoryLookup: state.categoryLookup,
+      settingsLoading: state.loading,
+      fetchSettings: state.fetchSettings,
+    }));
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
@@ -61,16 +82,36 @@ export default function ProductsPage() {
     fetchProducts();
   }, [fetchProducts]);
 
+  useEffect(() => {
+    fetchSettings();
+  }, [fetchSettings]);
+
+  const resolveCategoryLabel = (product) => {
+    if (!product?.categoryId) {
+      return "Sin categoría";
+    }
+    return categoryLookup[product.categoryId] ?? product.categoryId;
+  };
+
   const filteredProducts = useMemo(() => {
     const list = Array.isArray(products) ? products : [];
     const term = searchTerm.trim().toLowerCase();
-    if (!term) {
-      return list;
-    }
-    return list.filter((product) =>
-      product.name?.toLowerCase().includes(term)
-    );
-  }, [products, searchTerm]);
+    return list.filter((product) => {
+      const matchesSearch = term
+        ? product.name?.toLowerCase().includes(term)
+        : true;
+      if (!matchesSearch) {
+        return false;
+      }
+      if (categoryFilter === "all") {
+        return true;
+      }
+      if (categoryFilter === "uncategorized") {
+        return !product.categoryId;
+      }
+      return product.categoryId === categoryFilter;
+    });
+  }, [products, searchTerm, categoryFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filteredProducts.length / pageSize));
 
@@ -127,7 +168,13 @@ export default function ProductsPage() {
     }
 
     if (viewMode === "table") {
-      return <ProductTable products={paginatedProducts} onEdit={handleEdit} />;
+      return (
+        <ProductTable
+          products={paginatedProducts}
+          onEdit={handleEdit}
+          getCategoryLabel={resolveCategoryLabel}
+        />
+      );
     }
 
     if (viewMode === "list") {
@@ -142,6 +189,7 @@ export default function ProductsPage() {
                     {product.type === "COMPOSED" ? "Compuesto" : "Simple"} · {product.ingredients?.length ?? 0} ingredientes
                   </p>
                 </div>
+                <Badge variant="secondary">{resolveCategoryLabel(product)}</Badge>
                 <div className="flex items-center gap-3">
                   <span className="text-sm font-medium">
                     {Number(product.price || 0).toLocaleString("es-CL", {
@@ -163,7 +211,12 @@ export default function ProductsPage() {
     return (
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {paginatedProducts.map((product) => (
-          <ProductCard key={product._id ?? product.name} product={product} onEdit={handleEdit} />
+          <ProductCard
+            key={product._id ?? product.name}
+            product={product}
+            onEdit={handleEdit}
+            categoryLabel={resolveCategoryLabel(product)}
+          />
         ))}
       </div>
     );
@@ -203,6 +256,26 @@ export default function ProductsPage() {
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
               />
+            </div>
+            <div className="w-full max-w-xs">
+              <Select
+                value={categoryFilter}
+                onValueChange={(value) => setCategoryFilter(value)}
+                disabled={settingsLoading}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Todas las categorías" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas</SelectItem>
+                  <SelectItem value="uncategorized">Sin categoría</SelectItem>
+                  {categories.map((category) => (
+                    <SelectItem key={category.id} value={category.id}>
+                      {category.label ?? category.id}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="flex flex-wrap items-center gap-3">
               <span className="text-xs text-muted-foreground">

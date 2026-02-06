@@ -12,6 +12,12 @@ export async function POST(req) {
     const Product = ProductModel(conn);
 
     const body = await req.json();
+    if (body?.categoryId !== undefined && body?.categoryId !== null && typeof body.categoryId !== "string") {
+      return NextResponse.json({ error: "categoryId debe ser un string." }, { status: 400 });
+    }
+    if (typeof body?.categoryId === "string" && body.categoryId.trim() === "") {
+      body.categoryId = null;
+    }
     const product = await Product.create(body);
 
     return NextResponse.json(product);
@@ -33,4 +39,3 @@ export async function GET(req) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
 }
-

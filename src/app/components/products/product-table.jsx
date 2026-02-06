@@ -2,6 +2,7 @@
 
 import { Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -17,13 +18,14 @@ const formatPrice = (price) =>
     currency: "CLP",
   });
 
-export function ProductTable({ products, onEdit }) {
+export function ProductTable({ products, onEdit, getCategoryLabel }) {
   return (
     <Table>
       <TableHeader>
         <TableRow>
           <TableHead>Producto</TableHead>
           <TableHead>Tipo</TableHead>
+          <TableHead>Categoría</TableHead>
           <TableHead>Precio</TableHead>
           <TableHead>Ingredientes</TableHead>
           <TableHead className="text-right">Acciones</TableHead>
@@ -34,6 +36,11 @@ export function ProductTable({ products, onEdit }) {
           <TableRow key={product._id ?? product.name}>
             <TableCell className="font-medium">{product.name}</TableCell>
             <TableCell>{product.type === "COMPOSED" ? "Compuesto" : "Simple"}</TableCell>
+            <TableCell>
+              <Badge variant="secondary">
+                {getCategoryLabel ? getCategoryLabel(product) : "Sin categoría"}
+              </Badge>
+            </TableCell>
             <TableCell>{formatPrice(product.price)}</TableCell>
             <TableCell>{product.ingredients?.length ?? 0}</TableCell>
             <TableCell className="text-right">

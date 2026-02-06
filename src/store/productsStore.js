@@ -16,10 +16,12 @@ export const useProductsStore = create((set, get) => ({
   error: null,
   viewMode: "grid",
   searchTerm: "",
+  categoryFilter: "all",
   page: 1,
   pageSize: INITIAL_PAGE_SIZE,
   setViewMode: (viewMode) => set({ viewMode }),
   setSearchTerm: (searchTerm) => set({ searchTerm, page: 1 }),
+  setCategoryFilter: (categoryFilter) => set({ categoryFilter, page: 1 }),
   setPage: (page) => set({ page }),
   setPageSize: (pageSize) => set({ pageSize, page: 1 }),
   fetchProducts: async () => {
@@ -111,5 +113,4 @@ export const useProductsStore = create((set, get) => ({
     }
   },
 }));
-
 
