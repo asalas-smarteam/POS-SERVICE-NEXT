@@ -5,6 +5,32 @@ const resolveProductId = (product) =>
 
 const normalizePrice = (price) => Number(price ?? 0);
 
+const normalizeNotes = (notes) => {
+  if (Array.isArray(notes)) {
+    return notes.filter(Boolean);
+  }
+  if (typeof notes === "string" && notes.trim()) {
+    return [notes.trim()];
+  }
+  return [];
+};
+
+const normalizeIngredients = (ingredients = []) =>
+  ingredients
+    .map((item) => {
+      const ingredient = item?.ingredientId ?? {};
+      const ingredientId = ingredient?._id ?? item?.ingredientId;
+      if (!ingredientId) {
+        return null;
+      }
+      return {
+        ingredientId,
+        name: ingredient?.name ?? item?.name ?? "Ingrediente",
+        quantity: Number(item?.quantity ?? 1),
+      };
+    })
+    .filter(Boolean);
+
 export const useOrderStore = create((set, get) => ({
   items: [],
   addItem: (product) => {
@@ -24,6 +50,7 @@ export const useOrderStore = create((set, get) => ({
           ),
         };
       }
+      const baseIngredients = normalizeIngredients(product?.ingredients ?? []);
       return {
         items: [
           ...state.items,
@@ -31,8 +58,15 @@ export const useOrderStore = create((set, get) => ({
             id: productId,
             name: product.name ?? "Producto",
             price: normalizePrice(product.price),
-            notes: product.notes ?? "Sin observaciones",
+            notes: normalizeNotes(product.notes),
             quantity: 1,
+            baseIngredients,
+            // modifiers mantiene cantidades base y extras por ingrediente.
+            modifiers: baseIngredients.map((ingredient) => ({
+              ...ingredient,
+              baseQuantity: ingredient.quantity,
+              isExtra: false,
+            })),
           },
         ],
       };
@@ -63,10 +97,16 @@ export const useOrderStore = create((set, get) => ({
       }),
     }));
   },
-  updateNotes: (productId, notes) => {
+  updateNotes: (productId, { notes, modifiers }) => {
     set((state) => ({
       items: state.items.map((item) =>
-        item.id === productId ? { ...item, notes } : item
+        item.id === productId
+          ? {
+              ...item,
+              notes: normalizeNotes(notes),
+              modifiers: Array.isArray(modifiers) ? modifiers : item.modifiers,
+            }
+          : item
       ),
     }));
   },

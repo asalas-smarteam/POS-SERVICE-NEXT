@@ -1,7 +1,9 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import { MessageSquarePlus, Minus, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { OrderItemNotesDialog } from "@/components/sales/order-item-notes-dialog";
 import { cn } from "@/lib/utils";
 
 const formatCurrency = (value) =>
@@ -18,16 +20,16 @@ export function OrderItem({
   onUpdateNotes,
   className,
 }) {
-  const handleNotesClick = () => {
-    const nextNotes = window.prompt(
-      "Agregar observaciones para este producto:",
-      item.notes ?? ""
-    );
-    if (nextNotes === null) {
-      return;
+  const [notesOpen, setNotesOpen] = useState(false);
+  const notesList = useMemo(() => {
+    if (Array.isArray(item.notes)) {
+      return item.notes.filter(Boolean);
     }
-    onUpdateNotes?.(item.id, nextNotes.trim() || "Sin observaciones");
-  };
+    if (typeof item.notes === "string" && item.notes.trim()) {
+      return [item.notes.trim()];
+    }
+    return [];
+  }, [item.notes]);
 
   return (
     <div
@@ -39,7 +41,15 @@ export function OrderItem({
       <div className="flex items-start justify-between gap-2">
         <div>
           <p className="text-sm font-semibold text-foreground">{item.name}</p>
-          <p className="text-xs text-muted-foreground">{item.notes}</p>
+          {notesList.length ? (
+            <ul className="mt-1 space-y-1 text-xs text-muted-foreground">
+              {notesList.map((note, index) => (
+                <li key={`${note}-${index}`}>- {note}</li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-xs text-muted-foreground">Sin observaciones</p>
+          )}
         </div>
         <span className="text-sm font-semibold text-foreground">
           {formatCurrency(item.price * item.quantity)}
@@ -74,7 +84,7 @@ export function OrderItem({
             variant="ghost"
             size="icon"
             className="h-8 w-8 text-muted-foreground hover:text-primary"
-            onClick={handleNotesClick}
+            onClick={() => setNotesOpen(true)}
             aria-label="Agregar observaciones"
           >
             <MessageSquarePlus className="size-4" />
@@ -90,6 +100,12 @@ export function OrderItem({
           </Button>
         </div>
       </div>
+      <OrderItemNotesDialog
+        open={notesOpen}
+        onOpenChange={setNotesOpen}
+        item={item}
+        onSave={onUpdateNotes}
+      />
     </div>
   );
 }
