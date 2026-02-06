@@ -5,13 +5,7 @@ import { Package, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -24,6 +18,7 @@ import { AppAlert } from "@/components/app-alert";
 import { AppSpinner } from "@/components/app-spinner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { IngredientSearchSelect } from "@/components/ingredients/ingredient-search-select";
 import { useProductsStore } from "../../../store/productsStore";
 import { useSettingsStore } from "../../../store/settingsStore";
 
@@ -339,38 +334,16 @@ export function ProductDialog({ open, onOpenChange, product, onSuccess }) {
 
               <div className="space-y-2">
                 <Label>Agregar ingrediente</Label>
-                <Select
+                <IngredientSearchSelect
                   value={selectValue}
                   onValueChange={(value) => {
                     setSelectValue(value);
                     handleIngredientSelect(value);
                   }}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Selecciona un ingrediente" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <div className="p-2">
-                      <Input
-                        value={ingredientSearch}
-                        onChange={(event) => setIngredientSearch(event.target.value)}
-                        placeholder="Buscar ingrediente..."
-                        onKeyDown={(event) => event.stopPropagation()}
-                      />
-                    </div>
-                    {filteredIngredients.length > 0 ? (
-                      filteredIngredients.map((ingredient) => (
-                        <SelectItem key={ingredient._id} value={ingredient._id}>
-                          {ingredient.name}
-                        </SelectItem>
-                      ))
-                    ) : (
-                      <div className="px-3 py-2 text-xs text-muted-foreground">
-                        Sin resultados.
-                      </div>
-                    )}
-                  </SelectContent>
-                </Select>
+                  searchValue={ingredientSearch}
+                  onSearchChange={setIngredientSearch}
+                  items={filteredIngredients}
+                />
               </div>
 
               <div className="space-y-3">
