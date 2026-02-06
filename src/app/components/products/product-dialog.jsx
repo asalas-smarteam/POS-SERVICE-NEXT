@@ -22,14 +22,17 @@ import {
 } from "@/components/ui/dialog";
 import { AppAlert } from "@/components/app-alert";
 import { AppSpinner } from "@/components/app-spinner";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { useProductsStore } from "../../../store/productsStore";
+import { useSettingsStore } from "../../../store/settingsStore";
 
 const emptyForm = {
   name: "",
   price: "",
   type: "SIMPLE",
   ingredients: [],
+  categoryId: "",
 };
 
 const normalizeIngredients = (ingredients = []) =>
@@ -57,6 +60,14 @@ export function ProductDialog({ open, onOpenChange, product, onSuccess }) {
     updateProduct: state.updateProduct,
   }));
 
+  const { categories, settingsLoading, fetchSettings } = useSettingsStore(
+    (state) => ({
+      categories: state.categories,
+      settingsLoading: state.loading,
+      fetchSettings: state.fetchSettings,
+    })
+  );
+
   const [form, setForm] = useState(emptyForm);
   const [alert, setAlert] = useState(null);
   const [selectValue, setSelectValue] = useState("");
@@ -67,8 +78,9 @@ export function ProductDialog({ open, onOpenChange, product, onSuccess }) {
   useEffect(() => {
     if (open) {
       fetchIngredients();
+      fetchSettings();
     }
-  }, [open, fetchIngredients]);
+  }, [open, fetchIngredients, fetchSettings]);
 
   useEffect(() => {
     if (!open) {
@@ -85,11 +97,22 @@ export function ProductDialog({ open, onOpenChange, product, onSuccess }) {
         price: product?.price ?? "",
         type: product?.type ?? "SIMPLE",
         ingredients: normalizeIngredients(product?.ingredients ?? []),
+        categoryId: product?.categoryId ?? "",
       });
     } else {
       setForm(emptyForm);
     }
   }, [open, product]);
+
+  useEffect(() => {
+    if (!open || isEditing || form.categoryId) {
+      return;
+    }
+    const defaultCategory = categories.find((category) => category?.id === "bebidas");
+    if (defaultCategory?.id) {
+      setForm((current) => ({ ...current, categoryId: defaultCategory.id }));
+    }
+  }, [categories, form.categoryId, isEditing, open]);
 
   const selectedIngredientIds = useMemo(
     () => new Set(form.ingredients.map((item) => item.ingredientId)),
@@ -166,6 +189,10 @@ export function ProductDialog({ open, onOpenChange, product, onSuccess }) {
       }));
     }
 
+    if (form.categoryId) {
+      payload.categoryId = form.categoryId;
+    }
+
     if (!payload.name || !payload.price) {
       setAlert({ type: "error", message: "Completa nombre y precio." });
       return;
@@ -238,6 +265,40 @@ export function ProductDialog({ open, onOpenChange, product, onSuccess }) {
                 placeholder="Ej: 1200"
               />
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Categoría</Label>
+            {settingsLoading ? (
+              <Skeleton className="h-10 w-full" />
+            ) : (
+              <Select
+                value={form.categoryId}
+                onValueChange={(value) =>
+                  setForm((current) => ({
+                    ...current,
+                    categoryId: value,
+                  }))
+                }
+                disabled={categories.length === 0}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Seleccionar categoría" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((category) => (
+                    <SelectItem key={category.id} value={category.id}>
+                      {category.label ?? category.id}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            {!settingsLoading && categories.length === 0 ? (
+              <p className="text-xs text-muted-foreground">
+                No hay categorías configuradas. Ve a /configuracion para agregarlas.
+              </p>
+            ) : null}
           </div>
 
           <div className="space-y-2">

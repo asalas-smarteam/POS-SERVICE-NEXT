@@ -18,6 +18,12 @@ export async function PUT(req, { params }) {
     const Product = ProductModel(conn);
 
     const body = await req.json();
+    if (body?.categoryId !== undefined && body?.categoryId !== null && typeof body.categoryId !== "string") {
+      return NextResponse.json({ error: "categoryId debe ser un string." }, { status: 400 });
+    }
+    if (typeof body?.categoryId === "string" && body.categoryId.trim() === "") {
+      body.categoryId = null;
+    }
     const updated = await Product.findByIdAndUpdate(orderId, body, {
       new: true,
       runValidators: true,
