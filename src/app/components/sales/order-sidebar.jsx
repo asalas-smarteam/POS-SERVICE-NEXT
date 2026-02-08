@@ -2,6 +2,7 @@
 
 import { Pause, Trash2, Wallet } from "lucide-react";
 import { AppAlert } from "@/components/app-alert";
+import { AppSpinner } from "@/components/app-spinner";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -24,6 +25,9 @@ export function OrderSidebar({
   onRemove,
   onUpdateNotes,
   onClear,
+  onCheckout,
+  isSubmitting = false,
+  checkoutError,
   className,
 }) {
   const tax = subtotal * taxRate;
@@ -107,9 +111,25 @@ export function OrderSidebar({
         </Button>
       </div>
 
-      <Button className="w-full justify-center gap-2" size="lg">
+      {checkoutError ? (
+        <AppAlert type="error" message={checkoutError} />
+      ) : null}
+
+      <Button
+        className="w-full justify-center gap-2"
+        size="lg"
+        onClick={onCheckout}
+        disabled={!items.length || isSubmitting}
+      >
         <Wallet className="size-4" />
-        Checkout (F2)
+        {isSubmitting ? (
+          <span className="flex items-center gap-2">
+            <AppSpinner size={16} inline />
+            Procesando...
+          </span>
+        ) : (
+          "Checkout (F2)"
+        )}
       </Button>
     </aside>
   );
