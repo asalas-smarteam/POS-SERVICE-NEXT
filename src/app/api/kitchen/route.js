@@ -9,8 +9,11 @@ export async function GET(req) {
     const conn = await getTenantConnection(tenant.dbName);
     const Order = OrderModel(conn);
 
-    const tickets = await Order.find({ status: 'COCINA' })
-      .sort({ createdAt: 1 });
+    const tickets = await Order.find({
+      status: {
+        $in: ['COCINA', 'EN_ESPERA', 'EN_PROCESO', 'LISTO', 'ELIMINADO'],
+      },
+    }).sort({ createdAt: 1 });
 
     return NextResponse.json(tickets);
 

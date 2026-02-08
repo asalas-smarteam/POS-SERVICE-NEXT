@@ -40,7 +40,7 @@ export async function seedTenantDB(conn, tenantSlug) {
     COCINA: [
       { label: 'Dashboard', href: '/dashboard', icon: navIconMap.dashboard },
       { label: 'Órdenes', href: '/ordenes', icon: navIconMap.orders },
-      { label: 'Cocina', href: '/cocina', icon: navIconMap.kitchen },
+      { label: 'Cocina', href: '/kitchen', icon: navIconMap.kitchen },
     ],
   };
 

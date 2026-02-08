@@ -26,9 +26,12 @@ export async function POST(req, context) {
       );
     }
 
-    await discountInventory(conn, order);
+    if (!order.inventoryDiscounted) {
+      await discountInventory(conn, order);
+      order.inventoryDiscounted = true;
+    }
 
-    order.status = "COCINA";
+    order.status = "EN_ESPERA";
     await order.save();
 
     return NextResponse.json({ ok: true });
