@@ -1,7 +1,7 @@
 const JSPDF_CDN =
   "https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js";
 
-const loadJsPdf = () =>
+export const loadJsPdf = () =>
   new Promise((resolve, reject) => {
     if (typeof window === "undefined") {
       reject(new Error("jsPDF solo está disponible en el navegador."));
