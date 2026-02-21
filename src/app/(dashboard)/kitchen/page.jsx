@@ -4,19 +4,18 @@ import { useEffect, useMemo } from "react";
 import { AppAlert } from "@/components/app-alert";
 import { AppSkeleton } from "@/components/app-skeleton";
 import { AppSpinner } from "@/components/app-spinner";
+import { KitchenTicketContent } from "@/components/sales/kitchen-ticket-content";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { useKitchenStore } from "../../../store/kitchenStore";
-import { useProductsStore } from "../../../store/productsStore";
 
 const STATUS_COLUMNS = [
-  { key: "EN_ESPERA", label: "En espera" },
-  { key: "EN_PROCESO", label: "En proceso" },
-  { key: "LISTO", label: "Listo para entregar" },
-  { key: "ELIMINADO", label: "Eliminado" },
+  { key: "EN_PREPARACION", label: "En preparación" },
+  { key: "EN_HORNO", label: "En horno" },
+  { key: "LISTO", label: "Listo" },
 ];
 
 const normalizeOrderNumber = (orderId) => {
@@ -28,9 +27,15 @@ const normalizeOrderNumber = (orderId) => {
 };
 
 const formatDuration = (ms) => {
-  const totalSeconds = Math.floor(ms / 1000);
-  const minutes = Math.floor(totalSeconds / 60);
+  const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
+
+  if (hours > 0) {
+    return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  }
+
   return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 };
 
@@ -57,7 +62,21 @@ const buildItemNotes = (item) => {
   });
 };
 
-const normalizeStatus = (status) => (status === "COCINA" ? "EN_ESPERA" : status);
+const getElapsedMs = (ticket, now) => {
+  const startedAt = ticket?.kitchenStartedAt ? new Date(ticket.kitchenStartedAt).getTime() : null;
+  if (!startedAt) {
+    return 0;
+  }
+
+  if (ticket?.kitchenStatus === "LISTO") {
+    const completedAt = ticket?.kitchenCompletedAt
+      ? new Date(ticket.kitchenCompletedAt).getTime()
+      : now;
+    return completedAt - startedAt;
+  }
+
+  return now - startedAt;
+};
 
 export default function KitchenPage() {
   const {
@@ -80,14 +99,8 @@ export default function KitchenPage() {
     stopTimer: state.stopTimer,
   }));
 
-  const { products, fetchProducts } = useProductsStore((state) => ({
-    products: state.products,
-    fetchProducts: state.fetchProducts,
-  }));
-
   useEffect(() => {
     fetchTickets();
-    fetchProducts();
     startTimer();
 
     const interval = setInterval(() => {
@@ -98,38 +111,27 @@ export default function KitchenPage() {
       clearInterval(interval);
       stopTimer();
     };
-  }, [fetchTickets, fetchProducts, startTimer, stopTimer]);
-
-  const productNameMap = useMemo(() => {
-    return (products || []).reduce((acc, product) => {
-      acc[product._id ?? product.id ?? product.sku ?? product.name] =
-        product.name ?? "Producto";
-      return acc;
-    }, {});
-  }, [products]);
+  }, [fetchTickets, startTimer, stopTimer]);
 
   const ticketsByStatus = useMemo(() => {
     return STATUS_COLUMNS.reduce((acc, column) => {
-      acc[column.key] = tickets.filter(
-        (ticket) => normalizeStatus(ticket.status) === column.key
-      );
+      acc[column.key] = tickets.filter((ticket) => ticket.kitchenStatus === column.key);
       return acc;
     }, {});
   }, [tickets]);
 
   const handleContinue = (ticket) => {
-    const status = normalizeStatus(ticket.status);
-    if (status === "EN_ESPERA") {
-      updateTicketStatus(ticket._id, "EN_PROCESO");
+    if (ticket.kitchenStatus === "EN_PREPARACION") {
+      updateTicketStatus(ticket._id, "EN_HORNO");
       return;
     }
-    if (status === "EN_PROCESO") {
+    if (ticket.kitchenStatus === "EN_HORNO") {
       updateTicketStatus(ticket._id, "LISTO");
     }
   };
 
   const handleCancel = (ticket) => {
-    updateTicketStatus(ticket._id, "ELIMINADO");
+    updateTicketStatus(ticket._id, "CANCELADO");
   };
 
   return (
@@ -153,7 +155,7 @@ export default function KitchenPage() {
         {error ? <AppAlert type="error" message={error} /> : null}
 
         {loading && !tickets.length ? (
-          <div className="grid gap-4 lg:grid-cols-4">
+          <div className="grid gap-4 lg:grid-cols-3">
             {STATUS_COLUMNS.map((column) => (
               <Card key={column.key} className="h-[640px]">
                 <CardHeader>
@@ -166,7 +168,7 @@ export default function KitchenPage() {
             ))}
           </div>
         ) : (
-          <div className="grid gap-4 lg:grid-cols-4">
+          <div className="grid gap-4 lg:grid-cols-3">
             {STATUS_COLUMNS.map((column) => {
               const columnTickets = ticketsByStatus[column.key] ?? [];
               return (
@@ -183,14 +185,12 @@ export default function KitchenPage() {
                       <div className="space-y-4">
                         {columnTickets.length ? (
                           columnTickets.map((ticket) => {
-                            const createdAt = ticket.createdAt
-                              ? new Date(ticket.createdAt).getTime()
-                              : Date.now();
-                            const elapsed = formatDuration(
-                              Math.max(0, now - createdAt)
-                            );
                             const orderItems = Array.isArray(ticket.items)
-                              ? ticket.items
+                              ? ticket.items.map((item) => ({
+                                  name: item.productName || "Producto",
+                                  quantity: item.quantity,
+                                  notes: buildItemNotes(item),
+                                }))
                               : [];
                             const orderNotes = Array.isArray(ticket.notes)
                               ? ticket.notes
@@ -199,98 +199,44 @@ export default function KitchenPage() {
                                 : [];
 
                             return (
-                              <Card
-                                key={ticket._id}
-                                className="border-border/60 bg-background shadow-sm"
-                              >
+                              <Card key={ticket._id} className="border-border/60 bg-background shadow-sm">
                                 <CardContent className="space-y-3 p-4">
-                                  <div className="space-y-1">
-                                    <div className="flex items-center justify-between">
-                                      <h3 className="text-lg font-semibold">
-                                        #{normalizeOrderNumber(ticket._id)}
-                                      </h3>
-                                      <Badge variant="outline">
-                                        {normalizeStatus(ticket.status).replace(
-                                          "_",
-                                          " "
-                                        )}
-                                      </Badge>
-                                    </div>
-                                    <p className="text-xs text-muted-foreground">
-                                      Mesa / Tipo · Sin asignar
-                                    </p>
-                                  </div>
-
-                                  <div className="space-y-2">
-                                    {orderItems.map((item, index) => {
-                                      const productName =
-                                        item.productName ||
-                                        productNameMap[item.productId] ||
-                                        "Producto";
-                                      const notes = buildItemNotes(item);
-                                      return (
-                                        <div key={`${item.productId}-${index}`}>
-                                          <p className="text-sm font-semibold">
-                                            {item.quantity}x {productName}
-                                          </p>
-                                          {notes.length ? (
-                                            <ul className="mt-1 space-y-1 text-xs text-muted-foreground">
-                                              {notes.map((note, idx) => (
-                                                <li key={`${note}-${idx}`}>
-                                                  - {note}
-                                                </li>
-                                              ))}
-                                            </ul>
-                                          ) : null}
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-
-                                  <div className="rounded-md border border-dashed border-border/70 bg-muted/40 p-2 text-xs">
-                                    <p className="font-semibold text-foreground">
-                                      Notas
-                                    </p>
-                                    {orderNotes.length ? (
-                                      <ul className="mt-1 space-y-1 text-muted-foreground">
-                                        {orderNotes.map((note, idx) => (
-                                          <li key={`${note}-${idx}`}>
-                                            - {note}
-                                          </li>
-                                        ))}
-                                      </ul>
-                                    ) : (
-                                      <p className="text-muted-foreground">
-                                        Sin notas
-                                      </p>
-                                    )}
-                                  </div>
-
                                   <div className="flex items-center justify-between">
+                                    <Badge variant="outline">#{normalizeOrderNumber(ticket._id)}</Badge>
                                     <span className="text-xs text-muted-foreground">
-                                      Tiempo: {elapsed}
+                                      {formatDuration(getElapsedMs(ticket, now))}
                                     </span>
-                                    <div className="flex items-center gap-2">
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => handleCancel(ticket)}
-                                        disabled={ticket.status === "ELIMINADO"}
-                                      >
-                                        Cancelar
+                                  </div>
+
+                                  <KitchenTicketContent
+                                    className="w-full"
+                                    orderNumber={normalizeOrderNumber(ticket._id)}
+                                    datetimeValue={new Date(ticket.createdAt ?? Date.now()).toLocaleString()}
+                                    items={orderItems}
+                                    orderNotes={orderNotes}
+                                  />
+
+                                  <div className="flex items-center justify-end gap-2">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleCancel(ticket)}
+                                      disabled={ticket.kitchenStatus === "CANCELADO"}
+                                    >
+                                      Cancelar
+                                    </Button>
+
+                                    {ticket.kitchenStatus === "EN_PREPARACION" ? (
+                                      <Button size="sm" onClick={() => handleContinue(ticket)}>
+                                        Pasar a Horno
                                       </Button>
-                                      <Button
-                                        size="sm"
-                                        onClick={() => handleContinue(ticket)}
-                                        disabled={
-                                          normalizeStatus(ticket.status) ===
-                                            "LISTO" ||
-                                          ticket.status === "ELIMINADO"
-                                        }
-                                      >
-                                        Continuar
+                                    ) : null}
+
+                                    {ticket.kitchenStatus === "EN_HORNO" ? (
+                                      <Button size="sm" onClick={() => handleContinue(ticket)}>
+                                        Marcar como Listo
                                       </Button>
-                                    </div>
+                                    ) : null}
                                   </div>
                                 </CardContent>
                               </Card>

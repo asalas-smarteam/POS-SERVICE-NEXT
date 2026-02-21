@@ -3,8 +3,8 @@
 import { useRef } from "react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { KitchenTicketContent } from "@/components/sales/kitchen-ticket-content";
 import { loadJsPdf } from "@/lib/pdf/ticketJsPdf";
 
 export function TicketPreviewDialog({
@@ -62,69 +62,12 @@ export function TicketPreviewDialog({
         */}
         <div ref={ticketRef} className="ticket-print-root flex flex-col items-center gap-4">
           <ScrollArea className="ticket-scroll-area h-[520px] w-full rounded-lg border bg-muted/30 p-6">
-            <div className="mx-auto w-[300px] rounded-md border bg-background p-4 text-xs text-foreground shadow-sm">
-              <div className="space-y-1 text-center">
-                <p className="text-sm font-semibold uppercase">Orden de cocina</p>
-                <p className="text-2xl font-bold">#{ticket.orderNumber}</p>
-              </div>
-
-              <Separator className="my-3" />
-
-              <div className="space-y-1">
-                <p className="text-[11px] font-semibold">Mesa / Cliente</p>
-                <p className="text-[11px] text-muted-foreground">
-                  {ticket.tableValue}
-                </p>
-                <p className="mt-2 text-[11px] font-semibold">Fecha y hora</p>
-                <p className="text-[11px] text-muted-foreground">
-                  {ticket.datetimeValue}
-                </p>
-              </div>
-
-              <Separator className="my-3" />
-
-              <div className="space-y-3">
-                {ticket.items.map((item) => (
-                  <div key={`${item.name}-${item.quantity}`}>
-                    <p className="text-[11px] font-semibold">
-                      {item.quantity}x {item.name}
-                    </p>
-                    {item.notes?.length ? (
-                      <ul className="mt-1 space-y-1 text-[10px] text-muted-foreground">
-                        {item.notes.map((note, idx) => (
-                          <li key={`${note}-${idx}`}>- {note}</li>
-                        ))}
-                      </ul>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
-
-              {ticket.orderNotes?.length ? (
-                <>
-                  <Separator className="my-3" />
-                  <div className="space-y-1">
-                    <p className="text-[11px] font-semibold">Notas</p>
-                    <ul className="space-y-1 text-[10px] text-muted-foreground">
-                      {ticket.orderNotes.map((note, idx) => (
-                        <li key={`${note}-${idx}`}>- {note}</li>
-                      ))}
-                    </ul>
-                  </div>
-                </>
-              ) : null}
-
-              <Separator className="my-3" />
-
-              <div className="space-y-1 text-center">
-                <p className="text-[11px] text-muted-foreground">
-                  Terminal: {ticket.terminalValue}
-                </p>
-                <p className="text-[11px] font-semibold">
-                  *** FIN DEL TICKET ***
-                </p>
-              </div>
-            </div>
+            <KitchenTicketContent
+              orderNumber={ticket.orderNumber}
+              datetimeValue={ticket.datetimeValue}
+              items={ticket.items}
+              orderNotes={ticket.orderNotes}
+            />
           </ScrollArea>
         </div>
 
