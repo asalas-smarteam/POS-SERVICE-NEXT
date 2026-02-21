@@ -52,26 +52,26 @@ export const useKitchenStore = create((set, get) => ({
       });
     }
   },
-  updateTicketStatus: async (ticketId, status) => {
+  updateTicketStatus: async (ticketId, kitchenStatus) => {
     const previousTickets = get().tickets;
     const normalizedId = String(ticketId);
 
     set({
       tickets: previousTickets.map((ticket) =>
         String(normalizeTicketId(ticket)) === normalizedId
-          ? { ...ticket, status }
+          ? { ...ticket, kitchenStatus }
           : ticket
       ),
     });
 
     try {
-      const response = await fetch(`/api/kitchen/${ticketId}/status`, {
-        method: "POST",
+      const response = await fetch(`/api/orders/${ticketId}/kitchen-status`, {
+        method: "PATCH",
         headers: {
           "Content-Type": "application/json",
           ...getTenantHeader(),
         },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ status: kitchenStatus }),
       });
       if (!response.ok) {
         throw new Error("No se pudo actualizar el estado.");

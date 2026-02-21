@@ -3,7 +3,7 @@ import { resolveTenant } from "@/lib/tenant/resolveTenant";
 import { getTenantConnection } from "@/lib/db/connections";
 import { OrderModel } from "@/models/tenant/Order";
 
-const ALLOWED_STATUSES = ["EN_PROCESO", "LISTO", "ELIMINADO"];
+const ALLOWED_STATUSES = ["EN_PREPARACION", "EN_HORNO", "LISTO", "CANCELADO"];
 
 export async function POST(req, context) {
   try {
@@ -18,21 +18,27 @@ export async function POST(req, context) {
     const nextStatus = body?.status;
 
     if (!ALLOWED_STATUSES.includes(nextStatus)) {
-      return NextResponse.json(
-        { error: "Invalid status" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Invalid status" }, { status: 400 });
     }
 
     const tenant = await resolveTenant(req);
     const conn = await getTenantConnection(tenant.dbName);
     const Order = OrderModel(conn);
 
-    const order = await Order.findByIdAndUpdate(
-      orderId,
-      { status: nextStatus },
-      { new: true },
-    );
+    const updates = {
+      kitchenStatus: nextStatus,
+    };
+
+    if (nextStatus === "LISTO") {
+      updates.kitchenCompletedAt = new Date();
+      updates.status = "LISTO";
+    }
+
+    if (nextStatus === "CANCELADO") {
+      updates.status = "CANCELLED";
+    }
+
+    const order = await Order.findByIdAndUpdate(orderId, updates, { new: true });
 
     if (!order) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });

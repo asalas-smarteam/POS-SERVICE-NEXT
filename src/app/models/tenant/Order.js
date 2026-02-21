@@ -46,12 +46,28 @@ const OrderSchema = new mongoose.Schema({
       'EN_PROCESO',
       'LISTO',
       'ELIMINADO',
+      'CANCELLED',
     ],
     default: 'DRAFT',
   },
   inventoryDiscounted: {
     type: Boolean,
     default: false,
+  },
+
+
+  kitchenStatus: {
+    type: String,
+    enum: ['EN_PREPARACION', 'EN_HORNO', 'LISTO', 'CANCELADO'],
+    default: null,
+  },
+  kitchenStartedAt: {
+    type: Date,
+    default: null,
+  },
+  kitchenCompletedAt: {
+    type: Date,
+    default: null,
   },
 
   items: [OrderItemSchema],

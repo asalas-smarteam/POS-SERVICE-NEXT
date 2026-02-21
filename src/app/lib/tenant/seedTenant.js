@@ -24,8 +24,7 @@ export async function seedTenantDB(conn, tenantSlug) {
   const roleNavDefaults = {
     ADMIN: [
       { label: 'Dashboard', href: '/dashboard', icon: navIconMap.dashboard },
-      { label: 'Ventas', href: '/ventas', icon: navIconMap.sales },
-      { label: 'Órdenes', href: '/ordenes', icon: navIconMap.orders },
+      { label: 'Órdenes', href: '/ordenes', icon: navIconMap.sales },
       { label: 'Productos', href: '/productos', icon: navIconMap.products },
       { label: 'Ingredientes', href: '/ingredientes', icon: navIconMap.ingredients },
       { label: 'Usuarios', href: '/usuarios', icon: navIconMap.users },
@@ -34,8 +33,7 @@ export async function seedTenantDB(conn, tenantSlug) {
     ],
     CAJERO: [
       { label: 'Dashboard', href: '/dashboard', icon: navIconMap.dashboard },
-      { label: 'Ventas', href: '/ventas', icon: navIconMap.sales },
-      { label: 'Órdenes', href: '/ordenes', icon: navIconMap.orders },
+      { label: 'Órdenes', href: '/ordenes', icon: navIconMap.sales },
     ],
     COCINA: [
       { label: 'Dashboard', href: '/dashboard', icon: navIconMap.dashboard },

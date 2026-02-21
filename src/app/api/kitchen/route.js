@@ -10,13 +10,12 @@ export async function GET(req) {
     const Order = OrderModel(conn);
 
     const tickets = await Order.find({
-      status: {
-        $in: ['COCINA', 'EN_ESPERA', 'EN_PROCESO', 'LISTO', 'ELIMINADO'],
+      kitchenStatus: {
+        $in: ['EN_PREPARACION', 'EN_HORNO', 'LISTO'],
       },
     }).sort({ createdAt: 1 });
 
     return NextResponse.json(tickets);
-
   } catch (e) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }

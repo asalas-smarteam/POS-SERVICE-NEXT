@@ -32,6 +32,9 @@ export async function POST(req, context) {
     }
 
     order.status = "EN_ESPERA";
+    order.kitchenStatus = "EN_PREPARACION";
+    order.kitchenStartedAt = new Date();
+    order.kitchenCompletedAt = null;
     await order.save();
 
     return NextResponse.json({ ok: true });
