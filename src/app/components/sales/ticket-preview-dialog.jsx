@@ -1,9 +1,11 @@
 "use client";
 
+import { useRef } from "react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { loadJsPdf } from "@/lib/pdf/ticketJsPdf";
 
 export function TicketPreviewDialog({
   open,
@@ -11,19 +13,55 @@ export function TicketPreviewDialog({
   ticket,
   onPrint,
 }) {
+  const ticketRef = useRef(null);
+
   if (!ticket) {
     return null;
   }
 
+  const generatePDF = async () => {
+    if (!ticketRef.current) {
+      return;
+    }
+
+    const jsPDF = await loadJsPdf();
+    const doc = new jsPDF({
+      unit: "mm",
+      format: [80, 200],
+    });
+
+    await doc.html(ticketRef.current, {
+      callback: (pdfDoc) => {
+        pdfDoc.save(`ticket-${ticket.orderNumber}.pdf`);
+      },
+      margin: [0, 0, 0, 0],
+      autoPaging: "text",
+    });
+  };
+
+  const handlePrint = () => {
+    if (onPrint) {
+      onPrint(ticketRef.current);
+      return;
+    }
+
+    window.print();
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl">
-        <DialogHeader>
+        <DialogHeader className="no-print">
           <DialogTitle>Previsualización de ticket</DialogTitle>
         </DialogHeader>
 
-        <div className="flex flex-col items-center gap-4">
-          <ScrollArea className="h-[520px] w-full rounded-lg border bg-muted/30 p-6">
+        {/*
+          Web vs Print/PDF separation:
+          - La UI web mantiene el Dialog completo.
+          - El contenido imprimible/PDF vive en un único nodo (ticketRef).
+        */}
+        <div ref={ticketRef} className="ticket-print-root flex flex-col items-center gap-4">
+          <ScrollArea className="ticket-scroll-area h-[520px] w-full rounded-lg border bg-muted/30 p-6">
             <div className="mx-auto w-[300px] rounded-md border bg-background p-4 text-xs text-foreground shadow-sm">
               <div className="space-y-1 text-center">
                 <p className="text-sm font-semibold uppercase">Orden de cocina</p>
@@ -90,14 +128,50 @@ export function TicketPreviewDialog({
           </ScrollArea>
         </div>
 
-        <DialogFooter className="gap-2 sm:gap-0">
-          <Button variant="outline" type="button" onClick={() => onOpenChange?.(false)}>
+        <DialogFooter className="no-print gap-2 sm:gap-0">
+          <Button className="no-print" variant="outline" type="button" onClick={() => onOpenChange?.(false)}>
             Cerrar
           </Button>
-          <Button type="button" onClick={onPrint}>
+          <Button className="no-print" variant="secondary" type="button" onClick={generatePDF}>
+            Descargar PDF
+          </Button>
+          <Button className="no-print" type="button" onClick={handlePrint}>
             Imprimir
           </Button>
         </DialogFooter>
+
+        <style jsx global>{`
+          @media print {
+            .no-print {
+              display: none !important;
+            }
+
+            body * {
+              visibility: hidden;
+            }
+
+            .ticket-print-root,
+            .ticket-print-root * {
+              visibility: visible;
+            }
+
+            .ticket-print-root {
+              position: absolute;
+              inset: 0 auto auto 0;
+              width: 80mm;
+              margin: 0;
+              padding: 0;
+            }
+
+            .ticket-scroll-area {
+              height: auto !important;
+              overflow: visible !important;
+              border: none !important;
+              padding: 0 !important;
+              background: transparent !important;
+            }
+          }
+        `}</style>
       </DialogContent>
     </Dialog>
   );
