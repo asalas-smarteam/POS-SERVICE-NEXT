@@ -6,7 +6,6 @@ const TenantSchema = new mongoose.Schema({
   dbName: { type: String, required: true },
   plan: {
     type: String,
-    enum: ['basic', 'premium', 'superpremium'],
     default: 'basic',
   },
   status: {

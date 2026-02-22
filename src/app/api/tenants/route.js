@@ -3,6 +3,7 @@ import { connectMasterDB } from '@/lib/db/master';
 import { TenantModel } from '@/models/master/Tenant';
 import { getTenantConnection } from '@/lib/db/connections';
 import { seedTenantDB } from '@/lib/tenant/seedTenant';
+import { ensureDefaultPlans } from '@/lib/master/plans';
 
 const SLUG_REGEX = /^[a-z0-9-]+$/;
 const MIN_PASSWORD_LENGTH = 8;
@@ -62,6 +63,15 @@ export async function POST(req) {
 
     const masterConn = await connectMasterDB();
     const Tenant = TenantModel(masterConn);
+    const Plan = await ensureDefaultPlans(masterConn);
+
+    const activePlan = await Plan.findOne({ slug: plan, isActive: true });
+    if (!activePlan) {
+      return NextResponse.json(
+        { error: 'Invalid plan selected' },
+        { status: 400 }
+      );
+    }
 
     const exists = await Tenant.findOne({ slug });
     if (exists) {
