@@ -7,7 +7,7 @@ import { TopDishesCard } from "./top-dishes-card";
 
 export function RestaurantDashboard() {
   return (
-    <div className="flex-1 overflow-auto bg-slate-50 p-6">
+    <div className="flex-1 overflow-auto bg-slate-50 p-6 dark:bg-[#061426]">
       <main className="mx-auto flex w-full flex-col gap-8">
         <DashboardFilterBar />
 
