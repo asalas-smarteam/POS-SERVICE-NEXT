@@ -3,12 +3,12 @@ import { resolveTenant } from "@/lib/tenant/resolveTenant";
 import { getTenantConnection } from "@/lib/db/connections";
 import { OrderModel } from "@/models/tenant/Order";
 
-const ALLOWED_STATUSES = ["EN_PREPARACION", "EN_HORNO", "LISTO", "CANCELADO"];
+const ALLOWED_STATUSES = ["IN_PREPARATION", "IN_OVEN", "READY", "CANCELLED"];
 const VALID_TRANSITIONS = {
-  EN_PREPARACION: ["EN_HORNO", "CANCELADO"],
-  EN_HORNO: ["LISTO", "CANCELADO"],
-  LISTO: [],
-  CANCELADO: [],
+  IN_PREPARATION: ["IN_OVEN", "CANCELLED"],
+  IN_OVEN: ["READY", "CANCELLED"],
+  READY: [],
+  CANCELLED: [],
 };
 
 export async function PATCH(req, { params }) {
@@ -29,7 +29,7 @@ export async function PATCH(req, { params }) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
-    const currentStatus = order.kitchenStatus ?? "EN_PREPARACION";
+    const currentStatus = order.kitchenStatus ?? "IN_PREPARATION";
     if (currentStatus !== nextStatus) {
       const allowedNext = VALID_TRANSITIONS[currentStatus] ?? [];
       if (!allowedNext.includes(nextStatus)) {
@@ -43,12 +43,12 @@ export async function PATCH(req, { params }) {
 
     order.kitchenStatus = nextStatus;
 
-    if (nextStatus === "LISTO") {
+    if (nextStatus === "READY") {
       order.kitchenCompletedAt = new Date();
-      order.status = "LISTO";
+      order.status = "READY";
     }
 
-    if (nextStatus === "CANCELADO") {
+    if (nextStatus === "CANCELLED") {
       order.status = "CANCELLED";
     }
 

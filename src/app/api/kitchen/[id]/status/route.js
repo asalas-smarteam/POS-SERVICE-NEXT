@@ -3,7 +3,7 @@ import { resolveTenant } from "@/lib/tenant/resolveTenant";
 import { getTenantConnection } from "@/lib/db/connections";
 import { OrderModel } from "@/models/tenant/Order";
 
-const ALLOWED_STATUSES = ["EN_PREPARACION", "EN_HORNO", "LISTO", "CANCELADO"];
+const ALLOWED_STATUSES = ["IN_PREPARATION", "IN_OVEN", "READY", "CANCELLED"];
 
 export async function POST(req, context) {
   try {
@@ -29,12 +29,12 @@ export async function POST(req, context) {
       kitchenStatus: nextStatus,
     };
 
-    if (nextStatus === "LISTO") {
+    if (nextStatus === "READY") {
       updates.kitchenCompletedAt = new Date();
-      updates.status = "LISTO";
+      updates.status = "READY";
     }
 
-    if (nextStatus === "CANCELADO") {
+    if (nextStatus === "CANCELLED") {
       updates.status = "CANCELLED";
     }
 

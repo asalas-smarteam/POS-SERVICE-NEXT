@@ -14,7 +14,7 @@ export async function POST(req, { params }) {
 
     const order = await Order.findById(orderId);
 
-    if (!order || !["EN_ESPERA", "EN_PROCESO", "COCINA"].includes(order.status)) {
+    if (!order || !["PENDING", "IN_PROGRESS", "KITCHEN"].includes(order.status)) {
       return NextResponse.json(
         { error: "Order not ready for checkout" },
         { status: 400 },
@@ -23,7 +23,7 @@ export async function POST(req, { params }) {
 
     const total = await calculateOrderTotal(conn, order);
 
-    order.status = "LISTO";
+    order.status = "READY";
     order.total = total;
     await order.save();
 

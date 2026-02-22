@@ -31,8 +31,8 @@ export async function POST(req, context) {
       order.inventoryDiscounted = true;
     }
 
-    order.status = "EN_ESPERA";
-    order.kitchenStatus = "EN_PREPARACION";
+    order.status = "PENDING";
+    order.kitchenStatus = "IN_PREPARATION";
     order.kitchenStartedAt = new Date();
     order.kitchenCompletedAt = null;
     await order.save();

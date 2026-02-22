@@ -11,7 +11,7 @@ export async function GET(req) {
 
     const tickets = await Order.find({
       kitchenStatus: {
-        $in: ['EN_PREPARACION', 'EN_HORNO', 'LISTO'],
+        $in: ['IN_PREPARATION', 'IN_OVEN', 'READY'],
       },
     }).sort({ createdAt: 1 });
 

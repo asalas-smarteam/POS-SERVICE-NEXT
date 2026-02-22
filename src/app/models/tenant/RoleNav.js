@@ -9,7 +9,7 @@ const NavItemSchema = new mongoose.Schema({
 const RoleNavSchema = new mongoose.Schema({
   role: {
     type: String,
-    enum: ['ADMIN', 'CAJERO', 'COCINA'],
+    enum: ['ADMIN', 'CASHIER', 'KITCHEN'],
     unique: true,
   },
   navItems: [NavItemSchema],

@@ -51,7 +51,7 @@ export async function generateKitchenTicketPdf(ticket) {
   const center = 40;
 
   doc.setFontSize(12);
-  doc.text("ORDEN DE COCINA", center, y, { align: "center" });
+  doc.text("KITCHEN ORDER", center, y, { align: "center" });
 
   y += 7;
   doc.setFontSize(16);
