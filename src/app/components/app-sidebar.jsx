@@ -5,6 +5,7 @@ import { IconInnerShadowTop } from "@tabler/icons-react"
 
 import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
+import { ThemeToggle } from "@/components/theme-toggle"
 import {
   Sidebar,
   SidebarContent,
@@ -52,6 +53,9 @@ export function AppSidebar({
         )}
       </SidebarContent>
       <SidebarFooter>
+        <div className="px-2 pb-1">
+          <ThemeToggle className="h-9 w-9" />
+        </div>
         <NavUser user={safeUser} />
       </SidebarFooter>
     </Sidebar>
