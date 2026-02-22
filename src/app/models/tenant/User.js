@@ -1,13 +1,19 @@
 import mongoose from 'mongoose';
+import { ROLE_VALUES } from '@/lib/auth/roles';
 
 const UserSchema = new mongoose.Schema({
-  username: { type: String, unique: true, sparse: true },
+  username: { type: String, required: true, unique: true, trim: true },
   email: { type: String, unique: true, sparse: true },
-  passwordHash: String,
-  password: String,
+  passwordHash: { type: String, required: true },
   role: {
     type: String,
-    enum: ['ADMIN', 'CASHIER', 'KITCHEN'],
+    enum: ROLE_VALUES,
+    required: true,
+    default: 'CASHIER',
+  },
+  isActive: {
+    type: Boolean,
+    default: true,
   },
 }, { timestamps: true });
 

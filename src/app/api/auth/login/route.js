@@ -2,9 +2,9 @@ import { NextResponse } from 'next/server';
 import { resolveTenant } from '@/lib/tenant/resolveTenant';
 import { getTenantConnection } from '@/lib/db/connections';
 import { UserModel } from '@/models/tenant/User';
-import { RoleNavModel } from '@/models/tenant/RoleNav';
 import { comparePassword } from '@/lib/auth/hash';
 import { signToken } from '@/lib/auth/jwt';
+import { getRoleNav } from '@/lib/auth/roles';
 
 export async function POST(req) {
   try {
@@ -21,7 +21,6 @@ export async function POST(req) {
     const tenant = await resolveTenant(req);
     const tenantConn = await getTenantConnection(tenant.dbName);
     const User = UserModel(tenantConn);
-    const RoleNav = RoleNavModel(tenantConn);
 
     const user = await User.findOne({
       $or: [{ username: identifier }, { email: identifier }],
@@ -31,6 +30,13 @@ export async function POST(req) {
       return NextResponse.json(
         { error: 'Invalid credentials' },
         { status: 401 }
+      );
+    }
+
+    if (user.isActive === false) {
+      return NextResponse.json(
+        { error: 'User is inactive. Contact an administrator.' },
+        { status: 403 }
       );
     }
 
@@ -50,22 +56,25 @@ export async function POST(req) {
       tenant: tenant.slug,
     });
 
-    const roleNav = await RoleNav.findOne({ role: user.role });
-    const navMain = Array.isArray(roleNav?.navItems) ? roleNav.navItems : [];
+    const navMain = getRoleNav(user.role);
     const resolvedName = user.name ?? user.username ?? user.email;
     const resolvedAvatar = user.avatar ?? tenant.logo ?? null;
 
     return NextResponse.json({
       token,
       user: {
+        id: String(user._id),
         name: resolvedName,
         email: user.email ?? user.username,
         avatar: resolvedAvatar,
         role: user.role,
+        username: user.username,
       },
       navMain,
+      tenant: {
+        slug: tenant.slug,
+      },
     });
-
   } catch (error) {
     console.error(error);
     return NextResponse.json(
