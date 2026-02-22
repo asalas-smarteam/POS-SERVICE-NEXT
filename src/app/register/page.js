@@ -109,7 +109,7 @@ export default function RegisterPage() {
       });
 
       if (data.token) {
-        router.push("/dashboard");
+        router.push("/home");
         return;
       }
 

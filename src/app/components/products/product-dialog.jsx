@@ -291,7 +291,7 @@ export function ProductDialog({ open, onOpenChange, product, onSuccess }) {
             )}
             {!settingsLoading && categories.length === 0 ? (
               <p className="text-xs text-muted-foreground">
-                No hay categorías configuradas. Ve a /configuracion para agregarlas.
+                No hay categorías configuradas. Ve a /settings para agregarlas.
               </p>
             ) : null}
           </div>

@@ -12,7 +12,7 @@ export async function GET(req, { params }) {
 
   const order = await Order.findById(orderId);
 
-  if (!order || order.status !== "LISTO") {
+  if (!order || order.status !== "READY") {
     return new Response("Ticket not available", { status: 400 });
   }
 

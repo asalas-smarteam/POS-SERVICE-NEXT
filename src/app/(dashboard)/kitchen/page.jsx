@@ -13,9 +13,9 @@ import { Separator } from "@/components/ui/separator";
 import { useKitchenStore } from "../../../store/kitchenStore";
 
 const STATUS_COLUMNS = [
-  { key: "EN_PREPARACION", label: "En preparación" },
-  { key: "EN_HORNO", label: "En horno" },
-  { key: "LISTO", label: "Listo" },
+  { key: "IN_PREPARATION", label: "En preparación" },
+  { key: "IN_OVEN", label: "En horno" },
+  { key: "READY", label: "Listo" },
 ];
 
 const normalizeOrderNumber = (orderId) => {
@@ -68,7 +68,7 @@ const getElapsedMs = (ticket, now) => {
     return 0;
   }
 
-  if (ticket?.kitchenStatus === "LISTO") {
+  if (ticket?.kitchenStatus === "READY") {
     const completedAt = ticket?.kitchenCompletedAt
       ? new Date(ticket.kitchenCompletedAt).getTime()
       : now;
@@ -121,17 +121,17 @@ export default function KitchenPage() {
   }, [tickets]);
 
   const handleContinue = (ticket) => {
-    if (ticket.kitchenStatus === "EN_PREPARACION") {
-      updateTicketStatus(ticket._id, "EN_HORNO");
+    if (ticket.kitchenStatus === "IN_PREPARATION") {
+      updateTicketStatus(ticket._id, "IN_OVEN");
       return;
     }
-    if (ticket.kitchenStatus === "EN_HORNO") {
-      updateTicketStatus(ticket._id, "LISTO");
+    if (ticket.kitchenStatus === "IN_OVEN") {
+      updateTicketStatus(ticket._id, "READY");
     }
   };
 
   const handleCancel = (ticket) => {
-    updateTicketStatus(ticket._id, "CANCELADO");
+    updateTicketStatus(ticket._id, "CANCELLED");
   };
 
   return (
@@ -221,18 +221,18 @@ export default function KitchenPage() {
                                       variant="outline"
                                       size="sm"
                                       onClick={() => handleCancel(ticket)}
-                                      disabled={ticket.kitchenStatus === "CANCELADO"}
+                                      disabled={ticket.kitchenStatus === "CANCELLED"}
                                     >
                                       Cancelar
                                     </Button>
 
-                                    {ticket.kitchenStatus === "EN_PREPARACION" ? (
+                                    {ticket.kitchenStatus === "IN_PREPARATION" ? (
                                       <Button size="sm" onClick={() => handleContinue(ticket)}>
                                         Pasar a Horno
                                       </Button>
                                     ) : null}
 
-                                    {ticket.kitchenStatus === "EN_HORNO" ? (
+                                    {ticket.kitchenStatus === "IN_OVEN" ? (
                                       <Button size="sm" onClick={() => handleContinue(ticket)}>
                                         Marcar como Listo
                                       </Button>

@@ -9,7 +9,7 @@ export async function seedTenantDB(conn, tenantSlug) {
   const RoleNav = RoleNavModel(conn);
   const User = UserModel(conn);
 
-  const roles = ['ADMIN', 'CAJERO', 'COCINA'];
+  const roles = ['ADMIN', 'CASHIER', 'KITCHEN'];
   const navIconMap = {
     dashboard: 'home',
     sales: 'cash-register',
@@ -23,22 +23,18 @@ export async function seedTenantDB(conn, tenantSlug) {
   };
   const roleNavDefaults = {
     ADMIN: [
-      { label: 'Dashboard', href: '/dashboard', icon: navIconMap.dashboard },
-      { label: 'Órdenes', href: '/ordenes', icon: navIconMap.sales },
-      { label: 'Productos', href: '/productos', icon: navIconMap.products },
-      { label: 'Ingredientes', href: '/ingredientes', icon: navIconMap.ingredients },
-      { label: 'Usuarios', href: '/usuarios', icon: navIconMap.users },
-      { label: 'Reportes', href: '/reportes', icon: navIconMap.reports },
-      { label: 'Configuración', href: '/configuracion', icon: navIconMap.settings },
+      { label: 'Home', href: '/home', icon: navIconMap.dashboard },
+      { label: 'Orders', href: '/orders', icon: navIconMap.sales },
+      { label: 'Products', href: '/products', icon: navIconMap.products },
+      { label: 'Ingredients', href: '/ingredients', icon: navIconMap.ingredients },
+      { label: 'Settings', href: '/settings', icon: navIconMap.settings },
+      { label: 'Kitchen', href: '/kitchen', icon: navIconMap.kitchen },
     ],
-    CAJERO: [
-      { label: 'Dashboard', href: '/dashboard', icon: navIconMap.dashboard },
-      { label: 'Órdenes', href: '/ordenes', icon: navIconMap.sales },
+    CASHIER: [
+      { label: 'Orders', href: '/orders', icon: navIconMap.sales },
     ],
-    COCINA: [
-      { label: 'Dashboard', href: '/dashboard', icon: navIconMap.dashboard },
-      { label: 'Órdenes', href: '/ordenes', icon: navIconMap.orders },
-      { label: 'Cocina', href: '/kitchen', icon: navIconMap.kitchen },
+    KITCHEN: [
+      { label: 'Kitchen', href: '/kitchen', icon: navIconMap.kitchen },
     ],
   };
 
@@ -64,14 +60,14 @@ export async function seedTenantDB(conn, tenantSlug) {
       role: 'ADMIN',
     },
     {
-      email: `cajero@${tenantSlug}.com`,
-      password: await hashPassword('cajero123'),
-      role: 'CAJERO',
+      email: `cashier@${tenantSlug}.com`,
+      password: await hashPassword('cashier123'),
+      role: 'CASHIER',
     },
     {
-      email: `cocina@${tenantSlug}.com`,
-      password: await hashPassword('cocina123'),
-      role: 'COCINA',
+      email: `kitchen@${tenantSlug}.com`,
+      password: await hashPassword('kitchen123'),
+      role: 'KITCHEN',
     },
   ];
 

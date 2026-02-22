@@ -9,6 +9,17 @@ import { useAuthStore } from "../../store/authStore";
 
 const SAFE_DEFAULT_PATH = "/home";
 
+const getFirstAllowedPath = (items = []) => {
+  for (const item of items) {
+    if (!item) continue;
+    const href = item.href ?? item.url;
+    if (href) return normalizePath(href);
+    const child = getFirstAllowedPath(Array.isArray(item.items) ? item.items : []);
+    if (child) return child;
+  }
+  return SAFE_DEFAULT_PATH;
+};
+
 const normalizePath = (path = "") => {
   if (!path) {
     return "/";
@@ -66,6 +77,8 @@ export default function DashboardLayout({ children }) {
       : pathname;
   }, [pathname]);
 
+  const firstAllowedPath = useMemo(() => getFirstAllowedPath(safeNavMain), [safeNavMain]);
+
   const headerTitle = useMemo(() => {
     const match = findNavItemByPath(safeNavMain, normalizePath(normalizedPath));
     return match?.label ?? match?.title ?? "Dashboard";
@@ -82,17 +95,17 @@ export default function DashboardLayout({ children }) {
     }
 
     if (!hasAccess(normalizedPath)) {
-      if (normalizedPath !== SAFE_DEFAULT_PATH) {
-        router.replace(SAFE_DEFAULT_PATH);
+      if (normalizedPath !== firstAllowedPath) {
+        router.replace(firstAllowedPath);
       }
     }
-  }, [hasHydrated, isAuthenticated, hasAccess, normalizedPath, router]);
+  }, [firstAllowedPath, hasHydrated, isAuthenticated, hasAccess, normalizedPath, router]);
 
   if (!hasHydrated || !isAuthenticated) {
     return null;
   }
 
-  if (!hasAccess(normalizedPath) && normalizedPath !== SAFE_DEFAULT_PATH) {
+  if (!hasAccess(normalizedPath) && normalizedPath !== firstAllowedPath) {
     return null;
   }
 
