@@ -15,6 +15,12 @@ import {
 import { useAuthStore } from "../../store/authStore";
 
 const slugRegex = /^[a-z0-9-]+$/;
+
+const getFirstAllowedRoute = (navMain = []) => {
+  const first = Array.isArray(navMain) ? navMain.find((item) => item?.href || item?.url) : null;
+  return first?.href || first?.url || "/home";
+};
+
 const heroImage =
   "https://lh3.googleusercontent.com/aida-public/AB6AXuA53l-iE5HbCn9_s53LaqVLy5tz849IyFF0w6vlCaym5ZM_tGfpQTVEcpz-PYKKIwZ9VifMn5rU9Wv5mn3HuPet1Iv-99J-vvpqRzVzmnqb5VokP3vPGHBPt-n-TsN4-VpzRxDGgkbsdOKcGtxdMYQziN8KxMErti-yujhlaKTmWj92f48jsGXwwiAAhB9AV_jiEeycqg97e1sno33oxFvHAptPK1vFmgM2yl6VS_uxu1ovd7t7YFVKzpJOjfL_T-0KEtYHjvEx7IAH";
 
@@ -97,7 +103,7 @@ export default function LoginPage() {
         },
       });
 
-      router.push("/home");
+      router.push(getFirstAllowedRoute(data.navMain));
     } catch {
       setError("Ocurrió un error inesperado. Intenta más tarde.");
     } finally {
