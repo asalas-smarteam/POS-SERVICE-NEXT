@@ -14,7 +14,6 @@ import {
 } from "lucide-react";
 import { useAuthStore } from "../../store/authStore";
 
-const emailRegex = /^[^@]+@[^@]+\.[^@]+$/;
 const slugRegex = /^[a-z0-9-]+$/;
 const heroImage =
   "https://lh3.googleusercontent.com/aida-public/AB6AXuA53l-iE5HbCn9_s53LaqVLy5tz849IyFF0w6vlCaym5ZM_tGfpQTVEcpz-PYKKIwZ9VifMn5rU9Wv5mn3HuPet1Iv-99J-vvpqRzVzmnqb5VokP3vPGHBPt-n-TsN4-VpzRxDGgkbsdOKcGtxdMYQziN8KxMErti-yujhlaKTmWj92f48jsGXwwiAAhB9AV_jiEeycqg97e1sno33oxFvHAptPK1vFmgM2yl6VS_uxu1ovd7t7YFVKzpJOjfL_T-0KEtYHjvEx7IAH";
@@ -25,7 +24,7 @@ export default function LoginPage() {
   const tenant = useAuthStore((state) => state.tenant);
 
   const [formData, setFormData] = useState({
-    email: "",
+    username: "",
     password: "",
     tenantSlug: "",
     remember: false,
@@ -44,13 +43,8 @@ export default function LoginPage() {
     event.preventDefault();
     setError("");
 
-    if (!formData.email || !formData.password) {
-      setError("Por favor ingresa email y contraseña.");
-      return;
-    }
-
-    if (!emailRegex.test(formData.email)) {
-      setError("El email no tiene un formato válido.");
+    if (!formData.username || !formData.password) {
+      setError("Por favor ingresa usuario y contraseña.");
       return;
     }
 
@@ -77,7 +71,7 @@ export default function LoginPage() {
           "x-tenant": resolvedTenantSlug,
         },
         body: JSON.stringify({
-          email: formData.email,
+          username: formData.username,
           password: formData.password,
         }),
       });
@@ -169,7 +163,7 @@ export default function LoginPage() {
                 <div className="flex flex-col gap-2">
                   <label
                     className="ml-1 text-sm font-semibold text-slate-300"
-                    htmlFor="email"
+                    htmlFor="username"
                   >
                     Usuario
                   </label>
@@ -179,13 +173,13 @@ export default function LoginPage() {
                     </div>
                     <input
                       className="block w-full rounded-xl border border-slate-800 bg-[#0b1624] py-4 pr-4 pl-11 text-slate-100 placeholder:text-slate-500 outline-none transition-all focus:border-[#137fec] focus:ring-2 focus:ring-[#137fec]/20"
-                      id="email"
-                      name="email"
-                      placeholder="ejemplo@empresa.com"
+                      id="username"
+                      name="username"
+                      placeholder="nombre_usuario"
                       required
-                      type="email"
-                      value={formData.email}
-                      onChange={handleChange("email")}
+                      type="text"
+                      value={formData.username}
+                      onChange={handleChange("username")}
                     />
                   </div>
                 </div>

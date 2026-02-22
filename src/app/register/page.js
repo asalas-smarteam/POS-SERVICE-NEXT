@@ -63,6 +63,16 @@ export default function RegisterPage() {
       return;
     }
 
+    if (!formData.username || !formData.password) {
+      setError("Completa el usuario y contraseña del administrador.");
+      return;
+    }
+
+    if (formData.password.length < 8) {
+      setError("La contraseña debe tener al menos 8 caracteres.");
+      return;
+    }
+
     if (!slugRegex.test(formData.slug)) {
       setError("El slug solo puede contener minúsculas, números y guiones.");
       return;
@@ -70,17 +80,22 @@ export default function RegisterPage() {
 
     try {
       setLoading(true);
-      const payload = new FormData();
-      payload.append("name", formData.name);
-      payload.append("slug", formData.slug);
-      payload.append("plan", formData.plan || "basic");
-      if (formData.logo) {
-        payload.append("logo", formData.logo);
-      }
+      const payload = {
+        name: formData.name,
+        slug: formData.slug,
+        plan: formData.plan || "basic",
+        adminUser: {
+          username: formData.username.trim(),
+          password: formData.password,
+        },
+      };
 
       const response = await fetch("http://localhost:3000/api/tenants", {
         method: "POST",
-        body: payload,
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
       });
 
       const data = await response.json().catch(() => ({}));
@@ -206,14 +221,14 @@ export default function RegisterPage() {
                     <label className="text-lg font-semibold text-slate-200" htmlFor="username">Usuario</label>
                     <div className="relative">
                       <User className="absolute left-3 top-1/2 size-5 -translate-y-1/2 text-slate-400" />
-                      <input id="username" className="w-full rounded-lg border border-slate-700 bg-[#0f2032] py-3 pl-10 pr-4 text-lg placeholder:text-slate-500 focus:border-blue-500 focus:outline-none" placeholder="nombre_usuario" value={formData.username} onChange={handleChange("username")} />
+                      <input id="username" className="w-full rounded-lg border border-slate-700 bg-[#0f2032] py-3 pl-10 pr-4 text-lg placeholder:text-slate-500 focus:border-blue-500 focus:outline-none" placeholder="nombre_usuario" value={formData.username} onChange={handleChange("username")} required />
                     </div>
                   </div>
                   <div className="space-y-2">
                     <label className="text-lg font-semibold text-slate-200" htmlFor="password">Contraseña</label>
                     <div className="relative">
                       <KeyRound className="absolute left-3 top-1/2 size-5 -translate-y-1/2 text-slate-400" />
-                      <input id="password" type="password" className="w-full rounded-lg border border-slate-700 bg-[#0f2032] py-3 pl-10 pr-4 text-lg placeholder:text-slate-500 focus:border-blue-500 focus:outline-none" placeholder="••••••••" value={formData.password} onChange={handleChange("password")} />
+                      <input id="password" type="password" className="w-full rounded-lg border border-slate-700 bg-[#0f2032] py-3 pl-10 pr-4 text-lg placeholder:text-slate-500 focus:border-blue-500 focus:outline-none" placeholder="••••••••" value={formData.password} onChange={handleChange("password")} required minLength={8} />
                     </div>
                   </div>
                 </div>

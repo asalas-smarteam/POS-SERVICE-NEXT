@@ -4,17 +4,58 @@ import { TenantModel } from '@/models/master/Tenant';
 import { getTenantConnection } from '@/lib/db/connections';
 import { seedTenantDB } from '@/lib/tenant/seedTenant';
 
+const SLUG_REGEX = /^[a-z0-9-]+$/;
+const MIN_PASSWORD_LENGTH = 8;
+
 export async function POST(req) {
   try {
-    const formData = await req.formData();
-    const name = formData.get('name')?.toString();
-    const slug = formData.get('slug')?.toString();
-    const plan = formData.get('plan')?.toString() ?? 'basic';
-    const logo = formData.get('logo');
+    const contentType = req.headers.get('content-type') || '';
+    const isJsonPayload = contentType.includes('application/json');
 
-    if (!name || !slug) {
+    let name;
+    let slug;
+    let plan;
+    let logo = null;
+    let adminUser;
+
+    if (isJsonPayload) {
+      const body = await req.json();
+      name = body?.name?.toString()?.trim();
+      slug = body?.slug?.toString()?.trim();
+      plan = body?.plan?.toString()?.trim() || 'basic';
+      adminUser = {
+        username: body?.adminUser?.username?.toString()?.trim(),
+        password: body?.adminUser?.password?.toString() || '',
+      };
+    } else {
+      const formData = await req.formData();
+      name = formData.get('name')?.toString()?.trim();
+      slug = formData.get('slug')?.toString()?.trim();
+      plan = formData.get('plan')?.toString()?.trim() || 'basic';
+      logo = formData.get('logo');
+      adminUser = {
+        username: formData.get('username')?.toString()?.trim(),
+        password: formData.get('password')?.toString() || '',
+      };
+    }
+
+    if (!name || !slug || !adminUser?.username || !adminUser?.password) {
       return NextResponse.json(
-        { error: 'name and slug are required' },
+        { error: 'name, slug and admin credentials are required' },
+        { status: 400 }
+      );
+    }
+
+    if (!SLUG_REGEX.test(slug)) {
+      return NextResponse.json(
+        { error: 'Invalid slug format' },
+        { status: 400 }
+      );
+    }
+
+    if (adminUser.password.length < MIN_PASSWORD_LENGTH) {
+      return NextResponse.json(
+        { error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters` },
         { status: 400 }
       );
     }
@@ -40,7 +81,6 @@ export async function POST(req) {
       // TODO: Replace local placeholder path with cloud URL once integrated.
     }
 
-    // Crear tenant en MASTER
     const tenant = await Tenant.create({
       name,
       slug,
@@ -49,11 +89,8 @@ export async function POST(req) {
       logo: logoPath,
     });
 
-    // Crear conexión tenant DB
     const tenantConn = await getTenantConnection(dbName);
-
-    // Seed automático
-    await seedTenantDB(tenantConn, slug);
+    await seedTenantDB(tenantConn, adminUser);
 
     return NextResponse.json({
       ok: true,
