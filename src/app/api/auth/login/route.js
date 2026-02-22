@@ -8,25 +8,24 @@ import { signToken } from '@/lib/auth/jwt';
 
 export async function POST(req) {
   try {
-    const { email, password } = await req.json();
+    const { email, username, password } = await req.json();
+    const identifier = username || email;
 
-    if (!email || !password) {
+    if (!identifier || !password) {
       return NextResponse.json(
-        { error: 'email and password required' },
+        { error: 'username/email and password required' },
         { status: 400 }
       );
     }
 
-    // Resolver tenant
     const tenant = await resolveTenant(req);
-
-    // Conectar DB tenant
     const tenantConn = await getTenantConnection(tenant.dbName);
     const User = UserModel(tenantConn);
     const RoleNav = RoleNavModel(tenantConn);
 
-    // Buscar usuario
-    const user = await User.findOne({ email });
+    const user = await User.findOne({
+      $or: [{ username: identifier }, { email: identifier }],
+    });
 
     if (!user) {
       return NextResponse.json(
@@ -35,8 +34,8 @@ export async function POST(req) {
       );
     }
 
-    // Verificar password
-    const valid = await comparePassword(password, user.password);
+    const passwordToCompare = user.passwordHash || user.password;
+    const valid = await comparePassword(password, passwordToCompare);
 
     if (!valid) {
       return NextResponse.json(
@@ -45,7 +44,6 @@ export async function POST(req) {
       );
     }
 
-    // Firmar JWT
     const token = signToken({
       userId: user._id,
       role: user.role,
@@ -54,14 +52,14 @@ export async function POST(req) {
 
     const roleNav = await RoleNav.findOne({ role: user.role });
     const navMain = Array.isArray(roleNav?.navItems) ? roleNav.navItems : [];
-    const resolvedName = user.name ?? user.email;
+    const resolvedName = user.name ?? user.username ?? user.email;
     const resolvedAvatar = user.avatar ?? tenant.logo ?? null;
 
     return NextResponse.json({
       token,
       user: {
         name: resolvedName,
-        email: user.email,
+        email: user.email ?? user.username,
         avatar: resolvedAvatar,
         role: user.role,
       },
