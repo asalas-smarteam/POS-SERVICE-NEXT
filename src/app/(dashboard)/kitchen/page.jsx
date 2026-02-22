@@ -286,46 +286,6 @@ export default function KitchenPage() {
 
   return (
     <div className="h-full overflow-auto bg-[#061426] text-slate-100">
-      <header className="sticky top-0 z-30 border-b border-slate-800 bg-[#061426]/95 backdrop-blur">
-        <div className="mx-auto flex h-16 max-w-[1600px] items-center justify-between gap-4 px-6">
-          <div className="flex items-center gap-8">
-            <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-blue-500 p-1.5 text-white">✕</div>
-              <h1 className="text-3 font-bold">Kitchen<span className="text-blue-500">POS</span></h1>
-            </div>
-            <nav className="hidden md:flex items-center gap-6">
-              {NAV_ITEMS.map((item) => (
-                <button
-                  key={item}
-                  type="button"
-                  className={`border-b-2 pb-5 pt-5 text-sm font-medium ${item === "Kitchen Board" ? "border-blue-500 text-blue-500" : "border-transparent text-slate-400"}`}
-                >
-                  {item}
-                </button>
-              ))}
-            </nav>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <div className="relative hidden sm:block">
-              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-              <Input
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search orders..."
-                className="w-72 border-slate-700 bg-slate-800 pl-10 text-slate-100 placeholder:text-slate-400"
-              />
-            </div>
-            <Button className="bg-blue-500 font-bold text-white hover:bg-blue-400">
-              <Plus className="size-4" /> New Order
-            </Button>
-            <div className="flex size-10 items-center justify-center rounded-full border-2 border-amber-300/50 bg-slate-700 text-xs">
-              👨‍🍳
-            </div>
-          </div>
-        </div>
-      </header>
-
       <main className="mx-auto flex max-w-[1600px] flex-col gap-8 p-6 pb-28">
         <section className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
           <div>
