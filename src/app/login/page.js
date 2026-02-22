@@ -103,6 +103,8 @@ export default function LoginPage() {
         },
       });
 
+      document.cookie = `pos-token=${data.token}; path=/; max-age=86400; samesite=lax`;
+
       router.push(getFirstAllowedRoute(data.navMain));
     } catch {
       setError("Ocurrió un error inesperado. Intenta más tarde.");

@@ -39,6 +39,7 @@ export function NavUser({
   const logout = useAuthStore((state) => state.logout)
 
   const handleLogout = () => {
+    document.cookie = "pos-token=; path=/; max-age=0; samesite=lax"
     logout()
     router.push("/login")
   }
