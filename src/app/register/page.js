@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -22,7 +22,7 @@ export default function RegisterPage() {
   const [formData, setFormData] = useState({
     name: "",
     slug: "",
-    plan: "pro",
+    plan: "",
     logo: null,
     username: "",
     password: "",
@@ -30,10 +30,50 @@ export default function RegisterPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
+  const [plans, setPlans] = useState([]);
+  const [plansLoading, setPlansLoading] = useState(true);
 
   const handleChange = (field) => (event) => {
     setFormData((prev) => ({ ...prev, [field]: event.target.value }));
   };
+
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadPlans = async () => {
+      try {
+        setPlansLoading(true);
+        const response = await fetch('/api/master/plans');
+        const data = await response.json().catch(() => []);
+
+        if (!response.ok || !Array.isArray(data)) {
+          throw new Error('No pudimos cargar los planes disponibles.');
+        }
+
+        if (!isMounted) return;
+
+        setPlans(data);
+        setFormData((prev) => ({
+          ...prev,
+          plan: prev.plan || data?.[0]?.slug || '',
+        }));
+      } catch (fetchError) {
+        if (!isMounted) return;
+        setError(fetchError.message || 'No pudimos cargar los planes disponibles.');
+      } finally {
+        if (isMounted) {
+          setPlansLoading(false);
+        }
+      }
+    };
+
+    loadPlans();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleLogoChange = (event) => {
     const file = event.target.files?.[0] ?? null;
@@ -78,12 +118,17 @@ export default function RegisterPage() {
       return;
     }
 
+    if (!formData.plan) {
+      setError("Debes seleccionar un plan válido.");
+      return;
+    }
+
     try {
       setLoading(true);
       const payload = {
         name: formData.name,
         slug: formData.slug,
-        plan: formData.plan || "basic",
+        plan: formData.plan,
         adminUser: {
           username: formData.username.trim(),
           password: formData.password,
@@ -109,7 +154,7 @@ export default function RegisterPage() {
         tenant: data.tenant ?? {
           name: formData.name,
           slug: formData.slug,
-          plan: formData.plan || "basic",
+          plan: formData.plan,
         },
         token: data.token ?? null,
         user: data.user ?? null,
@@ -202,11 +247,20 @@ export default function RegisterPage() {
 
                   <div className="space-y-2">
                     <label className="text-lg font-semibold text-slate-200" htmlFor="plan">Selecciona tu Plan</label>
-                    <select id="plan" value={formData.plan} onChange={handleChange("plan")} className="w-full rounded-lg border border-slate-700 bg-[#0f2032] px-4 py-3 text-lg focus:border-blue-500 focus:outline-none">
-                      <option value="basic">Básico - $29/mes (Hasta 50 pedidos/día)</option>
-                      <option value="pro">Profesional - $79/mes (Ilimitado + Reportes)</option>
-                      <option value="enterprise">Empresarial - Contactar ventas</option>
+                    <select id="plan" value={formData.plan} onChange={handleChange("plan")} className="w-full rounded-lg border border-slate-700 bg-[#0f2032] px-4 py-3 text-lg focus:border-blue-500 focus:outline-none" disabled={plansLoading || plans.length === 0}>
+                      {plansLoading ? (
+                        <option value="">Cargando planes...</option>
+                      ) : null}
+                      {!plansLoading && plans.length === 0 ? (
+                        <option value="">No hay planes disponibles</option>
+                      ) : null}
+                      {!plansLoading ? plans.map((plan) => (
+                        <option key={plan.slug} value={plan.slug}>
+                          {plan.name} - ${plan.priceMonthly}/month
+                        </option>
+                      )) : null}
                     </select>
+                    {plansLoading ? <p className="text-sm text-slate-400">Cargando planes...</p> : null}
                   </div>
                 </div>
               </div>
@@ -238,7 +292,7 @@ export default function RegisterPage() {
               {success ? <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-300">{success}</div> : null}
 
               <div className="space-y-3 pt-2">
-                <button type="submit" disabled={loading} className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-500 py-4 text-lg font-bold text-white shadow-lg shadow-blue-500/20 transition hover:bg-blue-600 disabled:opacity-60">
+                <button type="submit" disabled={loading || plansLoading || !formData.plan} className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-500 py-4 text-lg font-bold text-white shadow-lg shadow-blue-500/20 transition hover:bg-blue-600 disabled:opacity-60">
                   <span>{loading ? "Registrando..." : "Registrar Restaurante"}</span>
                   <ArrowRight className="size-5" />
                 </button>
