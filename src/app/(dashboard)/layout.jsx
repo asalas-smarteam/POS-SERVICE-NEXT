@@ -111,15 +111,16 @@ export default function DashboardLayout({ children }) {
 
   return (
     <SidebarProvider
+      className="h-full"
       style={{
         "--sidebar-width": "calc(var(--spacing) * 72)",
         "--header-height": "calc(var(--spacing) * 12)",
       }}
     >
       <AppSidebar variant="inset" />
-      <SidebarInset>
+      <SidebarInset className="h-full overflow-hidden">
         <SiteHeader title={headerTitle} />
-        <div className="flex flex-1 flex-col">{children}</div>
+        <div className="flex flex-1 flex-col overflow-hidden">{children}</div>
       </SidebarInset>
     </SidebarProvider>
   );

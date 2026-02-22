@@ -135,8 +135,8 @@ export default function KitchenPage() {
   };
 
   return (
-    <div className="flex flex-1 flex-col">
-      <div className="@container/main flex flex-1 flex-col gap-6 px-4 py-6 lg:px-6">
+    <div className="flex h-full flex-col overflow-hidden">
+      <div className="@container/main flex h-full flex-1 flex-col gap-6 overflow-hidden px-4 py-6 lg:px-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-semibold text-foreground">Cocina</h1>
@@ -155,24 +155,25 @@ export default function KitchenPage() {
         {error ? <AppAlert type="error" message={error} /> : null}
 
         {loading && !tickets.length ? (
-          <div className="grid gap-4 lg:grid-cols-3">
+          <div className="grid flex-1 gap-4 overflow-hidden lg:grid-cols-3">
             {STATUS_COLUMNS.map((column) => (
-              <Card key={column.key} className="h-[640px]">
+              <Card key={column.key} className="flex h-full min-h-0 flex-col">
                 <CardHeader>
                   <CardTitle>{column.label}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <AppSkeleton className="h-[520px] w-full" />
+                  <AppSkeleton className="h-full w-full" />
                 </CardContent>
               </Card>
             ))}
           </div>
         ) : (
-          <div className="grid gap-4 lg:grid-cols-3">
+          // Keep board constrained to the available layout height so only columns scroll.
+          <div className="grid flex-1 gap-4 overflow-hidden lg:grid-cols-3">
             {STATUS_COLUMNS.map((column) => {
               const columnTickets = ticketsByStatus[column.key] ?? [];
               return (
-                <Card key={column.key} className="flex h-[640px] flex-col">
+                <Card key={column.key} className="flex h-full min-h-0 flex-col">
                   <CardHeader className="space-y-2">
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-base">{column.label}</CardTitle>
@@ -180,8 +181,8 @@ export default function KitchenPage() {
                     </div>
                     <Separator />
                   </CardHeader>
-                  <CardContent className="flex-1">
-                    <ScrollArea className="h-[520px] pr-3">
+                  <CardContent className="flex flex-1 min-h-0 flex-col">
+                    <ScrollArea className="flex-1 pr-3">
                       <div className="space-y-4">
                         {columnTickets.length ? (
                           columnTickets.map((ticket) => {
