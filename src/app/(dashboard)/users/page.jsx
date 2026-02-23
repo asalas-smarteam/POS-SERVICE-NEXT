@@ -272,8 +272,8 @@ export default function UsersPage() {
     <div className="flex flex-1 flex-col gap-6 bg-white p-4 dark:bg-[#061426] lg:p-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="space-y-1">
-          <h1 className="text-3xl font-black tracking-tight text-slate-900">User Management</h1>
-          <p className="text-sm text-slate-500">Manage restaurant staff access and user roles.</p>
+          <h1 className="text-3xl font-black tracking-tight text-slate-900 dark:text-slate-50">User Management</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-300">Manage restaurant staff access and user roles.</p>
         </div>
         <Button className="h-11 gap-2 bg-[#137fec] px-5 text-sm font-bold hover:bg-[#137fec]/90" onClick={() => setCreateOpen(true)}>
           <Plus className="size-4" />

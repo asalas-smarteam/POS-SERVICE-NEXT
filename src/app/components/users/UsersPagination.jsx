@@ -8,8 +8,8 @@ export function UsersPagination({ page, totalPages, total, start, end, onPageCha
   for (let index = from; index <= to; index += 1) pages.push(index);
 
   return (
-    <div className="flex flex-col items-start justify-between gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4 md:flex-row md:items-center">
-      <span className="text-xs text-slate-500">Showing {start} to {end} of {total} users</span>
+    <div className="flex flex-col items-start justify-between gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4 dark:border-slate-800 dark:bg-[#0f2538] md:flex-row md:items-center">
+      <span className="text-xs text-slate-500 dark:text-slate-300">Showing {start} to {end} of {total} users</span>
 
       <div className="flex items-center gap-1">
         <Button disabled={page <= 1} onClick={() => onPageChange(page - 1)} size="icon" variant="outline">
