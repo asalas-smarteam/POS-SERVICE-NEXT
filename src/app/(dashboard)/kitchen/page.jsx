@@ -189,7 +189,7 @@ function KitchenColumn({ columnMeta, tickets, now, onContinue, onCancel }) {
             />
           ))
         ) : (
-          <div className="rounded-xl border border-dashed border-slate-700 bg-slate-900/60 p-4 text-sm text-slate-400">
+          <div className="rounded-xl border border-dashed border-slate-400/60 p-4 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
             No hay tickets en esta columna.
           </div>
         )}
@@ -285,14 +285,14 @@ export default function KitchenPage() {
   };
 
   return (
-    <div className="h-full overflow-auto bg-[#061426] text-slate-100">
-      <main className="mx-auto flex max-w-[1600px] flex-col gap-8 p-6 pb-28">
+    <div className="flex h-full flex-col bg-white text-slate-900 dark:bg-[#061426] dark:text-slate-100">
+      <main className="mx-auto flex w-full max-w-[1600px] flex-1 flex-col gap-8 overflow-auto p-6 pb-28">
         <section className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
           <div>
             <h2 className="text-5xl font-black">Kitchen Kanban Board</h2>
             <p className="mt-1 text-lg text-slate-400">Manage active orders and preparation stages in real-time.</p>
           </div>
-          <div className="rounded-lg bg-slate-800 px-4 py-2">
+          <div className="rounded-lg bg-slate-100 px-4 py-2 dark:bg-[#0c1f30]">
             <div className="flex items-center gap-3">
               <div className="flex flex-col">
                 <span className="text-[10px] font-bold uppercase text-slate-400">Total Active</span>
@@ -330,7 +330,7 @@ export default function KitchenPage() {
       </main>
 
       <footer
-        className="fixed bottom-0 left-0 right-0 bg-white dark:bg-background-dark border-t border-slate-200 dark:border-slate-800 px-6 py-3 z-40"
+        className="fixed bottom-0 left-0 right-0 z-40 border-t border-slate-200 bg-white px-6 py-3 dark:border-slate-800 dark:bg-[#0c1f30]"
       >
         <div className="max-w-[1600px] mx-auto flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-6 text-sm">
@@ -343,7 +343,7 @@ export default function KitchenPage() {
             <button
               type="button"
               onClick={fetchTickets}
-              className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors text-slate-500"
+              className="rounded-lg p-2 text-slate-500 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
             >
               <span className="material-symbols-outlined">refresh</span>
             </button>
