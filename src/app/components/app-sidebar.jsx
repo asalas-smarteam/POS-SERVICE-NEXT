@@ -54,7 +54,7 @@ export function AppSidebar({
       </SidebarContent>
       <SidebarFooter>
         <div className="px-2 pb-1">
-          <ThemeToggle className="h-9 w-9" />
+          <ThemeToggle className="w-full justify-start" />
         </div>
         <NavUser user={safeUser} />
       </SidebarFooter>

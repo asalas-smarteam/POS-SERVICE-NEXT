@@ -12,6 +12,7 @@ import {
   Store,
   User,
 } from "lucide-react";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { useAuthStore } from "../../store/authStore";
 
 const slugRegex = /^[a-z0-9-]+$/;
@@ -174,8 +175,8 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0b1320] text-slate-100">
-      <header className="sticky top-0 z-50 border-b border-slate-800 bg-[#09111d]/90 backdrop-blur px-6 py-4">
+    <div className="min-h-screen bg-white text-slate-900 dark:bg-[#061426] dark:text-slate-100">
+      <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/90 px-6 py-4 backdrop-blur dark:border-slate-800 dark:bg-[#061426]/90">
         <div className="mx-auto flex max-w-7xl items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="rounded-lg bg-blue-500 p-2">
@@ -183,16 +184,19 @@ export default function RegisterPage() {
             </div>
             <h2 className="text-2xl font-bold">RestoPOS <span className="text-blue-500">Admin</span></h2>
           </div>
-          <div className="flex gap-8 text-sm font-medium text-slate-300">
-            <a className="hover:text-blue-400" href="#">Soporte</a>
-            <a className="hover:text-blue-400" href="#">Documentación</a>
+          <div className="flex items-center gap-3">
+            <div className="hidden gap-8 text-sm font-medium text-slate-600 dark:text-slate-300 md:flex">
+              <a className="hover:text-blue-400" href="#">Soporte</a>
+              <a className="hover:text-blue-400" href="#">Documentación</a>
+            </div>
+            <ThemeToggle />
           </div>
         </div>
       </header>
 
       <main className="mx-auto flex w-full max-w-6xl items-center justify-center px-6 py-10 lg:py-14">
-        <div className="grid w-full overflow-hidden rounded-2xl border border-slate-800 bg-[#132232] shadow-2xl md:grid-cols-[320px_1fr]">
-          <aside className="border-b border-slate-800 bg-[#17304b] p-8 md:border-b-0 md:border-r">
+        <div className="grid w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-[#0c1f30] md:grid-cols-[320px_1fr]">
+          <aside className="border-b border-slate-200 bg-slate-50 p-8 dark:border-slate-800 dark:bg-[#10283f] md:border-b-0 md:border-r">
             <h1 className="mb-4 text-5xl font-black leading-tight">Configura tu Negocio</h1>
             <p className="mb-8 text-lg leading-relaxed text-slate-300">
               Únete a miles de restaurantes que ya optimizan sus operaciones con nuestra plataforma POS líder en el mercado.
@@ -221,22 +225,22 @@ export default function RegisterPage() {
                 </div>
                 <div className="space-y-6">
                   <div className="space-y-2">
-                    <label className="text-lg font-semibold text-slate-200" htmlFor="name">Nombre del Restaurante</label>
-                    <input id="name" className="w-full rounded-lg border border-slate-700 bg-[#0f2032] px-4 py-3 text-lg placeholder:text-slate-500 focus:border-blue-500 focus:outline-none" placeholder="Ej. La Parrilla de Alberto" value={formData.name} onChange={handleChange("name")} required />
+                    <label className="text-lg font-semibold text-slate-700 dark:text-slate-200" htmlFor="name">Nombre del Restaurante</label>
+                    <input id="name" className="w-full rounded-lg border border-slate-300 bg-slate-50 dark:border-slate-700 dark:bg-slate-800 px-4 py-3 text-lg placeholder:text-slate-500 focus:border-blue-500 focus:outline-none" placeholder="Ej. La Parrilla de Alberto" value={formData.name} onChange={handleChange("name")} required />
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-lg font-semibold text-slate-200" htmlFor="slug">Slug / URL única</label>
+                    <label className="text-lg font-semibold text-slate-700 dark:text-slate-200" htmlFor="slug">Slug / URL única</label>
                     <div className="flex">
-                      <span className="inline-flex items-center rounded-l-lg border border-r-0 border-slate-700 bg-slate-800 px-4 text-slate-400">restopos.com/</span>
-                      <input id="slug" className="flex-1 rounded-r-lg border border-slate-700 bg-[#0f2032] px-4 py-3 text-lg placeholder:text-slate-500 focus:border-blue-500 focus:outline-none" placeholder="mi-restaurante" value={formData.slug} onChange={handleChange("slug")} required />
+                      <span className="inline-flex items-center rounded-l-lg border border-r-0 border-slate-300 bg-slate-100 dark:border-slate-700 dark:bg-slate-800 px-4 text-slate-400">restopos.com/</span>
+                      <input id="slug" className="flex-1 rounded-r-lg border border-slate-300 bg-slate-50 dark:border-slate-700 dark:bg-slate-800 px-4 py-3 text-lg placeholder:text-slate-500 focus:border-blue-500 focus:outline-none" placeholder="mi-restaurante" value={formData.slug} onChange={handleChange("slug")} required />
                     </div>
                     <p className="text-sm text-slate-400">Esta será la dirección pública de tu menú digital.</p>
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-lg font-semibold text-slate-200" htmlFor="logo">Logo del Restaurante</label>
-                    <label className="group flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-slate-600 bg-[#0f2032] p-8 text-center hover:bg-[#13273d]" htmlFor="logo">
+                    <label className="text-lg font-semibold text-slate-700 dark:text-slate-200" htmlFor="logo">Logo del Restaurante</label>
+                    <label className="group flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 p-8 text-center hover:bg-slate-100 dark:border-slate-600 dark:bg-slate-800 dark:hover:bg-slate-700" htmlFor="logo">
                       <CloudUpload className="mb-2 size-10 text-slate-400 group-hover:text-blue-400" />
                       <p className="text-slate-400">Arrastra tu logo aquí o <span className="font-semibold text-blue-400">haz clic para subir</span></p>
                       <p className="mt-1 text-sm text-slate-500">PNG, JPG hasta 5MB</p>
@@ -246,8 +250,8 @@ export default function RegisterPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-lg font-semibold text-slate-200" htmlFor="plan">Selecciona tu Plan</label>
-                    <select id="plan" value={formData.plan} onChange={handleChange("plan")} className="w-full rounded-lg border border-slate-700 bg-[#0f2032] px-4 py-3 text-lg focus:border-blue-500 focus:outline-none" disabled={plansLoading || plans.length === 0}>
+                    <label className="text-lg font-semibold text-slate-700 dark:text-slate-200" htmlFor="plan">Selecciona tu Plan</label>
+                    <select id="plan" value={formData.plan} onChange={handleChange("plan")} className="w-full rounded-lg border border-slate-300 bg-slate-50 dark:border-slate-700 dark:bg-slate-800 px-4 py-3 text-lg focus:border-blue-500 focus:outline-none" disabled={plansLoading || plans.length === 0}>
                       {plansLoading ? (
                         <option value="">Cargando planes...</option>
                       ) : null}
@@ -272,24 +276,24 @@ export default function RegisterPage() {
                 </div>
                 <div className="grid gap-6 md:grid-cols-2">
                   <div className="space-y-2">
-                    <label className="text-lg font-semibold text-slate-200" htmlFor="username">Usuario</label>
+                    <label className="text-lg font-semibold text-slate-700 dark:text-slate-200" htmlFor="username">Usuario</label>
                     <div className="relative">
                       <User className="absolute left-3 top-1/2 size-5 -translate-y-1/2 text-slate-400" />
-                      <input id="username" className="w-full rounded-lg border border-slate-700 bg-[#0f2032] py-3 pl-10 pr-4 text-lg placeholder:text-slate-500 focus:border-blue-500 focus:outline-none" placeholder="nombre_usuario" value={formData.username} onChange={handleChange("username")} required />
+                      <input id="username" className="w-full rounded-lg border border-slate-300 bg-slate-50 dark:border-slate-700 dark:bg-slate-800 py-3 pl-10 pr-4 text-lg placeholder:text-slate-500 focus:border-blue-500 focus:outline-none" placeholder="nombre_usuario" value={formData.username} onChange={handleChange("username")} required />
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-lg font-semibold text-slate-200" htmlFor="password">Contraseña</label>
+                    <label className="text-lg font-semibold text-slate-700 dark:text-slate-200" htmlFor="password">Contraseña</label>
                     <div className="relative">
                       <KeyRound className="absolute left-3 top-1/2 size-5 -translate-y-1/2 text-slate-400" />
-                      <input id="password" type="password" className="w-full rounded-lg border border-slate-700 bg-[#0f2032] py-3 pl-10 pr-4 text-lg placeholder:text-slate-500 focus:border-blue-500 focus:outline-none" placeholder="••••••••" value={formData.password} onChange={handleChange("password")} required minLength={8} />
+                      <input id="password" type="password" className="w-full rounded-lg border border-slate-300 bg-slate-50 dark:border-slate-700 dark:bg-slate-800 py-3 pl-10 pr-4 text-lg placeholder:text-slate-500 focus:border-blue-500 focus:outline-none" placeholder="••••••••" value={formData.password} onChange={handleChange("password")} required minLength={8} />
                     </div>
                   </div>
                 </div>
               </div>
 
-              {error ? <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-300">{error}</div> : null}
-              {success ? <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-300">{success}</div> : null}
+              {error ? <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-600 dark:text-red-300">{error}</div> : null}
+              {success ? <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-600 dark:text-emerald-300">{success}</div> : null}
 
               <div className="space-y-3 pt-2">
                 <button type="submit" disabled={loading || plansLoading || !formData.plan} className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-500 py-4 text-lg font-bold text-white shadow-lg shadow-blue-500/20 transition hover:bg-blue-600 disabled:opacity-60">
@@ -307,7 +311,7 @@ export default function RegisterPage() {
         </div>
       </main>
 
-      <footer className="border-t border-slate-800 px-6 py-6 text-center text-xs text-slate-500">
+      <footer className="border-t border-slate-200 px-6 py-6 text-center text-xs text-slate-500 dark:border-slate-800">
         © 2024 RestoPOS System. Todos los derechos reservados. |
         <a className="ml-1 underline decoration-blue-500/30 hover:text-blue-400" href="#">Términos de Servicio</a>
       </footer>

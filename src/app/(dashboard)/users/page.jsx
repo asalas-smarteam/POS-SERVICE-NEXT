@@ -269,7 +269,7 @@ export default function UsersPage() {
   }, [limit, page, total]);
 
   return (
-    <div className="flex flex-1 flex-col gap-6 bg-slate-100 p-4 lg:p-6">
+    <div className="flex flex-1 flex-col gap-6 bg-white p-4 dark:bg-[#061426] lg:p-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="space-y-1">
           <h1 className="text-3xl font-black tracking-tight text-slate-900">User Management</h1>
@@ -293,7 +293,7 @@ export default function UsersPage() {
 
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
-      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-[#0c1f30]">
         <UsersTable
           users={users}
           loading={loading}
