@@ -18,13 +18,13 @@ export function UsersTable({ users, loading, busyId, currentUserId, onEdit, onDe
     <div className="overflow-x-auto">
       <Table>
         <TableHeader>
-          <TableRow className="border-slate-200 bg-slate-100/80 hover:bg-slate-100/80">
-            <TableHead className="px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase">User</TableHead>
-            <TableHead className="px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase">Email</TableHead>
-            <TableHead className="px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase">Role</TableHead>
-            <TableHead className="px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase">Status</TableHead>
-            <TableHead className="px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase">Last Login</TableHead>
-            <TableHead className="px-6 py-4 text-right text-xs font-bold tracking-wider text-slate-500 uppercase">Actions</TableHead>
+          <TableRow className="border-slate-200 bg-slate-100/80 hover:bg-slate-100/80 dark:border-slate-800 dark:bg-[#0f2538] dark:hover:bg-[#0f2538]">
+            <TableHead className="px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase dark:text-slate-300">User</TableHead>
+            <TableHead className="px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase dark:text-slate-300">Email</TableHead>
+            <TableHead className="px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase dark:text-slate-300">Role</TableHead>
+            <TableHead className="px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase dark:text-slate-300">Status</TableHead>
+            <TableHead className="px-6 py-4 text-xs font-bold tracking-wider text-slate-500 uppercase dark:text-slate-300">Last Login</TableHead>
+            <TableHead className="px-6 py-4 text-right text-xs font-bold tracking-wider text-slate-500 uppercase dark:text-slate-300">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
