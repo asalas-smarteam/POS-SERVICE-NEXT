@@ -23,14 +23,14 @@ export function UsersStats({ stats, loading }) {
         const value = item.isDate ? formatDate(stats?.[item.valueKey]) : Number(stats?.[item.valueKey] ?? 0);
 
         return (
-          <Card key={item.title} className="border-slate-200 bg-white shadow-sm">
+          <Card key={item.title} className="border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-[#0c1f30]">
             <CardContent className="flex items-center gap-4 p-4">
               <div className={`flex size-12 items-center justify-center rounded-lg ${item.iconWrap}`}>
                 <Icon className={`size-5 ${item.iconColor}`} />
               </div>
               <div>
-                <p className="text-xs font-medium text-slate-500">{item.title}</p>
-                <p className="text-2xl font-black text-slate-900">{loading ? "..." : value}</p>
+                <p className="text-xs font-medium text-slate-500 dark:text-slate-300">{item.title}</p>
+                <p className="text-2xl font-black text-slate-900 dark:text-slate-50">{loading ? "..." : value}</p>
               </div>
             </CardContent>
           </Card>
