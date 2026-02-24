@@ -11,6 +11,30 @@ const normalizePath = (path = "") => {
   return normalized.endsWith("/") ? normalized.slice(0, -1) : normalized;
 };
 
+const normalizeTenantScopedPath = (path = "") => {
+  const normalized = normalizePath(path);
+  const parts = normalized.split("/").filter(Boolean);
+
+  if (parts.length >= 2) {
+    const [moduleName, tenantId] = parts;
+    const isTenantRoute = [
+      "dashboard",
+      "orders",
+      "kitchen",
+      "users",
+      "products",
+      "ingredients",
+      "settings",
+    ].includes(moduleName);
+
+    if (isTenantRoute && tenantId) {
+      return `/${moduleName}`;
+    }
+  }
+
+  return normalized;
+};
+
 const collectUrls = (items = []) => {
   return items.flatMap((item) => {
     if (!item) {
@@ -75,7 +99,7 @@ export const useAuthStore = create(
       },
       // Helper centralizado para validar permisos desde cualquier layout/guard.
       hasAccess: (path) => {
-        const normalizedPath = normalizePath(path);
+        const normalizedPath = normalizeTenantScopedPath(path);
         const permissionsMap = get?.()?.permissionsMap ?? {};
         const hasConfiguredPermissions =
           Object.keys(permissionsMap).length > 0;
