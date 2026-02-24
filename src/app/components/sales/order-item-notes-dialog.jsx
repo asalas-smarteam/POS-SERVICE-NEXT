@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { AppSpinner } from "@/components/app-spinner";
 import { IngredientSearchSelect } from "@/components/ingredients/ingredient-search-select";
+import { filterCompatibleHalfProducts } from "@/lib/halfAndHalf";
 import { cn } from "@/lib/utils";
 import { useIngredientsStore } from "../../../store/ingredientsStore";
 import { useProductsStore } from "../../../store/productsStore";
@@ -54,31 +55,6 @@ const buildNotes = (modifiers = []) =>
     }
     return [];
   });
-
-const filterCompatibleProducts = ({ products, currentProduct }) => {
-  const productList = Array.isArray(products) ? products : [];
-  const currentProductId = currentProduct?.productId ?? currentProduct?.id;
-
-  return productList.filter((product) => {
-    if (!product?.allowsHalf) {
-      return false;
-    }
-    if (!product?._id || product._id === currentProductId) {
-      return false;
-    }
-    if (!currentProduct?.sizeId || product.sizeId !== currentProduct.sizeId) {
-      return false;
-    }
-    if (
-      currentProduct?.categoryId &&
-      product?.categoryId &&
-      product.categoryId !== currentProduct.categoryId
-    ) {
-      return false;
-    }
-    return true;
-  });
-};
 
 export function OrderItemNotesDialog({ open, onOpenChange, item, onSave }) {
   const { ingredients, loading, fetchIngredients } = useIngredientsStore((state) => ({
@@ -166,7 +142,7 @@ export function OrderItemNotesDialog({ open, onOpenChange, item, onSave }) {
   }, [open, item, baseIngredients, canConfigureHalfAndHalf]);
 
   const compatibleHalfProducts = useMemo(
-    () => filterCompatibleProducts({ products, currentProduct: item }),
+    () => filterCompatibleHalfProducts({ products, currentProduct: item }),
     [products, item]
   );
 

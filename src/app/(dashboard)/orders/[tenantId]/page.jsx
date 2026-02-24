@@ -2,11 +2,14 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CategoryTabs } from "@/components/sales/category-tabs";
+import { HalfAndHalfQuickSelectorDialog } from "@/components/sales/half-and-half-quick-selector-dialog";
 import { OrderSidebar } from "@/components/sales/order-sidebar";
 import { ProductGrid } from "@/components/sales/product-grid";
 import { SalesHeader } from "@/components/sales/sales-header";
 import { TicketPreviewDialog } from "@/components/sales/ticket-preview-dialog";
 import { generateKitchenTicketPdf } from "@/lib/pdf/ticketJsPdf";
+import { filterCompatibleHalfProducts } from "@/lib/halfAndHalf";
+import { toast } from "sonner";
 import { useAuthStore } from "../../../../store/authStore";
 import { useOrderStore } from "../../../../store/orderStore";
 import { useProductsStore } from "../../../../store/productsStore";
@@ -104,6 +107,8 @@ export default function OrdersPage() {
   const [checkoutError, setCheckoutError] = useState("");
   const [ticketDialogOpen, setTicketDialogOpen] = useState(false);
   const [ticketPreview, setTicketPreview] = useState(null);
+  const [halfSelectorOpen, setHalfSelectorOpen] = useState(false);
+  const [selectedHalfBaseProduct, setSelectedHalfBaseProduct] = useState(null);
   const isSubmittingRef = useRef(false);
 
   useEffect(() => {
@@ -285,6 +290,61 @@ export default function OrdersPage() {
     }
   }, [items, buildItemPayload, clearOrder]);
 
+
+
+  const compatibleHalfProducts = useMemo(
+    () =>
+      filterCompatibleHalfProducts({
+        products,
+        currentProduct: selectedHalfBaseProduct,
+      }),
+    [products, selectedHalfBaseProduct]
+  );
+
+  const handleProductLongPress = useCallback(
+    (product) => {
+      if (!product?.allowsHalf) {
+        addItem(product);
+        return;
+      }
+
+      const compatibleProducts = filterCompatibleHalfProducts({
+        products,
+        currentProduct: product,
+      });
+
+      if (!compatibleProducts.length) {
+        toast.error("No compatible products available for half-and-half.");
+        return;
+      }
+
+      setSelectedHalfBaseProduct(product);
+      setHalfSelectorOpen(true);
+    },
+    [addItem, products]
+  );
+
+  const handleHalfAndHalfConfirm = useCallback(
+    (secondHalfProduct) => {
+      const baseProduct = selectedHalfBaseProduct;
+      if (!baseProduct || !secondHalfProduct) {
+        return;
+      }
+
+      const baseProductId = baseProduct?._id ?? baseProduct?.id;
+      const secondHalfProductId = secondHalfProduct?._id ?? secondHalfProduct?.id;
+
+      addItem(baseProduct);
+      updateNotes(baseProductId, {
+        isHalfAndHalf: true,
+        halves: [{ productId: secondHalfProductId, name: secondHalfProduct?.name ?? "Product" }],
+      });
+
+      setHalfSelectorOpen(false);
+      setSelectedHalfBaseProduct(null);
+    },
+    [addItem, selectedHalfBaseProduct, updateNotes]
+  );
   useEffect(() => {
     const handleKeyDown = (event) => {
       if (event.key === "F2") {
@@ -318,6 +378,7 @@ export default function OrdersPage() {
               error={error}
               isFiltering={isFiltering}
               onSelect={addItem}
+              onLongSelect={handleProductLongPress}
             />
           </section>
 
@@ -342,6 +403,19 @@ export default function OrdersPage() {
         onOpenChange={setTicketDialogOpen}
         ticket={ticketPreview}
         onPrint={() => window.print()}
+      />
+
+      <HalfAndHalfQuickSelectorDialog
+        open={halfSelectorOpen}
+        onOpenChange={(open) => {
+          setHalfSelectorOpen(open);
+          if (!open) {
+            setSelectedHalfBaseProduct(null);
+          }
+        }}
+        baseProduct={selectedHalfBaseProduct}
+        compatibleProducts={compatibleHalfProducts}
+        onConfirm={handleHalfAndHalfConfirm}
       />
     </div>
   );

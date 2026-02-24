@@ -2,6 +2,7 @@
 
 import { Coffee } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { useLongPress } from "@/hooks/useLongPress";
 import { cn } from "@/lib/utils";
 
 const formatCurrency = (value) =>
@@ -10,13 +11,19 @@ const formatCurrency = (value) =>
     currency: "CLP",
   });
 
-export function ProductCard({ product, onSelect }) {
+export function ProductCard({ product, onSelect, onLongSelect }) {
+  const longPressBindings = useLongPress({
+    onLongPress: () => onLongSelect?.(product),
+    onClick: () => onSelect?.(product),
+    delay: 500,
+  });
+
   return (
     <Card
       className={cn(
         "group cursor-pointer border bg-card transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
       )}
-      onClick={() => onSelect?.(product)}
+      {...longPressBindings}
     >
       <CardContent className="flex flex-col gap-3 p-4">
         <div className="flex h-28 items-center justify-center rounded-xl bg-muted/60">

@@ -11,6 +11,7 @@ export function ProductGrid({
   error = null,
   isFiltering = false,
   onSelect,
+  onLongSelect,
 }) {
   if (loading) {
     return <AppSkeleton variant="grid" count={8} className="mt-4" />;
@@ -44,6 +45,7 @@ export function ProductGrid({
             key={product._id ?? product.id ?? product.name}
             product={product}
             onSelect={onSelect}
+            onLongSelect={onLongSelect}
           />
         ))}
       </div>
