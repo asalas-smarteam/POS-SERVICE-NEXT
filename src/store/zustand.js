@@ -1,5 +1,39 @@
 import { useSyncExternalStoreWithSelector } from "use-sync-external-store/shim/with-selector";
 
+export function createJSONStorage(getStorage) {
+  return {
+    getItem: (name) => {
+      const storage = getStorage?.();
+      if (!storage) {
+        return null;
+      }
+
+      const value = storage.getItem(name);
+      if (!value) {
+        return null;
+      }
+
+      try {
+        return JSON.parse(value);
+      } catch {
+        return null;
+      }
+    },
+    setItem: (name, value) => {
+      const storage = getStorage?.();
+      if (!storage) {
+        return;
+      }
+
+      storage.setItem(name, JSON.stringify(value));
+    },
+    removeItem: (name) => {
+      const storage = getStorage?.();
+      storage?.removeItem(name);
+    },
+  };
+}
+
 export function create(createState) {
   let state;
   const listeners = new Set();
@@ -53,7 +87,13 @@ export function persist(config, options) {
         return;
       }
       const state = options.partialize ? options.partialize(get()) : get();
-      storage.setItem(options.name, JSON.stringify(state));
+
+      if (typeof storage.setItem === "function") {
+        storage.setItem(options.name, state);
+        return;
+      }
+
+      window?.localStorage?.setItem?.(options.name, JSON.stringify(state));
     };
 
     const setState = (partial, replace) => {
@@ -67,13 +107,26 @@ export function persist(config, options) {
 
     const rehydrate = () => {
       if (!storage) {
+        hasHydrated = true;
+        if (typeof postRehydrate === "function") {
+          postRehydrate(get());
+        }
         return;
       }
-      const stored = storage.getItem(options.name);
+
+      let stored = storage.getItem(options.name);
+
+      if (typeof stored === "string") {
+        try {
+          stored = JSON.parse(stored);
+        } catch {
+          stored = null;
+        }
+      }
+
       if (stored) {
-        const data = JSON.parse(stored);
         // Merge persisted data to keep store methods intact.
-        set((currentState) => ({ ...currentState, ...data }));
+        set((currentState) => ({ ...currentState, ...stored }));
       }
       hasHydrated = true;
       if (typeof postRehydrate === "function") {
@@ -84,7 +137,7 @@ export function persist(config, options) {
     api.persist = {
       rehydrate,
       hasHydrated: () => hasHydrated,
-      clearStorage: () => storage?.removeItem(options.name),
+      clearStorage: () => storage?.removeItem?.(options.name),
     };
 
     const state = config(setState, get, api);
