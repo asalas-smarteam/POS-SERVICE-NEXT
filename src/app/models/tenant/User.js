@@ -3,7 +3,7 @@ import { ROLE_VALUES } from '@/lib/auth/roles';
 
 const UserSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true, trim: true },
-  email: { type: String, unique: true, sparse: true },
+  email: { type: String, required: true, unique: true, trim: true, lowercase: true },
   passwordHash: { type: String, required: true },
   role: {
     type: String,

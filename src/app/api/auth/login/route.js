@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import crypto from 'crypto';
 import { connectMasterDB } from '@/lib/db/master';
 import { getTenantConnection } from '@/lib/db/connections';
 import { TenantModel } from '@/models/master/Tenant';
@@ -8,6 +7,8 @@ import { UserModel } from '@/models/tenant/User';
 import { comparePassword } from '@/lib/auth/hash';
 import { signToken } from '@/lib/auth/jwt';
 import { setAuthCookie } from '@/lib/auth/cookie';
+import { normalizeEmail } from '@/lib/utils/normalizeEmail';
+import { hashEmail } from '@/lib/utils/hashEmail';
 
 export async function POST(req) {
   try {
@@ -20,11 +21,8 @@ export async function POST(req) {
       );
     }
 
-    const normalizedEmail = email.trim().toLowerCase();
-    const emailHash = crypto
-      .createHash('sha256')
-      .update(normalizedEmail)
-      .digest('hex');
+    const normalizedEmail = normalizeEmail(email);
+    const emailHash = hashEmail(normalizedEmail);
 
     const masterConn = await connectMasterDB();
     const UserIndex = UserIndexModel(masterConn);
