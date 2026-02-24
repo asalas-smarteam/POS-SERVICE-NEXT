@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server';
 import { resolveTenant } from '@/lib/tenant/resolveTenant';
 import { getTenantConnection } from '@/lib/db/connections';
 import { TenantSettingModel } from '@/models/tenant/TenantSetting';
+import {
+  validateHalfAndHalfPricing,
+  normalizeHalfAndHalfPricing,
+} from '@/lib/tenant/halfAndHalfPricingSettings';
 
 const isPlainObject = (value) =>
   Object.prototype.toString.call(value) === '[object Object]';
@@ -48,6 +52,28 @@ export async function PUT(req, { params }) {
         { error: 'data must remain an object for this setting' },
         { status: 400 }
       );
+    }
+
+    if (existing.description === 'Settings') {
+      const currentSettingsData = isPlainObject(existing.data) ? existing.data : {};
+      const hasHalfAndHalfPricing =
+        isPlainObject(nextData) &&
+        Object.prototype.hasOwnProperty.call(nextData, 'halfAndHalfPricing');
+
+      if (hasHalfAndHalfPricing) {
+        const validationError = validateHalfAndHalfPricing(nextData.halfAndHalfPricing);
+        if (validationError) {
+          return NextResponse.json({ error: validationError }, { status: 400 });
+        }
+      }
+
+      if (isPlainObject(nextData)) {
+        nextData.halfAndHalfPricing = normalizeHalfAndHalfPricing(
+          hasHalfAndHalfPricing
+            ? nextData.halfAndHalfPricing
+            : currentSettingsData.halfAndHalfPricing
+        );
+      }
     }
 
     existing.data = nextData;
