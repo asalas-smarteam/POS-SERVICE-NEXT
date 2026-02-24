@@ -1,4 +1,9 @@
-import { ProductModel } from "@/models/tenant/Product";
+import { ProductModel } from '@/models/tenant/Product';
+
+const toSafeNumber = (value, fallback = 0) => {
+  const numericValue = Number(value);
+  return Number.isFinite(numericValue) ? numericValue : fallback;
+};
 
 export async function calculateOrderTotal(conn, order) {
   const Product = ProductModel(conn);
@@ -6,16 +11,21 @@ export async function calculateOrderTotal(conn, order) {
   let total = 0;
 
   for (const item of order.items) {
-    // Producto base
+    const quantity = Math.max(1, toSafeNumber(item?.quantity, 1));
+    const storedUnitPrice = toSafeNumber(item?.unitPrice, toSafeNumber(item?.price, NaN));
+
+    if (Number.isFinite(storedUnitPrice)) {
+      total += storedUnitPrice * quantity;
+      continue;
+    }
+
     const product = await Product.findById(item.productId);
     if (!product) continue;
 
-    let lineTotal = product.price * item.quantity;
+    let lineTotal = toSafeNumber(product.price) * quantity;
 
-    // Extras (si decides cobrar extra; aquí ejemplo simple)
     if (item.extraIngredients?.length) {
-      // política simple: + ₡100 por extra por unidad
-      lineTotal += item.extraIngredients.length * 100 * item.quantity;
+      lineTotal += item.extraIngredients.length * 100 * quantity;
     }
 
     total += lineTotal;

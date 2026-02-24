@@ -1,40 +1,37 @@
 import { ProductModel } from '@/models/tenant/Product';
 import { IngredientModel } from '@/models/tenant/Ingredient';
+import { calculateIngredientsToDiscount } from '../../../../lib/inventory/calculateIngredientsToDiscount';
 
 export async function discountInventory(conn, order) {
   const Product = ProductModel(conn);
   const Ingredient = IngredientModel(conn);
 
   for (const item of order.items) {
+    const productA = await Product.findById(item.productId).lean();
+    if (!productA || productA.type !== 'COMPOSED') {
+      continue;
+    }
 
-    // Caso mitad / mitad
-    const productsToProcess = item.halves?.length
-      ? await Product.find({ _id: { $in: item.halves.map(h => h.productId) } })
-      : [await Product.findById(item.productId)];
+    let productB = null;
+    const halfProductId = item?.halves?.[0]?.productId;
 
-    for (const product of productsToProcess) {
-      if (!product || product.type !== 'COMPOSED') continue;
+    if (item?.isHalfAndHalf && halfProductId) {
+      productB = await Product.findById(halfProductId).lean();
+    }
 
-      for (const pi of product.ingredients) {
+    const ingredientsToDiscount = calculateIngredientsToDiscount({
+      itemQuantity: item.quantity,
+      productA,
+      productB,
+      isHalfAndHalf: item.isHalfAndHalf,
+      removedIngredients: item.removedIngredients,
+      extraIngredients: item.extraIngredients,
+    });
 
-        // ingrediente fue quitado
-        if (item.removedIngredients?.includes(String(pi.ingredientId))) {
-          continue;
-        }
-
-        let qty = pi.quantity * item.quantity;
-
-        // extras
-        const extra = item.extraIngredients?.find(
-          e => String(e.ingredientId) === String(pi.ingredientId)
-        );
-        if (extra) qty += extra.quantity;
-
-        await Ingredient.findByIdAndUpdate(
-          pi.ingredientId,
-          { $inc: { stock: -qty } }
-        );
-      }
+    for (const ingredient of ingredientsToDiscount.items) {
+      await Ingredient.findByIdAndUpdate(ingredient.ingredientId, {
+        $inc: { stock: -ingredient.quantity },
+      });
     }
   }
 }
