@@ -9,31 +9,18 @@ import {
   EyeOff,
   Lock,
   LogIn,
-  User,
   UtensilsCrossed,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { useAuthStore } from "../../store/authStore";
-
-const slugRegex = /^[a-z0-9-]+$/;
-
-const getFirstAllowedRoute = (navMain = []) => {
-  const first = Array.isArray(navMain) ? navMain.find((item) => item?.href || item?.url) : null;
-  return first?.href || first?.url || "/home";
-};
 
 const heroImage =
   "https://lh3.googleusercontent.com/aida-public/AB6AXuA53l-iE5HbCn9_s53LaqVLy5tz849IyFF0w6vlCaym5ZM_tGfpQTVEcpz-PYKKIwZ9VifMn5rU9Wv5mn3HuPet1Iv-99J-vvpqRzVzmnqb5VokP3vPGHBPt-n-TsN4-VpzRxDGgkbsdOKcGtxdMYQziN8KxMErti-yujhlaKTmWj92f48jsGXwwiAAhB9AV_jiEeycqg97e1sno33oxFvHAptPK1vFmgM2yl6VS_uxu1ovd7t7YFVKzpJOjfL_T-0KEtYHjvEx7IAH";
 
 export default function LoginPage() {
   const router = useRouter();
-  const loginSuccess = useAuthStore((state) => state.loginSuccess);
-  const tenant = useAuthStore((state) => state.tenant);
-
   const [formData, setFormData] = useState({
-    username: "",
+    email: "",
     password: "",
-    tenantSlug: "",
     remember: false,
   });
   const [showPassword, setShowPassword] = useState(false);
@@ -50,35 +37,20 @@ export default function LoginPage() {
     event.preventDefault();
     setError("");
 
-    if (!formData.username || !formData.password) {
-      setError("Por favor ingresa usuario y contraseña.");
-      return;
-    }
-
-    const resolvedTenantSlug = tenant?.slug || formData.tenantSlug.trim();
-
-    if (!resolvedTenantSlug) {
-      setError(
-        "Ingresa el slug del tenant para continuar con el inicio de sesión."
-      );
-      return;
-    }
-
-    if (!slugRegex.test(resolvedTenantSlug)) {
-      setError("El slug solo puede contener minúsculas, números y guiones.");
+    if (!formData.email || !formData.password) {
+      setError("Please enter your email and password.");
       return;
     }
 
     try {
       setLoading(true);
-      const response = await fetch("http://localhost:3000/api/auth/login", {
+      const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-tenant": resolvedTenantSlug,
         },
         body: JSON.stringify({
-          username: formData.username,
+          email: formData.email,
           password: formData.password,
         }),
       });
@@ -94,19 +66,7 @@ export default function LoginPage() {
         return;
       }
 
-      loginSuccess({
-        token: data.token,
-        user: data.user,
-        navMain: data.navMain,
-        tenant: data.tenant ?? {
-          ...tenant,
-          slug: resolvedTenantSlug,
-        },
-      });
-
-      document.cookie = `pos-token=${data.token}; path=/; max-age=86400; samesite=lax`;
-
-      router.push(getFirstAllowedRoute(data.navMain));
+      router.push(`/dashboard/${data.tenantId}`);
     } catch {
       setError("Ocurrió un error inesperado. Intenta más tarde.");
     } finally {
@@ -175,25 +135,20 @@ export default function LoginPage() {
                 <div className="flex flex-col gap-2">
                   <label
                     className="ml-1 text-sm font-semibold text-slate-700 dark:text-slate-300"
-                    htmlFor="username"
+                    htmlFor="email"
                   >
-                    Usuario
+                    Email
                   </label>
-                  <div className="group relative">
-                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
-                      <User className="size-5 text-slate-400 transition-colors group-focus-within:text-[#137fec]" />
-                    </div>
-                    <input
-                      className="block w-full rounded-xl border border-slate-200 bg-white py-4 pr-4 pl-11 text-slate-900 placeholder:text-slate-500 outline-none transition-all focus:border-[#137fec] focus:ring-2 focus:ring-[#137fec]/20 dark:border-slate-800 dark:bg-[#0c1f30] dark:text-slate-100"
-                      id="username"
-                      name="username"
-                      placeholder="nombre_usuario"
-                      required
-                      type="text"
-                      value={formData.username}
-                      onChange={handleChange("username")}
-                    />
-                  </div>
+                  <input
+                    className="block w-full rounded-xl border border-slate-200 bg-white px-4 py-4 text-slate-900 placeholder:text-slate-500 outline-none transition-all focus:border-[#137fec] focus:ring-2 focus:ring-[#137fec]/20 dark:border-slate-800 dark:bg-[#0c1f30] dark:text-slate-100"
+                    id="email"
+                    name="email"
+                    placeholder="you@example.com"
+                    required
+                    type="email"
+                    value={formData.email}
+                    onChange={handleChange("email")}
+                  />
                 </div>
 
                 <div className="flex flex-col gap-2">
@@ -238,25 +193,6 @@ export default function LoginPage() {
                   </div>
                 </div>
 
-                {!tenant?.slug ? (
-                  <div className="flex flex-col gap-2">
-                    <label
-                      className="ml-1 text-sm font-semibold text-slate-700 dark:text-slate-300"
-                      htmlFor="tenantSlug"
-                    >
-                      Slug del tenant
-                    </label>
-                    <input
-                      className="block w-full rounded-xl border border-slate-200 bg-white px-4 py-4 text-slate-900 placeholder:text-slate-500 outline-none transition-all focus:border-[#137fec] focus:ring-2 focus:ring-[#137fec]/20 dark:border-slate-800 dark:bg-[#0c1f30] dark:text-slate-100"
-                      id="tenantSlug"
-                      name="tenantSlug"
-                      placeholder="mirestaurante"
-                      required
-                      value={formData.tenantSlug}
-                      onChange={handleChange("tenantSlug")}
-                    />
-                  </div>
-                ) : null}
               </div>
 
               {error ? (
