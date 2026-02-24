@@ -6,6 +6,11 @@ const ProductIngredientSchema = new mongoose.Schema({
     ref: 'Ingredient',
   },
   quantity: Number, // cuánto consume
+  part: {
+    type: String,
+    enum: ['BASE', 'TOPPING'],
+    default: 'TOPPING',
+  },
 });
 
 const ProductSchema = new mongoose.Schema({
