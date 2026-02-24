@@ -29,43 +29,6 @@ const normalizeOrderNumber = (orderId) => {
   return trimmed.padStart(3, "0");
 };
 
-const buildInventoryPayload = (item) => {
-  const modifiers = Array.isArray(item?.modifiers) ? item.modifiers : [];
-  const baseIngredients = Array.isArray(item?.baseIngredients)
-    ? item.baseIngredients
-    : [];
-
-  const ingredientMap = new Map();
-  const applyQuantity = (ingredientId, quantity) => {
-    if (!ingredientId) {
-      return;
-    }
-    const current = ingredientMap.get(String(ingredientId)) || 0;
-    ingredientMap.set(String(ingredientId), current + quantity);
-  };
-
-  if (modifiers.length) {
-    modifiers.forEach((modifier) => {
-      const ingredientId = modifier.ingredientId;
-      const qty = Number(modifier.quantity ?? 0) * item.quantity;
-      if (qty > 0) {
-        applyQuantity(ingredientId, qty);
-      }
-    });
-  } else {
-    baseIngredients.forEach((ingredient) => {
-      const qty = Number(ingredient.quantity ?? 0) * item.quantity;
-      if (qty > 0) {
-        applyQuantity(ingredient.ingredientId, qty);
-      }
-    });
-  }
-
-  return Array.from(ingredientMap.entries()).map(([ingredientId, quantity]) => ({
-    ingredientId,
-    quantity,
-  }));
-};
 
 export default function OrdersPage() {
   const { products, loading, error, fetchProducts } = useProductsStore(
@@ -222,26 +185,6 @@ export default function OrdersPage() {
         });
         if (!itemResponse.ok) {
           throw new Error("No se pudieron agregar items a la orden.");
-        }
-      }
-
-      const inventoryRequests = items.flatMap((item) =>
-        buildInventoryPayload(item)
-      );
-      for (const ingredient of inventoryRequests) {
-        const consumeResponse = await fetch("/api/inventory/consume", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...getTenantHeader(),
-          },
-          body: JSON.stringify({
-            ...ingredient,
-            orderId,
-          }),
-        });
-        if (!consumeResponse.ok) {
-          throw new Error("No se pudo descontar inventario.");
         }
       }
 
