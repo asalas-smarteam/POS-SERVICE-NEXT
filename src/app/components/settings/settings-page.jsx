@@ -1,13 +1,30 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AppAlert } from "@/components/app-alert";
 import { AppSkeleton } from "@/components/app-skeleton";
+import { AppSpinner } from "@/components/app-spinner";
 import { SettingsEditorDialog } from "@/components/settings/settings-editor-dialog";
 import { SettingsTable } from "@/components/settings/settings-table";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuthStore } from "../../../store/authStore";
 
 const cloneData = (value) => JSON.parse(JSON.stringify(value));
+
+const PRICING_STRATEGY_OPTIONS = [
+  { value: "HIGHEST", label: "Charge highest price" },
+  { value: "AVERAGE", label: "Charge average price" },
+  { value: "BASE_PLUS", label: "Charge highest price + extra fee" },
+];
+
+const DEFAULT_HALF_AND_HALF_PRICING = {
+  strategy: "HIGHEST",
+  extraAmount: 0,
+};
 
 const getTenantHeader = () => {
   const tenant = useAuthStore.getState().tenant;
@@ -15,15 +32,31 @@ const getTenantHeader = () => {
   return tenantSlug ? { "x-tenant": tenantSlug } : {};
 };
 
+const normalizePricingForm = (value) => {
+  const strategy = PRICING_STRATEGY_OPTIONS.some((option) => option.value === value?.strategy)
+    ? value.strategy
+    : DEFAULT_HALF_AND_HALF_PRICING.strategy;
+
+  const numericExtraAmount = Number(value?.extraAmount);
+  const extraAmount = Number.isFinite(numericExtraAmount) && numericExtraAmount >= 0 ? numericExtraAmount : 0;
+
+  return {
+    strategy,
+    extraAmount,
+  };
+};
+
 export function SettingsPage() {
   const [settings, setSettings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [pricingSaving, setPricingSaving] = useState(false);
   const [error, setError] = useState(null);
   const [dialogAlert, setDialogAlert] = useState(null);
   const [globalAlert, setGlobalAlert] = useState(null);
   const [selectedSetting, setSelectedSetting] = useState(null);
   const [editorData, setEditorData] = useState(null);
+  const [halfAndHalfPricing, setHalfAndHalfPricing] = useState(DEFAULT_HALF_AND_HALF_PRICING);
 
   const fetchSettings = useCallback(async () => {
     setLoading(true);
@@ -53,6 +86,15 @@ export function SettingsPage() {
     fetchSettings();
   }, [fetchSettings]);
 
+  const baseSettings = useMemo(
+    () => settings.find((setting) => setting?.description === "Settings") ?? null,
+    [settings]
+  );
+
+  useEffect(() => {
+    setHalfAndHalfPricing(normalizePricingForm(baseSettings?.data?.halfAndHalfPricing));
+  }, [baseSettings]);
+
   const handleOpenEdit = (setting) => {
     setDialogAlert(null);
     setSelectedSetting(setting);
@@ -81,8 +123,6 @@ export function SettingsPage() {
         body: JSON.stringify({ data }),
       });
 
-      console.log(JSON.stringify({ data }))
-
       const body = await response.json();
       if (!response.ok) {
         throw new Error(body?.error || "No se pudo guardar la configuración.");
@@ -100,6 +140,49 @@ export function SettingsPage() {
       });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleHalfAndHalfSave = async () => {
+    if (!baseSettings?._id) {
+      setGlobalAlert({ type: "error", message: "Settings document is not available for this tenant." });
+      return;
+    }
+
+    const normalizedHalfAndHalfPricing = normalizePricingForm(halfAndHalfPricing);
+
+    const data = {
+      ...(baseSettings?.data && typeof baseSettings.data === "object" && !Array.isArray(baseSettings.data)
+        ? baseSettings.data
+        : {}),
+      halfAndHalfPricing: normalizedHalfAndHalfPricing,
+    };
+
+    setPricingSaving(true);
+    try {
+      const response = await fetch(`/api/settings/${baseSettings._id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          ...getTenantHeader(),
+        },
+        body: JSON.stringify({ data }),
+      });
+
+      const body = await response.json();
+      if (!response.ok) {
+        throw new Error(body?.error || "Unable to save half-and-half pricing settings.");
+      }
+
+      setGlobalAlert({ type: "success", message: "Half-and-half pricing settings saved." });
+      await fetchSettings();
+    } catch (saveError) {
+      setGlobalAlert({
+        type: "error",
+        message: saveError?.message || "Unable to save half-and-half pricing settings.",
+      });
+    } finally {
+      setPricingSaving(false);
     }
   };
 
@@ -124,7 +207,70 @@ export function SettingsPage() {
         ) : settings.length === 0 ? (
           <AppAlert type="info" message="No hay configuraciones registradas." />
         ) : (
-          <SettingsTable settings={settings} onEdit={handleOpenEdit} />
+          <>
+            <Card>
+              <CardHeader>
+                <CardTitle>Half-and-Half Pricing</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="half-and-half-pricing-strategy">Pricing strategy</Label>
+                  <Select
+                    value={halfAndHalfPricing.strategy}
+                    onValueChange={(value) =>
+                      setHalfAndHalfPricing((prev) => ({
+                        ...prev,
+                        strategy: value,
+                      }))
+                    }
+                  >
+                    <SelectTrigger id="half-and-half-pricing-strategy" className="max-w-md">
+                      <SelectValue placeholder="Select a pricing strategy" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PRICING_STRATEGY_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {halfAndHalfPricing.strategy === "BASE_PLUS" ? (
+                  <div className="space-y-2 max-w-md">
+                    <Label htmlFor="half-and-half-pricing-extra-amount">Extra amount</Label>
+                    <Input
+                      id="half-and-half-pricing-extra-amount"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={halfAndHalfPricing.extraAmount}
+                      onChange={(event) =>
+                        setHalfAndHalfPricing((prev) => ({
+                          ...prev,
+                          extraAmount: event.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+                ) : null}
+
+                <Button onClick={handleHalfAndHalfSave} disabled={pricingSaving}>
+                  {pricingSaving ? (
+                    <span className="inline-flex items-center gap-2">
+                      <AppSpinner inline size={16} />
+                      Saving...
+                    </span>
+                  ) : (
+                    "Save"
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
+
+            <SettingsTable settings={settings} onEdit={handleOpenEdit} />
+          </>
         )}
       </div>
 

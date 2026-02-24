@@ -1,4 +1,8 @@
 import { TenantSettingModel } from '@/models/tenant/TenantSetting';
+import {
+  DEFAULT_HALF_AND_HALF_PRICING,
+  normalizeHalfAndHalfPricing,
+} from '@/lib/tenant/halfAndHalfPricingSettings';
 
 export const TENANT_SETTINGS_DEFAULTS = [
   {
@@ -9,6 +13,7 @@ export const TENANT_SETTINGS_DEFAULTS = [
         symbol: '₡',
         decimals: 0,
       },
+      halfAndHalfPricing: DEFAULT_HALF_AND_HALF_PRICING,
     },
   },
   {
@@ -52,5 +57,37 @@ export async function ensureDefaultSettings(conn) {
     )
   );
 
-  return TenantSetting.find().sort({ createdAt: 1 });
+  const settings = await TenantSetting.find().sort({ createdAt: 1 });
+
+  const normalizedSettings = await Promise.all(
+    settings.map(async (setting) => {
+      const normalized = enforceSettingsDefaults(setting);
+      if (normalized?.isModified?.()) {
+        await normalized.save();
+      }
+      return normalized;
+    })
+  );
+
+  return normalizedSettings;
+}
+
+
+function enforceSettingsDefaults(setting) {
+  if (!setting || setting.description !== 'Settings') {
+    return setting;
+  }
+
+  const currentData =
+    setting.data && typeof setting.data === 'object' && !Array.isArray(setting.data)
+      ? setting.data
+      : {};
+
+  const nextData = {
+    ...currentData,
+    halfAndHalfPricing: normalizeHalfAndHalfPricing(currentData.halfAndHalfPricing),
+  };
+
+  setting.data = nextData;
+  return setting;
 }
