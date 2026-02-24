@@ -56,10 +56,16 @@ export const useOrderStore = create((set, get) => ({
           ...state.items,
           {
             id: productId,
+            productId,
             name: product.name ?? "Producto",
             price: normalizePrice(product.price),
             notes: normalizeNotes(product.notes),
             quantity: 1,
+            allowsHalf: Boolean(product?.allowsHalf),
+            sizeId: product?.sizeId ?? null,
+            categoryId: product?.categoryId ?? null,
+            isHalfAndHalf: false,
+            halves: [],
             baseIngredients,
             // modifiers mantiene cantidades base y extras por ingrediente.
             modifiers: baseIngredients.map((ingredient) => ({
@@ -97,7 +103,7 @@ export const useOrderStore = create((set, get) => ({
       }),
     }));
   },
-  updateNotes: (productId, { notes, modifiers }) => {
+  updateNotes: (productId, { notes, modifiers, isHalfAndHalf, halves }) => {
     set((state) => ({
       items: state.items.map((item) =>
         item.id === productId
@@ -105,6 +111,11 @@ export const useOrderStore = create((set, get) => ({
               ...item,
               notes: normalizeNotes(notes),
               modifiers: Array.isArray(modifiers) ? modifiers : item.modifiers,
+              isHalfAndHalf:
+                typeof isHalfAndHalf === "boolean"
+                  ? isHalfAndHalf
+                  : item.isHalfAndHalf,
+              halves: Array.isArray(halves) ? halves : item.halves ?? [],
             }
           : item
       ),
