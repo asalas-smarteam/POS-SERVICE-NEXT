@@ -12,6 +12,11 @@ const ProductSchema = new mongoose.Schema({
   name: { type: String, required: true },
   price: { type: Number, required: true },
   categoryId: { type: String, default: null },
+  sizeId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'ProductSize',
+    default: null,
+  },
 
   type: {
     type: String,
