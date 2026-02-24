@@ -5,20 +5,10 @@ import { usePathname, useRouter } from "next/navigation";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SiteHeader } from "@/components/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { getTenantIdFromClient } from "@/lib/auth/getCurrentTenantId";
 import { useAuthStore } from "../../store/authStore";
 
 const SAFE_DEFAULT_PATH = "/home";
-
-const getFirstAllowedPath = (items = []) => {
-  for (const item of items) {
-    if (!item) continue;
-    const href = item.href ?? item.url;
-    if (href) return normalizePath(href);
-    const child = getFirstAllowedPath(Array.isArray(item.items) ? item.items : []);
-    if (child) return child;
-  }
-  return SAFE_DEFAULT_PATH;
-};
 
 const normalizePath = (path = "") => {
   if (!path) {
@@ -31,24 +21,53 @@ const normalizePath = (path = "") => {
   return normalized.endsWith("/") ? normalized.slice(0, -1) : normalized;
 };
 
-const findNavItemByPath = (items, path) => {
+const withTenantPath = (path, tenantId) => {
+  const normalized = normalizePath(path);
+  if (!tenantId) {
+    return normalized;
+  }
+
+  const [_, section] = normalized.split("/");
+  if (!["dashboard", "orders", "kitchen", "users", "products", "ingredients", "settings"].includes(section)) {
+    return normalized;
+  }
+
+  return `/${section}/${tenantId}`;
+};
+
+const getFirstAllowedPath = (items = [], tenantId = "") => {
+  for (const item of items) {
+    if (!item) continue;
+    const href = item.href ?? item.url;
+    if (href) return withTenantPath(href, tenantId);
+    const child = getFirstAllowedPath(Array.isArray(item.items) ? item.items : [], tenantId);
+    if (child) return child;
+  }
+  return SAFE_DEFAULT_PATH;
+};
+
+const findNavItemByPath = (items, path, tenantId) => {
   if (!Array.isArray(items)) {
     return null;
   }
+
   for (const item of items) {
     if (!item) {
       continue;
     }
-    const itemPath = normalizePath(item.href ?? item.url ?? "");
+
+    const itemPath = withTenantPath(item.href ?? item.url ?? "", tenantId);
     if (itemPath && itemPath === path) {
       return item;
     }
+
     const children = Array.isArray(item.items) ? item.items : [];
-    const childMatch = findNavItemByPath(children, path);
+    const childMatch = findNavItemByPath(children, path, tenantId);
     if (childMatch) {
       return childMatch;
     }
   }
+
   return null;
 };
 
@@ -65,24 +84,18 @@ export default function DashboardLayout({ children }) {
     [navMain]
   );
 
-  const normalizedPath = useMemo(() => {
-    if (!pathname) {
-      return SAFE_DEFAULT_PATH;
-    }
-    if (pathname === "/") {
-      return "/";
-    }
-    return pathname.endsWith("/") && pathname !== "/"
-      ? pathname.slice(0, -1)
-      : pathname;
-  }, [pathname]);
+  const normalizedPath = useMemo(() => normalizePath(pathname || SAFE_DEFAULT_PATH), [pathname]);
+  const tenantId = useMemo(() => getTenantIdFromClient(normalizedPath) ?? "", [normalizedPath]);
 
-  const firstAllowedPath = useMemo(() => getFirstAllowedPath(safeNavMain), [safeNavMain]);
+  const firstAllowedPath = useMemo(
+    () => getFirstAllowedPath(safeNavMain, tenantId),
+    [safeNavMain, tenantId]
+  );
 
   const headerTitle = useMemo(() => {
-    const match = findNavItemByPath(safeNavMain, normalizePath(normalizedPath));
+    const match = findNavItemByPath(safeNavMain, normalizePath(normalizedPath), tenantId);
     return match?.label ?? match?.title ?? "Dashboard";
-  }, [normalizedPath, safeNavMain]);
+  }, [normalizedPath, safeNavMain, tenantId]);
 
   useEffect(() => {
     if (!hasHydrated) {

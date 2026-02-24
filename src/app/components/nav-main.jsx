@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   IconCashRegister,
   IconChartBar,
@@ -15,6 +16,7 @@ import {
   IconUsers,
 } from "@tabler/icons-react";
 
+import { getTenantIdFromClient } from "@/lib/auth/getCurrentTenantId";
 import { Button } from "@/components/ui/button"
 import {
   SidebarGroup,
@@ -24,7 +26,46 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 
+const MODULE_ROUTES = ["dashboard", "orders", "kitchen", "users", "products", "ingredients", "settings"];
+
+const normalizePath = (value = "") => {
+  if (!value) return "/";
+  const normalized = value.startsWith("/") ? value : `/${value}`;
+  if (normalized.length > 1 && normalized.endsWith("/")) {
+    return normalized.slice(0, -1);
+  }
+  return normalized;
+};
+
+const toTenantHref = (href, tenantId) => {
+  const normalized = normalizePath(href);
+  if (!tenantId) return normalized;
+
+  const [_, moduleName] = normalized.split("/");
+  if (!MODULE_ROUTES.includes(moduleName)) {
+    return normalized;
+  }
+
+  const [, root, currentTenant, ...rest] = normalized.split("/");
+  if (currentTenant && currentTenant === tenantId) {
+    return normalized;
+  }
+
+  if (currentTenant && !rest.length) {
+    return `/${root}/${tenantId}`;
+  }
+
+  if (currentTenant && MODULE_ROUTES.includes(currentTenant)) {
+    return `/${root}/${tenantId}/${[currentTenant, ...rest].join("/")}`;
+  }
+
+  return `/${moduleName}/${tenantId}`;
+};
+
 export function NavMain({ items }) {
+  const pathname = usePathname();
+  const tenantId = getTenantIdFromClient(pathname);
+
   const iconMap = {
     home: IconHome,
     "cash-register": IconCashRegister,
@@ -71,10 +112,11 @@ export function NavMain({ items }) {
               item.title ??
               item.label ??
               `nav-item-${index}`;
-            const href = item.href ?? item.url ?? "#";
+            const href = toTenantHref(item.href ?? item.url ?? "#", tenantId);
+            const isActive = normalizePath(pathname) === normalizePath(href);
             return (
               <SidebarMenuItem key={key}>
-                <SidebarMenuButton asChild tooltip={item.title ?? item.label}>
+                <SidebarMenuButton asChild tooltip={item.title ?? item.label} isActive={isActive}>
                   <Link href={href}>
                     {ResolvedIcon && <ResolvedIcon />}
                     <span>{item.title ?? item.label}</span>

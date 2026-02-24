@@ -1,5 +1,12 @@
-import { RestaurantDashboard } from "@/components/dashboard/restaurant-dashboard";
+import { redirect } from "next/navigation";
+import { getCurrentTenantId } from "@/lib/auth/getCurrentTenantId";
 
-export default function Page() {
-  return <RestaurantDashboard />;
+export default async function DashboardRedirectPage() {
+  const tenantId = await getCurrentTenantId();
+
+  if (!tenantId) {
+    redirect("/login");
+  }
+
+  redirect(`/dashboard/${tenantId}`);
 }
