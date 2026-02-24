@@ -1,60 +1,59 @@
+import crypto from 'crypto';
+import bcrypt from 'bcryptjs';
 import { NextResponse } from 'next/server';
 import { connectMasterDB } from '@/lib/db/master';
 import { TenantModel } from '@/models/master/Tenant';
+import { UserIndexModel } from '@/models/master/UserIndex';
+import { UserModel } from '@/models/tenant/User';
 import { getTenantConnection } from '@/lib/db/connections';
 import { seedTenantDB } from '@/lib/tenant/seedTenant';
 import { ensureDefaultPlans } from '@/lib/master/plans';
+import { generateUniqueTenantId } from '@/lib/utils/generateTenantId';
 
-const SLUG_REGEX = /^[a-z0-9-]+$/;
 const MIN_PASSWORD_LENGTH = 8;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function normalizeInternalDomain(name) {
+  const normalizedBase = name
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]/g, '');
+
+  return `${normalizedBase || 'tenant'}.internal`;
+}
+
+function buildEmailHash(email) {
+  return crypto
+    .createHash('sha256')
+    .update(email)
+    .digest('hex');
+}
 
 export async function POST(req) {
   try {
-    const contentType = req.headers.get('content-type') || '';
-    const isJsonPayload = contentType.includes('application/json');
+    const body = await req.json();
 
-    let name;
-    let slug;
-    let plan;
-    let logo = null;
-    let adminUser;
+    const name = body?.name?.toString()?.trim();
+    const plan = body?.plan?.toString()?.trim();
+    const adminEmail = body?.adminEmail?.toString()?.trim().toLowerCase();
+    const adminPassword = body?.adminPassword?.toString() || '';
 
-    if (isJsonPayload) {
-      const body = await req.json();
-      name = body?.name?.toString()?.trim();
-      slug = body?.slug?.toString()?.trim();
-      plan = body?.plan?.toString()?.trim() || 'basic';
-      adminUser = {
-        username: body?.adminUser?.username?.toString()?.trim(),
-        password: body?.adminUser?.password?.toString() || '',
-      };
-    } else {
-      const formData = await req.formData();
-      name = formData.get('name')?.toString()?.trim();
-      slug = formData.get('slug')?.toString()?.trim();
-      plan = formData.get('plan')?.toString()?.trim() || 'basic';
-      logo = formData.get('logo');
-      adminUser = {
-        username: formData.get('username')?.toString()?.trim(),
-        password: formData.get('password')?.toString() || '',
-      };
-    }
-
-    if (!name || !slug || !adminUser?.username || !adminUser?.password) {
+    if (!name || !plan || !adminEmail || !adminPassword) {
       return NextResponse.json(
-        { error: 'name, slug and admin credentials are required' },
+        { error: 'name, plan, adminEmail and adminPassword are required' },
         { status: 400 }
       );
     }
 
-    if (!SLUG_REGEX.test(slug)) {
+    if (!EMAIL_REGEX.test(adminEmail)) {
       return NextResponse.json(
-        { error: 'Invalid slug format' },
+        { error: 'Invalid email format' },
         { status: 400 }
       );
     }
 
-    if (adminUser.password.length < MIN_PASSWORD_LENGTH) {
+    if (adminPassword.length < MIN_PASSWORD_LENGTH) {
       return NextResponse.json(
         { error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters` },
         { status: 400 }
@@ -63,6 +62,7 @@ export async function POST(req) {
 
     const masterConn = await connectMasterDB();
     const Tenant = TenantModel(masterConn);
+    const UserIndex = UserIndexModel(masterConn);
     const Plan = await ensureDefaultPlans(masterConn);
 
     const activePlan = await Plan.findOne({ slug: plan, isActive: true });
@@ -73,44 +73,66 @@ export async function POST(req) {
       );
     }
 
-    const exists = await Tenant.findOne({ slug });
-    if (exists) {
+    const existingTenantByName = await Tenant.findOne({
+      name: { $regex: `^${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, $options: 'i' },
+    });
+
+    if (existingTenantByName) {
       return NextResponse.json(
-        { error: 'Tenant already exists' },
-        { status: 400 }
+        { error: 'Tenant name already exists' },
+        { status: 409 }
       );
     }
 
-    const dbName = `${slug}_pos_db`;
-    let logoPath = null;
-
-    if (logo) {
-      const logoName = typeof logo === 'string' ? logo : logo?.name || 'logo';
-      logoPath = `/uploads/tenants/${slug}/${logoName}`;
-      // TODO: Upload logo file to S3/Cloudinary and store its URL.
-      // TODO: Replace local placeholder path with cloud URL once integrated.
+    const existingUserIndex = await UserIndex.findOne({ emailHash: buildEmailHash(adminEmail) });
+    if (existingUserIndex) {
+      return NextResponse.json(
+        { error: 'Admin email already belongs to another tenant' },
+        { status: 409 }
+      );
     }
 
+    const tenantId = await generateUniqueTenantId();
+    const dbName = `tenant_${tenantId}`;
+    const internalDomain = normalizeInternalDomain(name);
+
     const tenant = await Tenant.create({
+      tenantId,
       name,
-      slug,
       dbName,
       plan,
-      logo: logoPath,
+      internalDomain,
+      status: 'active',
     });
 
     const tenantConn = await getTenantConnection(dbName);
-    await seedTenantDB(tenantConn, adminUser);
+    const User = UserModel(tenantConn);
+
+    const passwordHash = await bcrypt.hash(adminPassword, 10);
+
+    await User.create({
+      username: adminEmail,
+      email: adminEmail,
+      passwordHash,
+      role: 'ADMIN',
+      isActive: true,
+    });
+
+    await UserIndex.create({
+      emailHash: buildEmailHash(adminEmail),
+      tenantId,
+    });
+
+    await seedTenantDB(tenantConn);
 
     return NextResponse.json({
       ok: true,
       tenant,
     });
-
   } catch (error) {
     console.error(error);
     return NextResponse.json(
-      { error: error.message },
+      { error: error.message || 'Failed to register tenant' },
       { status: 500 }
     );
   }

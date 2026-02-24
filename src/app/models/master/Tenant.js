@@ -1,19 +1,32 @@
 import mongoose from 'mongoose';
 
 const TenantSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  slug: { type: String, required: true, unique: true },
-  dbName: { type: String, required: true },
+  tenantId: {
+    type: String,
+    required: true,
+    unique: true,
+  },
+  name: {
+    type: String,
+    required: true,
+  },
+  dbName: {
+    type: String,
+    required: true,
+    unique: true,
+  },
   plan: {
     type: String,
-    default: 'basic',
+    required: true,
+  },
+  internalDomain: {
+    type: String,
+    required: true,
   },
   status: {
     type: String,
-    enum: ['active', 'inactive'],
     default: 'active',
   },
-  logo: { type: String },
 }, { timestamps: true });
 
 export function TenantModel(conn) {
