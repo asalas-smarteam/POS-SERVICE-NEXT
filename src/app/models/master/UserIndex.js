@@ -12,7 +12,7 @@ const UserIndexSchema = new mongoose.Schema({
   },
 }, { timestamps: true });
 
-UserIndexSchema.index({ emailHash: 1, tenantId: 1 });
+UserIndexSchema.index({ emailHash: 1, tenantId: 1 }, { unique: true });
 
 export function UserIndexModel(conn) {
   return conn.model('UserIndex', UserIndexSchema);

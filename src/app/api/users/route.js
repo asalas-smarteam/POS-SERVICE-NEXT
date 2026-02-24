@@ -2,6 +2,14 @@ import { NextResponse } from 'next/server';
 import { hashPassword } from '@/lib/auth/hash';
 import { ROLE_VALUES } from '@/lib/auth/roles';
 import { getAuthContext, requireAdmin } from '@/lib/auth/requestAuth';
+import { getAuthContext as getJwtAuthContext } from '@/lib/auth/getAuthContext';
+import { connectMasterDB } from '@/lib/db/master';
+import { TenantModel } from '@/models/master/Tenant';
+import { UserIndexModel } from '@/models/master/UserIndex';
+import { normalizeEmail } from '@/lib/utils/normalizeEmail';
+import { hashEmail } from '@/lib/utils/hashEmail';
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function GET(req) {
   try {
@@ -50,15 +58,24 @@ export async function POST(req) {
   try {
     const { User, authUser } = await getAuthContext(req);
     requireAdmin(authUser);
+    const authContext = getJwtAuthContext(req);
+
+    if (authContext.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
 
     const body = await req.json();
     const username = String(body?.username || '').trim();
-    const email = String(body?.email || '').trim();
+    const rawEmail = normalizeEmail(body?.email || '');
     const password = String(body?.password || '');
     const role = String(body?.role || '');
 
     if (!username) {
       return NextResponse.json({ error: 'Username is required.' }, { status: 400 });
+    }
+
+    if (!rawEmail) {
+      return NextResponse.json({ error: 'Email is required.' }, { status: 400 });
     }
 
     if (!password || password.length < 6) {
@@ -69,9 +86,21 @@ export async function POST(req) {
       return NextResponse.json({ error: 'Invalid role value.' }, { status: 400 });
     }
 
-    const exists = await User.findOne({
-      $or: [{ username }, ...(email ? [{ email }] : [])],
-    });
+    const masterConn = await connectMasterDB();
+    const Tenant = TenantModel(masterConn);
+    const tenant = await Tenant.findOne({ tenantId: authContext.tenantId }).lean();
+
+    if (!tenant?.internalDomain) {
+      return NextResponse.json({ error: 'Tenant configuration is invalid.' }, { status: 400 });
+    }
+
+    const email = rawEmail.includes('@') ? rawEmail : `${rawEmail}@${normalizeEmail(tenant.internalDomain)}`;
+
+    if (!EMAIL_REGEX.test(email)) {
+      return NextResponse.json({ error: 'Invalid email format.' }, { status: 400 });
+    }
+
+    const exists = await User.findOne({ $or: [{ username }, { email }] });
     if (exists) {
       return NextResponse.json({ error: 'Username or email already exists.' }, { status: 409 });
     }
@@ -79,11 +108,24 @@ export async function POST(req) {
     const passwordHash = await hashPassword(password);
     const user = await User.create({
       username,
-      ...(email ? { email } : {}),
+      email,
       passwordHash,
       role,
       isActive: true,
     });
+
+    const emailHash = hashEmail(email);
+    const UserIndex = UserIndexModel(masterConn);
+    await UserIndex.updateOne(
+      { emailHash, tenantId: authContext.tenantId },
+      {
+        $set: {
+          emailHash,
+          tenantId: authContext.tenantId,
+        },
+      },
+      { upsert: true }
+    );
 
     return NextResponse.json(
       {

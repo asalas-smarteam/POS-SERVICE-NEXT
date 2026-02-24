@@ -136,6 +136,7 @@ export default function UsersPage() {
     setCreateError("");
 
     if (!createForm.username.trim()) return setCreateError("Name is required.");
+    if (!createForm.email.trim()) return setCreateError("Email is required.");
     if (!createForm.password || createForm.password.length < 6) return setCreateError("Password must be at least 6 characters.");
 
     try {
@@ -145,7 +146,7 @@ export default function UsersPage() {
         headers: getHeaders(tenant, token),
         body: JSON.stringify({
           username: createForm.username.trim(),
-          email: createForm.email.trim() || undefined,
+          email: createForm.email.trim(),
           password: createForm.password,
           role: createForm.role,
         }),
@@ -324,7 +325,11 @@ export default function UsersPage() {
           </DialogHeader>
           <form className="space-y-4" onSubmit={submitCreate}>
             <div className="space-y-2"><Label htmlFor="create-username">Name</Label><Input id="create-username" value={createForm.username} onChange={(e) => setCreateForm((prev) => ({ ...prev, username: e.target.value }))} /></div>
-            <div className="space-y-2"><Label htmlFor="create-email">Email</Label><Input id="create-email" value={createForm.email} onChange={(e) => setCreateForm((prev) => ({ ...prev, email: e.target.value }))} /></div>
+            <div className="space-y-2">
+              <Label htmlFor="create-email">Email</Label>
+              <Input id="create-email" value={createForm.email} onChange={(e) => setCreateForm((prev) => ({ ...prev, email: e.target.value }))} />
+              <p className="text-xs text-slate-500 dark:text-slate-300">Tip: You can type &apos;cashier&apos; and it will become &apos;cashier@yourcompany.internal&apos;.</p>
+            </div>
             <div className="space-y-2"><Label htmlFor="create-password">Password</Label><Input id="create-password" type="password" value={createForm.password} onChange={(e) => setCreateForm((prev) => ({ ...prev, password: e.target.value }))} /></div>
             <div className="space-y-2">
               <Label>Role</Label>
