@@ -6,27 +6,21 @@ import { useRouter } from "next/navigation";
 import {
   ArrowRight,
   CheckCircle2,
-  CloudUpload,
   KeyRound,
   Lock,
   Store,
-  User,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { useAuthStore } from "../../store/authStore";
 
-const slugRegex = /^[a-z0-9-]+$/;
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function RegisterPage() {
   const router = useRouter();
-  const loginSuccess = useAuthStore((state) => state.loginSuccess);
   const [formData, setFormData] = useState({
     name: "",
-    slug: "",
     plan: "",
-    logo: null,
-    username: "",
-    password: "",
+    adminEmail: "",
+    adminPassword: "",
   });
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -49,7 +43,7 @@ export default function RegisterPage() {
         const data = await response.json().catch(() => []);
 
         if (!response.ok || !Array.isArray(data)) {
-          throw new Error('No pudimos cargar los planes disponibles.');
+          throw new Error('Unable to load available plans.');
         }
 
         if (!isMounted) return;
@@ -61,7 +55,7 @@ export default function RegisterPage() {
         }));
       } catch (fetchError) {
         if (!isMounted) return;
-        setError(fetchError.message || 'No pudimos cargar los planes disponibles.');
+        setError(fetchError.message || 'Unable to load available plans.');
       } finally {
         if (isMounted) {
           setPlansLoading(false);
@@ -76,67 +70,47 @@ export default function RegisterPage() {
     };
   }, []);
 
-  const handleLogoChange = (event) => {
-    const file = event.target.files?.[0] ?? null;
-    if (!file) {
-      setFormData((prev) => ({ ...prev, logo: null }));
-      return;
-    }
-
-    const allowedTypes = ["image/png", "image/jpeg", "image/webp"];
-    if (!allowedTypes.includes(file.type)) {
-      setError("El logo debe ser un PNG, JPG o WEBP.");
-      event.target.value = "";
-      setFormData((prev) => ({ ...prev, logo: null }));
-      return;
-    }
-
-    setFormData((prev) => ({ ...prev, logo: file }));
-  };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
     setError("");
     setSuccess("");
 
-    if (!formData.name || !formData.slug) {
-      setError("Completa el nombre y el slug para continuar.");
+    if (!formData.name) {
+      setError("Company name is required.");
       return;
     }
 
-    if (!formData.username || !formData.password) {
-      setError("Completa el usuario y contraseña del administrador.");
+    if (!formData.adminEmail || !formData.adminPassword) {
+      setError("Admin email and password are required.");
       return;
     }
 
-    if (formData.password.length < 8) {
-      setError("La contraseña debe tener al menos 8 caracteres.");
+    if (!emailRegex.test(formData.adminEmail)) {
+      setError("Please enter a valid admin email.");
       return;
     }
 
-    if (!slugRegex.test(formData.slug)) {
-      setError("El slug solo puede contener minúsculas, números y guiones.");
+    if (formData.adminPassword.length < 8) {
+      setError("Password must contain at least 8 characters.");
       return;
     }
 
     if (!formData.plan) {
-      setError("Debes seleccionar un plan válido.");
+      setError("Please select a valid plan.");
       return;
     }
 
     try {
       setLoading(true);
       const payload = {
-        name: formData.name,
-        slug: formData.slug,
+        name: formData.name.trim(),
         plan: formData.plan,
-        adminUser: {
-          username: formData.username.trim(),
-          password: formData.password,
-        },
+        adminEmail: formData.adminEmail.trim().toLowerCase(),
+        adminPassword: formData.adminPassword,
       };
 
-      const response = await fetch("http://localhost:3000/api/tenants", {
+      const response = await fetch("/api/tenants", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -147,28 +121,14 @@ export default function RegisterPage() {
       const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        setError(data.message || data.error || "No pudimos crear el tenant. Intenta otra vez.");
+        setError(data.message || data.error || "Unable to register tenant. Please try again.");
         return;
       }
 
-      loginSuccess({
-        tenant: data.tenant ?? {
-          name: formData.name,
-          slug: formData.slug,
-          plan: formData.plan,
-        },
-        token: data.token ?? null,
-        user: data.user ?? null,
-      });
-
-      if (data.token) {
-        router.push("/home");
-        return;
-      }
-
-      setSuccess("Tenant creado correctamente. Ya puedes iniciar sesión.");
+      setSuccess("Tenant registered successfully. Redirecting to login...");
+      router.push("/login");
     } catch {
-      setError("Ocurrió un error inesperado. Intenta más tarde.");
+      setError("Unexpected error. Please try again later.");
     } finally {
       setLoading(false);
     }
@@ -186,8 +146,8 @@ export default function RegisterPage() {
           </div>
           <div className="flex items-center gap-3">
             <div className="hidden gap-8 text-sm font-medium text-slate-600 dark:text-slate-300 md:flex">
-              <a className="hover:text-blue-400" href="#">Soporte</a>
-              <a className="hover:text-blue-400" href="#">Documentación</a>
+              <a className="hover:text-blue-400" href="#">Support</a>
+              <a className="hover:text-blue-400" href="#">Documentation</a>
             </div>
             <ThemeToggle />
           </div>
@@ -197,15 +157,15 @@ export default function RegisterPage() {
       <main className="mx-auto flex w-full max-w-6xl items-center justify-center px-6 py-10 lg:py-14">
         <div className="grid w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-[#0c1f30] md:grid-cols-[320px_1fr]">
           <aside className="border-b border-slate-200 bg-slate-50 p-8 dark:border-slate-800 dark:bg-[#10283f] md:border-b-0 md:border-r">
-            <h1 className="mb-4 text-5xl font-black leading-tight">Configura tu Negocio</h1>
+            <h1 className="mb-4 text-5xl font-black leading-tight">Set Up Your Business</h1>
             <p className="mb-8 text-lg leading-relaxed text-slate-300">
-              Únete a miles de restaurantes que ya optimizan sus operaciones con nuestra plataforma POS líder en el mercado.
+              Join thousands of restaurants already optimizing operations with our leading POS platform.
             </p>
             <ul className="space-y-4 text-xl">
               {[
-                "Gestión de inventario en tiempo real",
-                "Menú digital y QR personalizable",
-                "Reportes avanzados de ventas",
+                "Real-time inventory management",
+                "Custom digital menu and QR",
+                "Advanced sales reporting",
               ].map((item) => (
                 <li className="flex items-start gap-3" key={item}>
                   <CheckCircle2 className="mt-0.5 size-5 text-blue-500" />
@@ -221,42 +181,23 @@ export default function RegisterPage() {
               <div>
                 <div className="mb-6 flex items-center gap-2">
                   <Store className="size-5 text-blue-500" />
-                  <h3 className="text-3xl font-bold">Detalles del Restaurante</h3>
+                  <h3 className="text-3xl font-bold">Restaurant Details</h3>
                 </div>
                 <div className="space-y-6">
                   <div className="space-y-2">
-                    <label className="text-lg font-semibold text-slate-700 dark:text-slate-200" htmlFor="name">Nombre del Restaurante</label>
-                    <input id="name" className="w-full rounded-lg border border-slate-300 bg-slate-50 dark:border-slate-700 dark:bg-slate-800 px-4 py-3 text-lg placeholder:text-slate-500 focus:border-blue-500 focus:outline-none" placeholder="Ej. La Parrilla de Alberto" value={formData.name} onChange={handleChange("name")} required />
+                    <label className="text-lg font-semibold text-slate-700 dark:text-slate-200" htmlFor="name">Restaurant Name</label>
+                    <input id="name" className="w-full rounded-lg border border-slate-300 bg-slate-50 dark:border-slate-700 dark:bg-slate-800 px-4 py-3 text-lg placeholder:text-slate-500 focus:border-blue-500 focus:outline-none" placeholder="e.g. Downtown Bistro" value={formData.name} onChange={handleChange("name")} required />
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="text-lg font-semibold text-slate-700 dark:text-slate-200" htmlFor="slug">Slug / URL única</label>
-                    <div className="flex">
-                      <span className="inline-flex items-center rounded-l-lg border border-r-0 border-slate-300 bg-slate-100 dark:border-slate-700 dark:bg-slate-800 px-4 text-slate-400">restopos.com/</span>
-                      <input id="slug" className="flex-1 rounded-r-lg border border-slate-300 bg-slate-50 dark:border-slate-700 dark:bg-slate-800 px-4 py-3 text-lg placeholder:text-slate-500 focus:border-blue-500 focus:outline-none" placeholder="mi-restaurante" value={formData.slug} onChange={handleChange("slug")} required />
-                    </div>
-                    <p className="text-sm text-slate-400">Esta será la dirección pública de tu menú digital.</p>
-                  </div>
 
                   <div className="space-y-2">
-                    <label className="text-lg font-semibold text-slate-700 dark:text-slate-200" htmlFor="logo">Logo del Restaurante</label>
-                    <label className="group flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 p-8 text-center hover:bg-slate-100 dark:border-slate-600 dark:bg-slate-800 dark:hover:bg-slate-700" htmlFor="logo">
-                      <CloudUpload className="mb-2 size-10 text-slate-400 group-hover:text-blue-400" />
-                      <p className="text-slate-400">Arrastra tu logo aquí o <span className="font-semibold text-blue-400">haz clic para subir</span></p>
-                      <p className="mt-1 text-sm text-slate-500">PNG, JPG hasta 5MB</p>
-                      {formData.logo ? <p className="mt-2 text-sm text-emerald-400">Seleccionado: {formData.logo.name}</p> : null}
-                    </label>
-                    <input id="logo" type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={handleLogoChange} />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-lg font-semibold text-slate-700 dark:text-slate-200" htmlFor="plan">Selecciona tu Plan</label>
+                    <label className="text-lg font-semibold text-slate-700 dark:text-slate-200" htmlFor="plan">Select a Plan</label>
                     <select id="plan" value={formData.plan} onChange={handleChange("plan")} className="w-full rounded-lg border border-slate-300 bg-slate-50 dark:border-slate-700 dark:bg-slate-800 px-4 py-3 text-lg focus:border-blue-500 focus:outline-none" disabled={plansLoading || plans.length === 0}>
                       {plansLoading ? (
-                        <option value="">Cargando planes...</option>
+                        <option value="">Loading plans...</option>
                       ) : null}
                       {!plansLoading && plans.length === 0 ? (
-                        <option value="">No hay planes disponibles</option>
+                        <option value="">No plans available</option>
                       ) : null}
                       {!plansLoading ? plans.map((plan) => (
                         <option key={plan.slug} value={plan.slug}>
@@ -264,7 +205,7 @@ export default function RegisterPage() {
                         </option>
                       )) : null}
                     </select>
-                    {plansLoading ? <p className="text-sm text-slate-400">Cargando planes...</p> : null}
+                    {plansLoading ? <p className="text-sm text-slate-400">Loading plans...</p> : null}
                   </div>
                 </div>
               </div>
@@ -272,21 +213,20 @@ export default function RegisterPage() {
               <div className="border-t border-slate-700 pt-8">
                 <div className="mb-6 flex items-center gap-2">
                   <Lock className="size-5 text-blue-500" />
-                  <h3 className="text-3xl font-bold">Credenciales de Usuario</h3>
+                  <h3 className="text-3xl font-bold">Admin Credentials</h3>
                 </div>
                 <div className="grid gap-6 md:grid-cols-2">
                   <div className="space-y-2">
-                    <label className="text-lg font-semibold text-slate-700 dark:text-slate-200" htmlFor="username">Usuario</label>
+                    <label className="text-lg font-semibold text-slate-700 dark:text-slate-200" htmlFor="adminEmail">Admin Email</label>
                     <div className="relative">
-                      <User className="absolute left-3 top-1/2 size-5 -translate-y-1/2 text-slate-400" />
-                      <input id="username" className="w-full rounded-lg border border-slate-300 bg-slate-50 dark:border-slate-700 dark:bg-slate-800 py-3 pl-10 pr-4 text-lg placeholder:text-slate-500 focus:border-blue-500 focus:outline-none" placeholder="nombre_usuario" value={formData.username} onChange={handleChange("username")} required />
+                      <input id="adminEmail" type="email" className="w-full rounded-lg border border-slate-300 bg-slate-50 dark:border-slate-700 dark:bg-slate-800 py-3 px-4 text-lg placeholder:text-slate-500 focus:border-blue-500 focus:outline-none" placeholder="admin@company.com" value={formData.adminEmail} onChange={handleChange("adminEmail")} required />
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-lg font-semibold text-slate-700 dark:text-slate-200" htmlFor="password">Contraseña</label>
+                    <label className="text-lg font-semibold text-slate-700 dark:text-slate-200" htmlFor="adminPassword">Admin Password</label>
                     <div className="relative">
                       <KeyRound className="absolute left-3 top-1/2 size-5 -translate-y-1/2 text-slate-400" />
-                      <input id="password" type="password" className="w-full rounded-lg border border-slate-300 bg-slate-50 dark:border-slate-700 dark:bg-slate-800 py-3 pl-10 pr-4 text-lg placeholder:text-slate-500 focus:border-blue-500 focus:outline-none" placeholder="••••••••" value={formData.password} onChange={handleChange("password")} required minLength={8} />
+                      <input id="adminPassword" type="password" className="w-full rounded-lg border border-slate-300 bg-slate-50 dark:border-slate-700 dark:bg-slate-800 py-3 pl-10 pr-4 text-lg placeholder:text-slate-500 focus:border-blue-500 focus:outline-none" placeholder="••••••••" value={formData.adminPassword} onChange={handleChange("adminPassword")} required minLength={8} />
                     </div>
                   </div>
                 </div>
@@ -297,12 +237,12 @@ export default function RegisterPage() {
 
               <div className="space-y-3 pt-2">
                 <button type="submit" disabled={loading || plansLoading || !formData.plan} className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-500 py-4 text-lg font-bold text-white shadow-lg shadow-blue-500/20 transition hover:bg-blue-600 disabled:opacity-60">
-                  <span>{loading ? "Registrando..." : "Registrar Restaurante"}</span>
+                  <span>{loading ? "Registering..." : "Register Restaurant"}</span>
                   <ArrowRight className="size-5" />
                 </button>
                 <div className="text-center">
                   <Link className="text-sm font-medium text-slate-400 hover:text-blue-400" href="/login">
-                    Regresar al Login
+                    Back to Login
                   </Link>
                 </div>
               </div>
@@ -312,8 +252,8 @@ export default function RegisterPage() {
       </main>
 
       <footer className="border-t border-slate-200 px-6 py-6 text-center text-xs text-slate-500 dark:border-slate-800">
-        © 2024 RestoPOS System. Todos los derechos reservados. |
-        <a className="ml-1 underline decoration-blue-500/30 hover:text-blue-400" href="#">Términos de Servicio</a>
+        © 2024 RestoPOS System. All rights reserved. |
+        <a className="ml-1 underline decoration-blue-500/30 hover:text-blue-400" href="#">Terms of Service</a>
       </footer>
     </div>
   );
