@@ -1,5 +1,6 @@
 import { RoleNavModel } from '@/models/tenant/RoleNav';
 import { ensureDefaultSettings } from '@/lib/tenant/settingsDefaults';
+import { ensureDefaultProductSize } from '@/lib/setup/ensureDefaultProductSize';
 import { NAV_BY_ROLE } from '@/lib/auth/roles';
 
 export async function seedTenantDB(conn) {
@@ -14,6 +15,7 @@ export async function seedTenantDB(conn) {
   }
 
   await ensureDefaultSettings(conn);
+  await ensureDefaultProductSize(conn);
 
   console.log('🌱 Tenant defaults seeded successfully');
 }
