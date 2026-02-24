@@ -12,12 +12,14 @@ import {
   UtensilsCrossed,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { useAuthStore } from "../../store/authStore";
 
 const heroImage =
   "https://lh3.googleusercontent.com/aida-public/AB6AXuA53l-iE5HbCn9_s53LaqVLy5tz849IyFF0w6vlCaym5ZM_tGfpQTVEcpz-PYKKIwZ9VifMn5rU9Wv5mn3HuPet1Iv-99J-vvpqRzVzmnqb5VokP3vPGHBPt-n-TsN4-VpzRxDGgkbsdOKcGtxdMYQziN8KxMErti-yujhlaKTmWj92f48jsGXwwiAAhB9AV_jiEeycqg97e1sno33oxFvHAptPK1vFmgM2yl6VS_uxu1ovd7t7YFVKzpJOjfL_T-0KEtYHjvEx7IAH";
 
 export default function LoginPage() {
   const router = useRouter();
+  const loginSuccess = useAuthStore((state) => state.loginSuccess);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -66,6 +68,13 @@ export default function LoginPage() {
         return;
       }
 
+      loginSuccess({
+        token: data.token ?? null,
+        user: data.user ?? null,
+        tenant: data.tenant ?? null,
+        tenantId: data.tenantId,
+        navMain: data.navMain ?? [],
+      });
       router.push(`/dashboard/${data.tenantId}`);
     } catch {
       setError("Ocurrió un error inesperado. Intenta más tarde.");

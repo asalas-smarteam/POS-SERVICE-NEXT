@@ -1,4 +1,14 @@
-import { create, persist } from "./zustand";
+import { create, createJSONStorage, persist } from "./zustand";
+
+const AUTH_ROUTES = [
+  "dashboard",
+  "orders",
+  "kitchen",
+  "users",
+  "products",
+  "ingredients",
+  "settings",
+];
 
 const normalizePath = (path = "") => {
   if (!path) {
@@ -17,17 +27,8 @@ const normalizeTenantScopedPath = (path = "") => {
 
   if (parts.length >= 2) {
     const [moduleName, tenantId] = parts;
-    const isTenantRoute = [
-      "dashboard",
-      "orders",
-      "kitchen",
-      "users",
-      "products",
-      "ingredients",
-      "settings",
-    ].includes(moduleName);
 
-    if (isTenantRoute && tenantId) {
+    if (AUTH_ROUTES.includes(moduleName) && tenantId) {
       return `/${moduleName}`;
     }
   }
@@ -60,8 +61,8 @@ export const useAuthStore = create(
       user: null,
       token: null,
       tenant: null,
+      tenantId: "",
       navMain: [],
-      // Cachea permisos derivados de navMain para no recalcular en cada render.
       permissionsMap: {},
       isAuthenticated: false,
       hasHydrated: false,
@@ -69,21 +70,23 @@ export const useAuthStore = create(
         const token = data.token ?? null;
         const user = data.user ?? null;
         const tenant = data.tenant ?? null;
+        const tenantId = String(data.tenantId ?? tenant?.tenantId ?? tenant?.id ?? "");
         const currentNavMain = get?.()?.navMain;
         const navMain = Array.isArray(data.navMain)
           ? data.navMain
           : Array.isArray(currentNavMain)
             ? currentNavMain
             : [];
-        // Se construye UNA sola vez al hacer login y se persiste.
         const permissionsMap = buildPermissionsMap(navMain);
+
         set({
           token,
           user,
           tenant,
+          tenantId,
           navMain,
           permissionsMap,
-          isAuthenticated: Boolean(token),
+          isAuthenticated: Boolean(token || user || tenantId),
         });
       },
       logout: () => {
@@ -91,13 +94,13 @@ export const useAuthStore = create(
           token: null,
           user: null,
           tenant: null,
+          tenantId: "",
           navMain: [],
           permissionsMap: {},
           isAuthenticated: false,
         });
         api.persist?.clearStorage?.();
       },
-      // Helper centralizado para validar permisos desde cualquier layout/guard.
       hasAccess: (path) => {
         const normalizedPath = normalizeTenantScopedPath(path);
         const permissionsMap = get?.()?.permissionsMap ?? {};
@@ -116,10 +119,15 @@ export const useAuthStore = create(
     }),
     {
       name: "pos-auth",
+      storage:
+        typeof window !== "undefined"
+          ? createJSONStorage(() => window.localStorage)
+          : undefined,
       partialize: (state) => ({
         user: state.user,
         token: state.token,
         tenant: state.tenant,
+        tenantId: state.tenantId,
         navMain: state.navMain,
         permissionsMap: state.permissionsMap,
       }),
@@ -130,8 +138,11 @@ export const useAuthStore = create(
           Object.keys(currentState.permissionsMap).length > 0
             ? currentState.permissionsMap
             : buildPermissionsMap(currentState.navMain);
+
         set({
-          isAuthenticated: Boolean(currentState.token),
+          isAuthenticated: Boolean(
+            currentState.token || currentState.user || currentState.tenantId
+          ),
           permissionsMap: nextPermissionsMap,
           hasHydrated: true,
         });

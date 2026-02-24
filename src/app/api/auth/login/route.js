@@ -4,6 +4,7 @@ import { getTenantConnection } from '@/lib/db/connections';
 import { TenantModel } from '@/models/master/Tenant';
 import { UserIndexModel } from '@/models/master/UserIndex';
 import { UserModel } from '@/models/tenant/User';
+import { RoleNavModel } from '@/models/tenant/RoleNav';
 import { comparePassword } from '@/lib/auth/hash';
 import { signToken } from '@/lib/auth/jwt';
 import { setAuthCookie } from '@/lib/auth/cookie';
@@ -47,6 +48,7 @@ export async function POST(req) {
 
     const tenantConn = await getTenantConnection(tenant.dbName);
     const User = UserModel(tenantConn);
+    const RoleNav = RoleNavModel(tenantConn);
 
     const user = await User.findOne({ email: normalizedEmail });
 
@@ -64,6 +66,8 @@ export async function POST(req) {
       return NextResponse.json({ error: 'User account is inactive' }, { status: 403 });
     }
 
+    const roleNav = await RoleNav.findOne({ role: user.role }).lean();
+
     const token = signToken({
       userId: user._id,
       tenantId: tenant.tenantId,
@@ -73,6 +77,18 @@ export async function POST(req) {
     const response = NextResponse.json({
       success: true,
       tenantId: tenant.tenantId,
+      token,
+      user: {
+        id: String(user._id),
+        username: user.username,
+        email: user.email,
+        role: user.role,
+      },
+      tenant: {
+        tenantId: tenant.tenantId,
+        name: tenant.name,
+      },
+      navMain: Array.isArray(roleNav?.navItems) ? roleNav.navItems : [],
     });
 
     setAuthCookie(response, token);

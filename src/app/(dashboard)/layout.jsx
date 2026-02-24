@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { useParams, usePathname, useRouter } from "next/navigation";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SiteHeader } from "@/components/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
@@ -74,10 +74,14 @@ const findNavItemByPath = (items, path, tenantId) => {
 export default function DashboardLayout({ children }) {
   const router = useRouter();
   const pathname = usePathname();
+  const params = useParams();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const hasHydrated = useAuthStore((state) => state.hasHydrated);
   const hasAccess = useAuthStore((state) => state.hasAccess);
   const navMain = useAuthStore((state) => state.navMain);
+  const token = useAuthStore((state) => state.token);
+  const user = useAuthStore((state) => state.user);
+  const storeTenantId = useAuthStore((state) => state.tenantId);
 
   const safeNavMain = useMemo(
     () => (Array.isArray(navMain) ? navMain : []),
@@ -85,36 +89,48 @@ export default function DashboardLayout({ children }) {
   );
 
   const normalizedPath = useMemo(() => normalizePath(pathname || SAFE_DEFAULT_PATH), [pathname]);
-  const tenantId = useMemo(() => getTenantIdFromClient(normalizedPath) ?? "", [normalizedPath]);
+  const tenantIdFromPath = useMemo(() => getTenantIdFromClient(normalizedPath) ?? "", [normalizedPath]);
+  const tenantIdFromParams = useMemo(() => String(params?.tenantId ?? ""), [params]);
+  const activeTenantId = tenantIdFromPath || tenantIdFromParams;
 
   const firstAllowedPath = useMemo(
-    () => getFirstAllowedPath(safeNavMain, tenantId),
-    [safeNavMain, tenantId]
+    () => getFirstAllowedPath(safeNavMain, activeTenantId),
+    [safeNavMain, activeTenantId]
   );
 
   const headerTitle = useMemo(() => {
-    const match = findNavItemByPath(safeNavMain, normalizePath(normalizedPath), tenantId);
+    const match = findNavItemByPath(safeNavMain, normalizePath(normalizedPath), activeTenantId);
     return match?.label ?? match?.title ?? "Dashboard";
-  }, [normalizedPath, safeNavMain, tenantId]);
+  }, [normalizedPath, safeNavMain, activeTenantId]);
+
+  const hasSession = Boolean(isAuthenticated && (token || user));
+  const hasTenantMismatch = Boolean(activeTenantId && storeTenantId && activeTenantId !== storeTenantId);
 
   useEffect(() => {
     if (!hasHydrated) {
       return;
     }
 
-    if (!isAuthenticated) {
+    if (!hasSession) {
       router.replace("/login");
       return;
     }
 
-    if (!hasAccess(normalizedPath)) {
-      if (normalizedPath !== firstAllowedPath) {
-        router.replace(firstAllowedPath);
-      }
+    if (hasTenantMismatch) {
+      router.replace(`/dashboard/${storeTenantId}`);
+      return;
     }
-  }, [firstAllowedPath, hasHydrated, isAuthenticated, hasAccess, normalizedPath, router]);
 
-  if (!hasHydrated || !isAuthenticated) {
+    if (!hasAccess(normalizedPath) && normalizedPath !== firstAllowedPath) {
+      router.replace(firstAllowedPath);
+    }
+  }, [firstAllowedPath, hasAccess, hasHydrated, hasSession, hasTenantMismatch, normalizedPath, router, storeTenantId]);
+
+  if (!hasHydrated) {
+    return null;
+  }
+
+  if (!hasSession || hasTenantMismatch) {
     return null;
   }
 
