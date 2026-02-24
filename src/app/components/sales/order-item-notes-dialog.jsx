@@ -3,14 +3,18 @@
 import { useEffect, useMemo, useState } from "react";
 import { Minus, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { AppSpinner } from "@/components/app-spinner";
 import { IngredientSearchSelect } from "@/components/ingredients/ingredient-search-select";
 import { cn } from "@/lib/utils";
 import { useIngredientsStore } from "../../../store/ingredientsStore";
+import { useProductsStore } from "../../../store/productsStore";
 
 const normalizeBaseIngredients = (ingredients = []) =>
   ingredients
@@ -22,13 +26,12 @@ const normalizeBaseIngredients = (ingredients = []) =>
       }
       return {
         ingredientId,
-        name: ingredient?.name ?? item?.name ?? "Ingrediente",
+        name: ingredient?.name ?? item?.name ?? "Ingredient",
         quantity: Number(item?.quantity ?? 1),
       };
     })
     .filter(Boolean);
 
-// Construye notas legibles siguiendo las reglas de cantidades base/extras.
 const buildNotes = (modifiers = []) =>
   modifiers.flatMap((modifier) => {
     const baseQuantity = Number(modifier.baseQuantity ?? 0);
@@ -39,7 +42,7 @@ const buildNotes = (modifiers = []) =>
     }
     if (baseQuantity > 0) {
       if (quantity === 0) {
-        return [`quitar ${name}`];
+        return [`remove ${name}`];
       }
       if (quantity > baseQuantity) {
         return [`extra ${name}`];
@@ -52,6 +55,31 @@ const buildNotes = (modifiers = []) =>
     return [];
   });
 
+const filterCompatibleProducts = ({ products, currentProduct }) => {
+  const productList = Array.isArray(products) ? products : [];
+  const currentProductId = currentProduct?.productId ?? currentProduct?.id;
+
+  return productList.filter((product) => {
+    if (!product?.allowsHalf) {
+      return false;
+    }
+    if (!product?._id || product._id === currentProductId) {
+      return false;
+    }
+    if (!currentProduct?.sizeId || product.sizeId !== currentProduct.sizeId) {
+      return false;
+    }
+    if (
+      currentProduct?.categoryId &&
+      product?.categoryId &&
+      product.categoryId !== currentProduct.categoryId
+    ) {
+      return false;
+    }
+    return true;
+  });
+};
+
 export function OrderItemNotesDialog({ open, onOpenChange, item, onSave }) {
   const { ingredients, loading, fetchIngredients } = useIngredientsStore((state) => ({
     ingredients: state.ingredients,
@@ -59,10 +87,17 @@ export function OrderItemNotesDialog({ open, onOpenChange, item, onSave }) {
     fetchIngredients: state.fetchIngredients,
   }));
 
+  const { products, fetchProducts } = useProductsStore((state) => ({
+    products: state.products,
+    fetchProducts: state.fetchProducts,
+  }));
+
   const [modifiers, setModifiers] = useState([]);
   const [selectValue, setSelectValue] = useState("");
   const [ingredientSearch, setIngredientSearch] = useState("");
   const [extraQuantity, setExtraQuantity] = useState("1");
+  const [isHalfAndHalf, setIsHalfAndHalf] = useState(false);
+  const [selectedHalfProductId, setSelectedHalfProductId] = useState("");
 
   const baseIngredients = useMemo(() => {
     return normalizeBaseIngredients(item?.baseIngredients ?? item?.ingredients ?? []);
@@ -73,17 +108,19 @@ export function OrderItemNotesDialog({ open, onOpenChange, item, onSave }) {
     [baseIngredients]
   );
 
+  const canConfigureHalfAndHalf = Boolean(item?.allowsHalf);
+
   useEffect(() => {
     if (open) {
       fetchIngredients();
+      if (canConfigureHalfAndHalf && (!Array.isArray(products) || products.length === 0)) {
+        fetchProducts();
+      }
     }
-  }, [open, fetchIngredients]);
+  }, [open, fetchIngredients, canConfigureHalfAndHalf, products, fetchProducts]);
 
   useEffect(() => {
     if (!open) {
-      setSelectValue("");
-      setIngredientSearch("");
-      setExtraQuantity("1");
       return;
     }
 
@@ -109,15 +146,29 @@ export function OrderItemNotesDialog({ open, onOpenChange, item, onSave }) {
       .filter((modifier) => !baseMap.has(modifier.ingredientId))
       .map((modifier) => ({
         ingredientId: modifier.ingredientId,
-        name: modifier.name ?? "Ingrediente",
+        name: modifier.name ?? "Ingredient",
         baseQuantity: 0,
         quantity: Number(modifier.quantity ?? 0),
         isExtra: true,
       }))
       .filter((modifier) => modifier.quantity > 0);
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setModifiers([...merged, ...extras]);
-  }, [open, item, baseIngredients]);
+
+    const initialHalfEnabled = Boolean(item?.isHalfAndHalf) && canConfigureHalfAndHalf;
+    const initialHalfProductId = initialHalfEnabled
+      ? item?.halves?.[0]?.productId ?? ""
+      : "";
+
+    setIsHalfAndHalf(initialHalfEnabled);
+    setSelectedHalfProductId(initialHalfProductId);
+  }, [open, item, baseIngredients, canConfigureHalfAndHalf]);
+
+  const compatibleHalfProducts = useMemo(
+    () => filterCompatibleProducts({ products, currentProduct: item }),
+    [products, item]
+  );
 
   const availableExtras = useMemo(() => {
     const list = Array.isArray(ingredients) ? ingredients : [];
@@ -145,6 +196,21 @@ export function OrderItemNotesDialog({ open, onOpenChange, item, onSave }) {
     );
     return [...baseList, ...extraList];
   }, [modifiers, baseIngredientIds]);
+
+  const resetDialogState = () => {
+    setSelectValue("");
+    setIngredientSearch("");
+    setExtraQuantity("1");
+    setIsHalfAndHalf(false);
+    setSelectedHalfProductId("");
+  };
+
+  const handleDialogOpenChange = (nextOpen) => {
+    if (!nextOpen) {
+      resetDialogState();
+    }
+    onOpenChange?.(nextOpen);
+  };
 
   const handleAdjustQuantity = (ingredientId, delta) => {
     setModifiers((current) =>
@@ -186,7 +252,7 @@ export function OrderItemNotesDialog({ open, onOpenChange, item, onSave }) {
         ...current,
         {
           ingredientId: ingredient._id,
-          name: ingredient.name ?? "Ingrediente",
+          name: ingredient.name ?? "Ingredient",
           baseQuantity: 0,
           quantity: qty,
           isExtra: true,
@@ -199,34 +265,56 @@ export function OrderItemNotesDialog({ open, onOpenChange, item, onSave }) {
     setExtraQuantity("1");
   };
 
+  const handleHalfAndHalfChange = (checked) => {
+    const nextChecked = Boolean(checked);
+    setIsHalfAndHalf(nextChecked);
+    if (!nextChecked) {
+      setSelectedHalfProductId("");
+    }
+  };
+
   const handleSave = () => {
+    const selectedHalfProduct = compatibleHalfProducts.find(
+      (product) => product._id === selectedHalfProductId
+    );
+
     onSave?.(item.id, {
       notes: notesPreview,
       modifiers,
+      isHalfAndHalf,
+      halves:
+        isHalfAndHalf && selectedHalfProduct
+          ? [
+              {
+                productId: selectedHalfProduct._id,
+                productName: selectedHalfProduct.name,
+              },
+            ]
+          : [],
     });
-    onOpenChange?.(false);
+    handleDialogOpenChange(false);
   };
 
   const hasBaseIngredients = baseIngredients.length > 0;
   const isLoadingIngredients = loading && ingredients.length === 0;
+  const hasCompatibleHalfProducts = compatibleHalfProducts.length > 0;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Personalizar producto</DialogTitle>
+          <DialogTitle>Edit Order Item</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
           {!hasBaseIngredients ? (
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground">
-                Este producto no tiene ingredientes configurados. Puedes agregar
-                extras.
+                This product has no configured ingredients. You can add extras.
               </p>
               {sortedModifiers.length > 0 ? (
                 <div className="space-y-2">
-                  <p className="text-sm font-medium">Extras agregados</p>
+                  <p className="text-sm font-medium">Added extras</p>
                   <ScrollArea className="h-[180px] pr-3">
                     <div className="space-y-2">
                       {sortedModifiers.map((modifier) => (
@@ -250,7 +338,7 @@ export function OrderItemNotesDialog({ open, onOpenChange, item, onSave }) {
                               onClick={() =>
                                 handleAdjustQuantity(modifier.ingredientId, -1)
                               }
-                              aria-label={`Quitar ${modifier.name}`}
+                              aria-label={`Remove ${modifier.name}`}
                             >
                               <Minus className="size-3" />
                             </Button>
@@ -265,7 +353,7 @@ export function OrderItemNotesDialog({ open, onOpenChange, item, onSave }) {
                               onClick={() =>
                                 handleAdjustQuantity(modifier.ingredientId, 1)
                               }
-                              aria-label={`Agregar ${modifier.name}`}
+                              aria-label={`Add ${modifier.name}`}
                             >
                               <Plus className="size-3" />
                             </Button>
@@ -281,13 +369,13 @@ export function OrderItemNotesDialog({ open, onOpenChange, item, onSave }) {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium">Ingredientes base</p>
+                  <p className="text-sm font-medium">Base ingredients</p>
                   <p className="text-xs text-muted-foreground">
-                    Ajusta cantidades para quitar o agregar extras.
+                    Adjust quantities to remove ingredients or add extras.
                   </p>
                 </div>
                 <span className="text-xs text-muted-foreground">
-                  {baseIngredients.length} ingredientes
+                  {baseIngredients.length} ingredients
                 </span>
               </div>
               <ScrollArea className="h-[220px] pr-3">
@@ -315,7 +403,7 @@ export function OrderItemNotesDialog({ open, onOpenChange, item, onSave }) {
                           onClick={() =>
                             handleAdjustQuantity(modifier.ingredientId, -1)
                           }
-                          aria-label={`Quitar ${modifier.name}`}
+                          aria-label={`Remove ${modifier.name}`}
                         >
                           <Minus className="size-3" />
                         </Button>
@@ -330,7 +418,7 @@ export function OrderItemNotesDialog({ open, onOpenChange, item, onSave }) {
                           onClick={() =>
                             handleAdjustQuantity(modifier.ingredientId, 1)
                           }
-                          aria-label={`Agregar ${modifier.name}`}
+                          aria-label={`Add ${modifier.name}`}
                         >
                           <Plus className="size-3" />
                         </Button>
@@ -342,14 +430,61 @@ export function OrderItemNotesDialog({ open, onOpenChange, item, onSave }) {
             </div>
           )}
 
+          {canConfigureHalfAndHalf ? (
+            <>
+              <Separator />
+
+              <div className="space-y-3">
+                <div>
+                  <p className="text-sm font-medium">Half and Half Configuration</p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id={`half-and-half-${item?.id}`}
+                    checked={isHalfAndHalf}
+                    onCheckedChange={handleHalfAndHalfChange}
+                  />
+                  <Label htmlFor={`half-and-half-${item?.id}`}>Half and Half</Label>
+                </div>
+
+                {isHalfAndHalf ? (
+                  <div className="space-y-2">
+                    <Label htmlFor={`half-product-${item?.id}`}>Select second product</Label>
+                    <Select
+                      value={selectedHalfProductId}
+                      onValueChange={setSelectedHalfProductId}
+                      disabled={!hasCompatibleHalfProducts}
+                    >
+                      <SelectTrigger id={`half-product-${item?.id}`}>
+                        <SelectValue placeholder="Choose a compatible product" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {compatibleHalfProducts.map((product) => (
+                          <SelectItem key={product._id} value={product._id}>
+                            {product.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {!hasCompatibleHalfProducts ? (
+                      <p className="text-sm text-muted-foreground">
+                        No compatible products available for half-and-half.
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
+            </>
+          ) : null}
+
           <Separator />
 
           <div className="space-y-3">
             <div>
-              <p className="text-sm font-medium">Agregar extra</p>
+              <p className="text-sm font-medium">Add extra</p>
               <p className="text-xs text-muted-foreground">
-                Selecciona ingredientes adicionales que no pertenecen al
-                producto.
+                Select additional ingredients not included in the product.
               </p>
             </div>
             <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
@@ -360,11 +495,11 @@ export function OrderItemNotesDialog({ open, onOpenChange, item, onSave }) {
                   searchValue={ingredientSearch}
                   onSearchChange={setIngredientSearch}
                   items={isLoadingIngredients ? [] : filteredExtras}
-                  placeholder="Selecciona un ingrediente extra"
+                  placeholder="Select an extra ingredient"
                   emptyMessage={
                     isLoadingIngredients
-                      ? "Cargando ingredientes..."
-                      : "Sin resultados."
+                      ? "Loading ingredients..."
+                      : "No results."
                   }
                 />
               </div>
@@ -386,10 +521,10 @@ export function OrderItemNotesDialog({ open, onOpenChange, item, onSave }) {
                 {isLoadingIngredients ? (
                   <span className="flex items-center gap-2">
                     <AppSpinner size={14} inline />
-                    Cargando...
+                    Loading...
                   </span>
                 ) : (
-                  "Agregar"
+                  "Add"
                 )}
               </Button>
             </div>
@@ -398,7 +533,7 @@ export function OrderItemNotesDialog({ open, onOpenChange, item, onSave }) {
           <Separator />
 
           <div className="space-y-2">
-            <p className="text-sm font-medium">Notas</p>
+            <p className="text-sm font-medium">Notes</p>
             {notesPreview.length > 0 ? (
               <ul className="space-y-1 text-sm text-muted-foreground">
                 {notesPreview.map((note, index) => (
@@ -407,7 +542,7 @@ export function OrderItemNotesDialog({ open, onOpenChange, item, onSave }) {
               </ul>
             ) : (
               <p className="text-sm text-muted-foreground">
-                No hay notas generadas.
+                No generated notes.
               </p>
             )}
           </div>
@@ -417,12 +552,12 @@ export function OrderItemNotesDialog({ open, onOpenChange, item, onSave }) {
           <Button
             type="button"
             variant="outline"
-            onClick={() => onOpenChange?.(false)}
+            onClick={() => handleDialogOpenChange(false)}
           >
-            Cancelar
+            Cancel
           </Button>
           <Button type="button" onClick={handleSave}>
-            Guardar cambios
+            Save changes
           </Button>
         </DialogFooter>
       </DialogContent>
