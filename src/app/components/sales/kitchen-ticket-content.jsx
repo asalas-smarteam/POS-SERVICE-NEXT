@@ -1,6 +1,7 @@
 "use client";
 
 import { Separator } from "@/components/ui/separator";
+import { getOrderItemDisplayData } from "@/lib/orders/getOrderItemDisplayData";
 import { cn } from "@/lib/utils";
 
 export function KitchenTicketContent({
@@ -27,20 +28,23 @@ export function KitchenTicketContent({
       <Separator className="my-3" />
 
       <div className="space-y-2 rounded-md border border-border/60 bg-muted/20 p-2">
-        {items.map((item, index) => (
+        {items.map((item, index) => {
+          const { title, subtitleLines } = getOrderItemDisplayData(item);
+          return (
           <div key={`${item.name}-${index}`}>
             <p className="text-[11px] font-semibold">
-              {item.quantity}x {item.name}
+              {item.quantity}x {title}
             </p>
-            {item.notes?.length ? (
-              <ul className="mt-1 space-y-1 text-[10px] text-muted-foreground">
-                {item.notes.map((note, idx) => (
-                  <li key={`${note}-${idx}`}>- {note}</li>
+            {subtitleLines.length ? (
+              <ul className="mt-1 space-y-1 pl-3 text-[10px] text-muted-foreground">
+                {subtitleLines.map((line, idx) => (
+                  <li key={`${line}-${idx}`}>{line}</li>
                 ))}
               </ul>
             ) : null}
           </div>
-        ))}
+          );
+        })}
       </div>
 
       <Separator className="my-3" />
