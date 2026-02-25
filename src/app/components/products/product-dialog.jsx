@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Package, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -20,6 +21,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { IngredientSearchSelect } from "@/components/ingredients/ingredient-search-select";
 import { useProductsStore } from "../../../store/productsStore";
+import { useProductSizesStore } from "../../../store/productSizesStore";
 import { useSettingsStore } from "../../../store/settingsStore";
 
 const emptyForm = {
@@ -28,6 +30,8 @@ const emptyForm = {
   type: "SIMPLE",
   ingredients: [],
   categoryId: "",
+  sizeId: "",
+  allowsHalf: false,
 };
 
 const normalizeIngredients = (ingredients = []) =>
@@ -63,6 +67,12 @@ export function ProductDialog({ open, onOpenChange, product, onSuccess }) {
     })
   );
 
+  const { sizes, sizesLoading, fetchSizes } = useProductSizesStore((state) => ({
+    sizes: state.sizes,
+    sizesLoading: state.loading,
+    fetchSizes: state.fetchSizes,
+  }));
+
   const [form, setForm] = useState(emptyForm);
   const [alert, setAlert] = useState(null);
   const [selectValue, setSelectValue] = useState("");
@@ -74,8 +84,9 @@ export function ProductDialog({ open, onOpenChange, product, onSuccess }) {
     if (open) {
       fetchIngredients();
       fetchSettings();
+      fetchSizes();
     }
-  }, [open, fetchIngredients, fetchSettings]);
+  }, [open, fetchIngredients, fetchSettings, fetchSizes]);
 
   useEffect(() => {
     if (!open) {
@@ -93,11 +104,21 @@ export function ProductDialog({ open, onOpenChange, product, onSuccess }) {
         type: product?.type ?? "SIMPLE",
         ingredients: normalizeIngredients(product?.ingredients ?? []),
         categoryId: product?.categoryId ?? "",
+        sizeId: product?.sizeId?._id ?? product?.sizeId ?? "",
+        allowsHalf: Boolean(product?.allowsHalf),
       });
     } else {
-      setForm(emptyForm);
+      const defaultSize = Array.isArray(sizes)
+        ? sizes.find((size) => size?.isDefault === true)
+        : null;
+
+      setForm({
+        ...emptyForm,
+        sizeId: defaultSize?._id ?? "",
+      });
     }
-  }, [open, product]);
+  }, [open, product, sizes]);
+
 
   useEffect(() => {
     if (!open || isEditing || form.categoryId) {
@@ -175,6 +196,8 @@ export function ProductDialog({ open, onOpenChange, product, onSuccess }) {
       name: form.name.trim(),
       price: Number(form.price),
       type: form.type,
+      sizeId: form.sizeId || null,
+      allowsHalf: Boolean(form.allowsHalf),
     };
 
     if (form.type === "COMPOSED") {
@@ -316,6 +339,54 @@ export function ProductDialog({ open, onOpenChange, product, onSuccess }) {
                 <SelectItem value="COMPOSED">Compuesto</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Size</Label>
+            {sizesLoading ? (
+              <Skeleton className="h-10 w-full" />
+            ) : (
+              <Select
+                value={form.sizeId}
+                onValueChange={(value) =>
+                  setForm((current) => ({
+                    ...current,
+                    sizeId: value,
+                  }))
+                }
+                disabled={sizes.length === 0}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select size" />
+                </SelectTrigger>
+                <SelectContent>
+                  {sizes.map((size) => (
+                    <SelectItem key={size._id} value={size._id}>
+                      {size.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            {!sizesLoading && sizes.length === 0 ? (
+              <p className="text-xs text-muted-foreground">
+                No product sizes configured.
+              </p>
+            ) : null}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="product-allows-half"
+              checked={form.allowsHalf}
+              onCheckedChange={(checked) =>
+                setForm((current) => ({
+                  ...current,
+                  allowsHalf: Boolean(checked),
+                }))
+              }
+            />
+            <Label htmlFor="product-allows-half">Allow Half and Half</Label>
           </div>
 
           {form.type === "COMPOSED" ? (
