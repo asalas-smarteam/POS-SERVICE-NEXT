@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { MessageSquarePlus, Minus, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { OrderItemNotesDialog } from "@/components/sales/order-item-notes-dialog";
+import { getOrderItemDisplayData } from "@/lib/orders/getOrderItemDisplayData";
 import { cn } from "@/lib/utils";
 
 const formatCurrency = (value) =>
@@ -21,15 +22,7 @@ export function OrderItem({
   className,
 }) {
   const [notesOpen, setNotesOpen] = useState(false);
-  const notesList = useMemo(() => {
-    if (Array.isArray(item.notes)) {
-      return item.notes.filter(Boolean);
-    }
-    if (typeof item.notes === "string" && item.notes.trim()) {
-      return [item.notes.trim()];
-    }
-    return [];
-  }, [item.notes]);
+  const displayData = useMemo(() => getOrderItemDisplayData(item), [item]);
 
   return (
     <div
@@ -40,11 +33,11 @@ export function OrderItem({
     >
       <div className="flex items-start justify-between gap-2">
         <div>
-          <p className="text-sm font-semibold text-foreground">{item.name}</p>
-          {notesList.length ? (
+          <p className="text-sm font-semibold text-foreground">{displayData.title}</p>
+          {displayData.subtitleLines.length ? (
             <ul className="mt-1 space-y-1 text-xs text-muted-foreground">
-              {notesList.map((note, index) => (
-                <li key={`${note}-${index}`}>- {note}</li>
+              {displayData.subtitleLines.map((line, index) => (
+                <li key={`${line}-${index}`}>{line}</li>
               ))}
             </ul>
           ) : (

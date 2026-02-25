@@ -1,3 +1,5 @@
+import { getOrderItemDisplayData } from "@/lib/orders/getOrderItemDisplayData";
+
 const JSPDF_CDN =
   "https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js";
 
@@ -37,8 +39,8 @@ export async function generateKitchenTicketPdf(ticket) {
   const lineHeight = 4.5;
   const baseLines = 14;
   const itemLines = (ticket.items || []).reduce((count, item) => {
-    const noteLines = Array.isArray(item.notes) ? item.notes.length : 0;
-    return count + 1 + noteLines;
+    const { subtitleLines } = getOrderItemDisplayData(item);
+    return count + 1 + subtitleLines.length;
   }, 0);
   const height = Math.max(80, (baseLines + itemLines) * lineHeight);
 
@@ -72,11 +74,12 @@ export async function generateKitchenTicketPdf(ticket) {
   y += 4;
   doc.setFontSize(10);
   (ticket.items || []).forEach((item) => {
-    doc.text(`${item.quantity}x ${item.name}`, 6, y);
+    const { title, subtitleLines } = getOrderItemDisplayData(item);
+    doc.text(`${item.quantity}x ${title}`, 6, y);
     y += lineHeight;
-    (item.notes || []).forEach((note) => {
+    subtitleLines.forEach((line) => {
       doc.setFontSize(8);
-      doc.text(`- ${note}`, 8, y);
+      doc.text(`${line}`, 8, y);
       y += lineHeight;
       doc.setFontSize(10);
     });
