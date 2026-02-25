@@ -20,13 +20,79 @@ const toNameList = (entries) => {
   return entries.map(resolveName).filter(Boolean);
 };
 
-const buildNotes = (item = {}) => {
+const normalizeName = (value) => getStringValue(value).toLowerCase();
+
+const splitNoteText = (value) =>
+  getStringValue(value)
+    .split(",")
+    .map((entry) => getStringValue(entry))
+    .filter(Boolean);
+
+const buildModifierData = (item = {}) => {
+  const modifiers = Array.isArray(item?.modifiers) ? item.modifiers : [];
+
+  const ingredients = [];
+  const extras = [];
+  const removed = [];
+
+  modifiers.forEach((modifier) => {
+    const name = getStringValue(modifier?.name);
+    if (!name) {
+      return;
+    }
+
+    const baseQuantity = Math.max(0, Number(modifier?.baseQuantity ?? 0));
+    const quantity = Math.max(0, Number(modifier?.quantity ?? 0));
+
+    for (let index = 0; index < baseQuantity; index += 1) {
+      ingredients.push(name);
+    }
+
+    if (baseQuantity > 0 && quantity === 0) {
+      removed.push(name);
+      return;
+    }
+
+    if (quantity > baseQuantity) {
+      const extraCount = quantity - baseQuantity;
+      for (let index = 0; index < extraCount; index += 1) {
+        extras.push(`extra ${normalizeName(name)}`);
+      }
+      return;
+    }
+
+    if (baseQuantity === 0 && quantity > 0) {
+      for (let index = 0; index < quantity; index += 1) {
+        extras.push(`extra ${normalizeName(name)}`);
+      }
+    }
+  });
+
+  const generatedNotes = new Set([
+    ...extras.map((extra) => normalizeName(extra)),
+    ...removed.map((name) => `remove ${normalizeName(name)}`),
+    ...removed.map((name) => `quitar ${normalizeName(name)}`),
+  ]);
+
+  return {
+    ingredients,
+    extras,
+    removed,
+    generatedNotes,
+  };
+};
+
+const buildNotes = (item = {}, generatedNotes = new Set()) => {
   const notesList = Array.isArray(item?.notes)
-    ? item.notes.map((note) => getStringValue(note)).filter(Boolean)
+    ? item.notes
+      .flatMap((note) => splitNoteText(note))
+      .filter((note) => !generatedNotes.has(normalizeName(note)))
     : [];
 
-  const singleNote = getStringValue(item?.note ?? item?.notes);
-  const merged = singleNote ? [...notesList, singleNote] : notesList;
+  const singleNote = splitNoteText(item?.note);
+  const merged = [...notesList, ...singleNote].filter(
+    (note) => !generatedNotes.has(normalizeName(note))
+  );
 
   if (!merged.length) {
     return null;
@@ -49,11 +115,24 @@ export function getKitchenItemDisplayData(item) {
     ? `Half ${productName} / Half ${firstHalfName}`
     : productName;
 
+  const modifierData = buildModifierData(safeItem);
+  const ingredientList = modifierData.ingredients.length
+    ? modifierData.ingredients
+    : toNameList(safeItem?.ingredients);
+
+  const extrasList = modifierData.extras.length
+    ? modifierData.extras
+    : toNameList(safeItem?.extraIngredients);
+
+  const removedList = modifierData.removed.length
+    ? modifierData.removed
+    : toNameList(safeItem?.removedIngredients);
+
   return {
     title,
-    ingredients: toNameList(safeItem?.ingredients),
-    extras: toNameList(safeItem?.extraIngredients),
-    removed: toNameList(safeItem?.removedIngredients),
-    notes: buildNotes(safeItem),
+    ingredients: ingredientList,
+    extras: extrasList,
+    removed: removedList,
+    notes: buildNotes(safeItem, modifierData.generatedNotes),
   };
 }

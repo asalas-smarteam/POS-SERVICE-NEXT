@@ -148,10 +148,10 @@ function KitchenTicketCard({ ticket, columnMeta, elapsedLabel, onContinue, onCan
 
               {item.display.ingredients.length ? (
                 <div className="mt-2 pl-3">
-                  <p className="text-sm text-slate-400">- Ingredients</p>
+                  <p className="text-sm font-semibold text-slate-300">Ingredientes</p>
                   <ul className="mt-1 space-y-0.5 pl-3 text-xs text-slate-400">
                     {item.display.ingredients.map((ingredientName, ingredientIdx) => (
-                      <li key={`${ingredientName}-${ingredientIdx}`}>* {ingredientName}</li>
+                      <li key={`${ingredientName}-${ingredientIdx}`}>- {ingredientName}</li>
                     ))}
                   </ul>
                 </div>
@@ -159,10 +159,10 @@ function KitchenTicketCard({ ticket, columnMeta, elapsedLabel, onContinue, onCan
 
               {item.display.extras.length ? (
                 <div className="mt-2 pl-3">
-                  <p className="text-sm text-amber-400">- Extras</p>
+                  <p className="text-sm font-semibold text-amber-400">Extras</p>
                   <ul className="mt-1 space-y-0.5 pl-3 text-xs text-amber-400">
                     {item.display.extras.map((extraName, extraIdx) => (
-                      <li key={`${extraName}-${extraIdx}`}>* {extraName}</li>
+                      <li key={`${extraName}-${extraIdx}`}>- {extraName}</li>
                     ))}
                   </ul>
                 </div>
@@ -170,10 +170,10 @@ function KitchenTicketCard({ ticket, columnMeta, elapsedLabel, onContinue, onCan
 
               {item.display.removed.length ? (
                 <div className="mt-2 pl-3">
-                  <p className="text-sm text-slate-400">- No</p>
+                  <p className="text-sm font-semibold text-slate-400">Sin</p>
                   <ul className="mt-1 space-y-0.5 pl-3 text-xs text-slate-400">
                     {item.display.removed.map((removedName, removedIdx) => (
-                      <li key={`${removedName}-${removedIdx}`}>* {removedName}</li>
+                      <li key={`${removedName}-${removedIdx}`}>- {removedName}</li>
                     ))}
                   </ul>
                 </div>
@@ -181,7 +181,7 @@ function KitchenTicketCard({ ticket, columnMeta, elapsedLabel, onContinue, onCan
 
               {notesText ? (
                 <div className="mt-2 border-t border-slate-700 pt-2 pl-3">
-                  <p className="text-sm text-amber-400">Notes: {notesText}</p>
+                  <p className="text-sm text-amber-400">Notas: {notesText}</p>
                 </div>
               ) : null}
             </li>
