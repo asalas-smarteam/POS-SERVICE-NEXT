@@ -109,8 +109,8 @@ function KitchenTicketCard({ ticket, columnMeta, elapsedLabel, onContinue, onCan
     >
       <div className="mb-3 flex items-start justify-between gap-2">
         <div>
-          <p className="text-sm font-bold text-sky-400">#{normalizeOrderNumber(ticket._id)}</p>
-          <h4 className="text-4xl font-black text-slate-100">Mesa {ticket.tableName || ticket.tableNumber || "-"}</h4>
+          <p className="text-2xl font-bold text-sky-400">#{normalizeOrderNumber(ticket._id)}</p>
+          <h4 className="text-sm font-black text-slate-100">Mesa {ticket.tableName || ticket.tableNumber || "-"}</h4>
         </div>
         <div className="flex flex-col items-end text-xs">
           <span className={`flex items-center gap-1 font-bold ${isInOven ? "text-orange-400" : "text-red-400"}`}>
