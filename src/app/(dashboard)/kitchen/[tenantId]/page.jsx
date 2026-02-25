@@ -16,6 +16,7 @@ import { AppSpinner } from "@/components/app-spinner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useKitchenStore } from "../../../../store/kitchenStore";
+import { getKitchenItemDisplayData } from "@/lib/orders/getKitchenItemDisplayData";
 
 const STATUS_COLUMNS = [
   {
@@ -93,11 +94,14 @@ const getElapsedMs = (ticket, now) => {
 
 function KitchenTicketCard({ ticket, columnMeta, elapsedLabel, onContinue, onCancel }) {
   const orderItems = Array.isArray(ticket.items)
-    ? ticket.items.map((item) => ({
-        name: item.productName || "Producto",
-        quantity: item.quantity,
-        notes: buildItemNotes(item),
-      }))
+    ? ticket.items.map((item) => {
+        const display = getKitchenItemDisplayData(item);
+        return {
+          quantity: item.quantity,
+          display,
+          fallbackNotes: buildItemNotes(item),
+        };
+      })
     : [];
 
   const isReady = ticket.kitchenStatus === "READY";
@@ -128,21 +132,61 @@ function KitchenTicketCard({ ticket, columnMeta, elapsedLabel, onContinue, onCan
         </p>
       </div>
 
-      <ul className="mb-4 space-y-2 text-slate-100">
-        {orderItems.map((item, idx) => (
-          <li key={`${ticket._id}-${item.name}-${idx}`} className={isReady ? "text-slate-400 line-through" : ""}>
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-lg font-semibold">
-                {item.quantity}x {item.name}
-              </span>
-              {isReady ? <Check className="size-4 text-emerald-400" /> : null}
-              {isInOven ? <Flame className="size-4 text-orange-400" /> : null}
-            </div>
-            {item.notes?.length ? (
-              <p className="pl-1 text-xs text-slate-400">{item.notes.join(" · ")}</p>
-            ) : null}
-          </li>
-        ))}
+      <ul className="mb-4 space-y-3 text-slate-100">
+        {orderItems.map((item, idx) => {
+          const notesText = item.display.notes || (item.fallbackNotes?.length ? item.fallbackNotes.join(" · ") : null);
+
+          return (
+            <li key={`${ticket._id}-${item.display.title}-${idx}`} className={isReady ? "text-slate-400 line-through" : ""}>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-lg font-semibold">
+                  {item.quantity}x {item.display.title}
+                </span>
+                {isReady ? <Check className="size-4 text-emerald-400" /> : null}
+                {isInOven ? <Flame className="size-4 text-orange-400" /> : null}
+              </div>
+
+              {item.display.ingredients.length ? (
+                <div className="mt-2 pl-3">
+                  <p className="text-sm text-slate-400">- Ingredients</p>
+                  <ul className="mt-1 space-y-0.5 pl-3 text-xs text-slate-400">
+                    {item.display.ingredients.map((ingredientName, ingredientIdx) => (
+                      <li key={`${ingredientName}-${ingredientIdx}`}>* {ingredientName}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+
+              {item.display.extras.length ? (
+                <div className="mt-2 pl-3">
+                  <p className="text-sm text-amber-400">- Extras</p>
+                  <ul className="mt-1 space-y-0.5 pl-3 text-xs text-amber-400">
+                    {item.display.extras.map((extraName, extraIdx) => (
+                      <li key={`${extraName}-${extraIdx}`}>* {extraName}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+
+              {item.display.removed.length ? (
+                <div className="mt-2 pl-3">
+                  <p className="text-sm text-slate-400">- No</p>
+                  <ul className="mt-1 space-y-0.5 pl-3 text-xs text-slate-400">
+                    {item.display.removed.map((removedName, removedIdx) => (
+                      <li key={`${removedName}-${removedIdx}`}>* {removedName}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+
+              {notesText ? (
+                <div className="mt-2 border-t border-slate-700 pt-2 pl-3">
+                  <p className="text-sm text-amber-400">Notes: {notesText}</p>
+                </div>
+              ) : null}
+            </li>
+          );
+        })}
       </ul>
 
       <Button
