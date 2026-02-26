@@ -82,23 +82,9 @@ const buildModifierData = (item = {}) => {
   };
 };
 
-const buildNotes = (item = {}, generatedNotes = new Set()) => {
-  const notesList = Array.isArray(item?.notes)
-    ? item.notes
-      .flatMap((note) => splitNoteText(note))
-      .filter((note) => !generatedNotes.has(normalizeName(note)))
-    : [];
-
-  const singleNote = splitNoteText(item?.note);
-  const merged = [...notesList, ...singleNote].filter(
-    (note) => !generatedNotes.has(normalizeName(note))
-  );
-
-  if (!merged.length) {
-    return null;
-  }
-
-  return merged.join(" · ");
+const buildNotes = (item = {}) => {
+  const cashierNote = getStringValue(item?.note);
+  return cashierNote || null;
 };
 
 export function getKitchenItemDisplayData(item) {
@@ -133,6 +119,6 @@ export function getKitchenItemDisplayData(item) {
     ingredients: ingredientList,
     extras: extrasList,
     removed: removedList,
-    notes: buildNotes(safeItem, modifierData.generatedNotes),
+    notes: buildNotes(safeItem),
   };
 }

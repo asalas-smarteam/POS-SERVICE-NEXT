@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 export function KitchenTicketContent({
   orderNumber,
   datetimeValue,
+  customerName = "",
   items = [],
   orderNotes = [],
   className,
@@ -24,6 +25,17 @@ export function KitchenTicketContent({
         <p className="text-[11px] font-semibold">Fecha y hora</p>
         <p className="text-[11px] text-muted-foreground">{datetimeValue}</p>
       </div>
+
+
+      {customerName ? (
+        <>
+          <Separator className="my-3" />
+          <div className="space-y-1">
+            <p className="text-[11px] font-semibold">Customer</p>
+            <p className="text-[11px] text-muted-foreground">{customerName}</p>
+          </div>
+        </>
+      ) : null}
 
       <Separator className="my-3" />
 

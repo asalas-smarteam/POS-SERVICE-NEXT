@@ -24,6 +24,8 @@ export function OrderSidebar({
   onDecrease,
   onRemove,
   onUpdateNotes,
+  customerName,
+  onCustomerNameChange,
   onClear,
   onCheckout,
   isSubmitting = false,
@@ -65,6 +67,8 @@ export function OrderSidebar({
                 onDecrease={onDecrease}
                 onRemove={onRemove}
                 onUpdateNotes={onUpdateNotes}
+                customerName={customerName}
+                onCustomerNameChange={onCustomerNameChange}
               />
             ))
           ) : (

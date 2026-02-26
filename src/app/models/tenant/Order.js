@@ -11,6 +11,7 @@ const OrderItemSchema = new mongoose.Schema({
 
   // Personalización
   notes: [String],
+  modifierNotes: [String],
   modifiers: [
     {
       ingredientId: { type: mongoose.Schema.Types.ObjectId, ref: 'Ingredient' },
@@ -31,6 +32,7 @@ const OrderItemSchema = new mongoose.Schema({
   ],
 
   // Pizzas mitad / mitad
+  halfAndHalfDisplayName: { type: String, default: '' },
   halves: [
     {
       productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
@@ -39,7 +41,7 @@ const OrderItemSchema = new mongoose.Schema({
     }
   ],
 
-  note: String,
+  note: { type: String, default: '' },
 }, { _id: false });
 
 const OrderSchema = new mongoose.Schema({
@@ -78,6 +80,7 @@ const OrderSchema = new mongoose.Schema({
 
   items: [OrderItemSchema],
   total: { type: Number, default: 0 },
+  customerName: { type: String, default: '' },
 
 }, { timestamps: true });
 

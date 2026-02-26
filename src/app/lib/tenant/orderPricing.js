@@ -20,6 +20,16 @@ function toSafeNumber(value, fallback = 0) {
   return Number.isFinite(numericValue) ? numericValue : fallback;
 }
 
+function normalizeStringArray(value) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((entry) => (typeof entry === 'string' ? entry.trim() : ''))
+    .filter(Boolean);
+}
+
 export async function getTenantHalfAndHalfPricing(conn) {
   const TenantSetting = TenantSettingModel(conn);
 
@@ -92,13 +102,17 @@ export async function calculateAndBuildOrderItem(conn, itemInput) {
   const normalizedItem = {
     ...itemInput,
     productId: productA._id,
-    productName: itemInput?.productName || productA.name,
+    productName: productA.name,
     isHalfAndHalf,
     halves: normalizedHalves,
+    halfAndHalfDisplayName:
+      isHalfAndHalf && productB ? `Half ${productA.name} /Half ${productB.name}` : '',
     quantity,
     price: unitPrice,
     unitPrice,
     totalPrice,
+    modifierNotes: normalizeStringArray(itemInput?.modifierNotes || itemInput?.notes),
+    note: typeof itemInput?.note === 'string' ? itemInput.note.trim() : '',
   };
 
   return { item: normalizedItem };

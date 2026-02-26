@@ -10,65 +10,38 @@ const resolveItemName = (item = {}) => {
   return fallbackName || "Product";
 };
 
-const buildIngredientsLine = (item = {}) => {
-  if (item?.type !== "COMPOSED") {
-    return [];
-  }
-
-  const sourceList = Array.isArray(item?.modifiers)
-    ? item.modifiers
-    : Array.isArray(item?.baseIngredients)
-      ? item.baseIngredients
-      : [];
-
-  const ingredientNames = sourceList
-    .map((entry) => getStringValue(entry?.name))
-    .filter(Boolean);
-
-  if (!ingredientNames.length) {
-    return [];
-  }
-
-  return [`Ingredients: ${ingredientNames.join(", ")}`];
-};
-
-const buildModifierLines = (item = {}) => {
-  if (item?.type !== "COMPOSED") {
-    return [];
-  }
-
+const buildIngredientSections = (item = {}) => {
   const modifiers = Array.isArray(item?.modifiers) ? item.modifiers : [];
-  return modifiers.flatMap((modifier) => {
-    const name = getStringValue(modifier?.name).toLowerCase();
-    if (!name) {
-      return [];
+
+  const ingredients = [];
+  const extras = [];
+  const removed = [];
+
+  modifiers.forEach((modifier) => {
+    const name = getStringValue(modifier?.name);
+    if (!name) return;
+
+    const baseQuantity = Math.max(0, Number(modifier?.baseQuantity ?? 0));
+    const quantity = Math.max(0, Number(modifier?.quantity ?? 0));
+
+    if (baseQuantity > 0) {
+      ingredients.push(name);
+      if (quantity === 0) {
+        removed.push(name);
+        return;
+      }
+      if (quantity > baseQuantity) {
+        extras.push(name);
+      }
+      return;
     }
 
-    const baseQuantity = Number(modifier?.baseQuantity ?? 0);
-    const quantity = Number(modifier?.quantity ?? 0);
-
-    if (baseQuantity > 0 && quantity === 0) {
-      return [`- no ${name}`];
+    if (quantity > 0) {
+      extras.push(name);
     }
-
-    if (quantity > baseQuantity) {
-      return [`+ extra ${name}`];
-    }
-
-    return [];
   });
-};
 
-const buildNotesLines = (item = {}) => {
-  if (Array.isArray(item?.notes)) {
-    return item.notes
-      .map((note) => getStringValue(note))
-      .filter(Boolean)
-      .map((note) => `Notes: ${note}`);
-  }
-
-  const noteText = getStringValue(item?.note ?? item?.notes);
-  return noteText ? [`Notes: ${noteText}`] : [];
+  return { ingredients, extras, removed };
 };
 
 export function getOrderItemDisplayData(item) {
@@ -81,10 +54,15 @@ export function getOrderItemDisplayData(item) {
     ? `Half ${baseName} / Half ${halfName}`
     : baseName;
 
+  const { ingredients, extras, removed } = buildIngredientSections(safeItem);
+
   const subtitleLines = [
-    ...buildIngredientsLine(safeItem),
-    ...buildModifierLines(safeItem),
-    ...buildNotesLines(safeItem),
+    ...(ingredients.length ? [`Ingredients: ${ingredients.join(", ")}`] : []),
+    ...(extras.length ? [`Extras: ${extras.join(", ")}`] : []),
+    ...(removed.length ? [`Removed: ${removed.join(", ")}`] : []),
+    ...(getStringValue(safeItem?.note)
+      ? [`Cashier Note: ${getStringValue(safeItem?.note)}`]
+      : []),
   ];
 
   return {

@@ -33,6 +33,9 @@ const normalizeIngredients = (ingredients = []) =>
 
 export const useOrderStore = create((set, get) => ({
   items: [],
+  customerName: "",
+  setCustomerName: (customerName) =>
+    set({ customerName: typeof customerName === "string" ? customerName : "" }),
   addItem: (product) => {
     const productId = resolveProductId(product);
     if (!product || !productId) {
@@ -59,7 +62,10 @@ export const useOrderStore = create((set, get) => ({
             productId,
             name: product.name ?? "Producto",
             price: normalizePrice(product.price),
+            basePrice: normalizePrice(product.price),
             notes: normalizeNotes(product.notes),
+            modifierNotes: [],
+            note: "",
             quantity: 1,
             allowsHalf: Boolean(product?.allowsHalf),
             sizeId: product?.sizeId ?? null,
@@ -103,25 +109,31 @@ export const useOrderStore = create((set, get) => ({
       }),
     }));
   },
-  updateNotes: (productId, { notes, modifiers, isHalfAndHalf, halves }) => {
+  updateNotes: (
+    productId,
+    { notes, note, modifierNotes, modifiers, isHalfAndHalf, halves, price }
+  ) => {
     set((state) => ({
       items: state.items.map((item) =>
         item.id === productId
           ? {
               ...item,
               notes: normalizeNotes(notes),
+              modifierNotes: normalizeNotes(modifierNotes),
+              note: typeof note === "string" ? note : item.note ?? "",
               modifiers: Array.isArray(modifiers) ? modifiers : item.modifiers,
               isHalfAndHalf:
                 typeof isHalfAndHalf === "boolean"
                   ? isHalfAndHalf
                   : item.isHalfAndHalf,
               halves: Array.isArray(halves) ? halves : item.halves ?? [],
+              price: Number.isFinite(Number(price)) ? Number(price) : item.price,
             }
           : item
       ),
     }));
   },
-  clearOrder: () => set({ items: [] }),
+  clearOrder: () => set({ items: [], customerName: "" }),
   getSubtotal: () => {
     const { items } = get();
     return items.reduce(

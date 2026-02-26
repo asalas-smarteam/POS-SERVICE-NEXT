@@ -65,6 +65,7 @@ export function TicketPreviewDialog({
             <KitchenTicketContent
               orderNumber={ticket.orderNumber}
               datetimeValue={ticket.datetimeValue}
+              customerName={ticket.customerName}
               items={ticket.items}
               orderNotes={ticket.orderNotes}
             />

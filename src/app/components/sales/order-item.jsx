@@ -19,6 +19,8 @@ export function OrderItem({
   onDecrease,
   onRemove,
   onUpdateNotes,
+  customerName,
+  onCustomerNameChange,
   className,
 }) {
   const [notesOpen, setNotesOpen] = useState(false);
@@ -98,6 +100,8 @@ export function OrderItem({
         onOpenChange={setNotesOpen}
         item={item}
         onSave={onUpdateNotes}
+        customerName={customerName}
+        onCustomerNameChange={onCustomerNameChange}
       />
     </div>
   );
