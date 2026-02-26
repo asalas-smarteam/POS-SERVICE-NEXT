@@ -30,42 +30,62 @@ const splitNoteText = (value) =>
 
 const buildModifierData = (item = {}) => {
   const modifiers = Array.isArray(item?.modifiers) ? item.modifiers : [];
+  const extraIngredients = Array.isArray(item?.extraIngredients)
+    ? item.extraIngredients
+    : [];
+  const removedIngredients = Array.isArray(item?.removedIngredients)
+    ? item.removedIngredients
+    : [];
 
   const ingredients = [];
   const extras = [];
   const removed = [];
 
+  const ingredientNames = new Set();
   modifiers.forEach((modifier) => {
     const name = getStringValue(modifier?.name);
-    if (!name) {
+    const normalized = normalizeName(name);
+
+    if (!normalized || ingredientNames.has(normalized)) {
       return;
     }
 
-    const baseQuantity = Math.max(0, Number(modifier?.baseQuantity ?? 0));
-    const quantity = Math.max(0, Number(modifier?.quantity ?? 0));
+    ingredientNames.add(normalized);
+    ingredients.push(name);
+  });
 
-    for (let index = 0; index < baseQuantity; index += 1) {
-      ingredients.push(name);
-    }
+  const extraNames = new Set();
+  extraIngredients.forEach((entry) => {
+    const name =
+      getStringValue(entry?.name) ||
+      getStringValue(entry?.ingredient?.name) ||
+      getStringValue(entry?.ingredientId?.name) ||
+      resolveName(entry);
+    const normalized = normalizeName(name);
 
-    if (baseQuantity > 0 && quantity === 0) {
-      removed.push(name);
+    if (!normalized || extraNames.has(normalized)) {
       return;
     }
 
-    if (quantity > baseQuantity) {
-      const extraCount = quantity - baseQuantity;
-      for (let index = 0; index < extraCount; index += 1) {
-        extras.push(`extra ${normalizeName(name)}`);
-      }
+    extraNames.add(normalized);
+    extras.push(`extra ${name}`);
+  });
+
+  const removedNames = new Set();
+  removedIngredients.forEach((entry) => {
+    const name =
+      getStringValue(entry?.name) ||
+      getStringValue(entry?.ingredient?.name) ||
+      getStringValue(entry?.ingredientId?.name) ||
+      resolveName(entry);
+    const normalized = normalizeName(name);
+
+    if (!normalized || removedNames.has(normalized)) {
       return;
     }
 
-    if (baseQuantity === 0 && quantity > 0) {
-      for (let index = 0; index < quantity; index += 1) {
-        extras.push(`extra ${normalizeName(name)}`);
-      }
-    }
+    removedNames.add(normalized);
+    removed.push(name);
   });
 
   const generatedNotes = new Set([
