@@ -1,5 +1,6 @@
 import { create } from "./zustand";
 import { useAuthStore } from "./authStore";
+import { DEFAULT_HALF_AND_HALF_PRICING, normalizeHalfAndHalfPricing } from "@/lib/tenant/halfAndHalfPricingSettings";
 
 const getTenantHeader = () => {
   const tenant = useAuthStore.getState().tenant;
@@ -60,6 +61,12 @@ const buildUnitLookup = (units = []) =>
     return acc;
   }, {});
 
+const buildHalfAndHalfPricing = (settings = []) => {
+  const normalized = Array.isArray(settings) ? settings : [];
+  const baseSetting = normalized.find((setting) => setting?.description === "Settings");
+  return normalizeHalfAndHalfPricing(baseSetting?.data?.halfAndHalfPricing || DEFAULT_HALF_AND_HALF_PRICING);
+};
+
 const buildUnitData = (settings = []) => {
   const setting = findUnitsSetting(settings);
   const configuredUnits = Array.isArray(setting?.data?.ingredients)
@@ -79,6 +86,7 @@ export const useSettingsStore = create((set) => ({
   categoryLookup: {},
   ingredientUnits: DEFAULT_INGREDIENT_UNITS,
   ingredientUnitLookup: buildUnitLookup(DEFAULT_INGREDIENT_UNITS),
+  halfAndHalfPricing: DEFAULT_HALF_AND_HALF_PRICING,
   loading: false,
   error: null,
   hasFetched: false,
@@ -97,12 +105,14 @@ export const useSettingsStore = create((set) => ({
       const settings = Array.isArray(body) ? body : [];
       const categoryData = buildCategoryData(settings);
       const unitData = buildUnitData(settings);
+      const halfAndHalfPricing = buildHalfAndHalfPricing(settings);
       set({
         settings,
         categories: categoryData.activeCategories,
         categoryLookup: categoryData.categoryLookup,
         ingredientUnits: unitData.ingredientUnits,
         ingredientUnitLookup: unitData.ingredientUnitLookup,
+        halfAndHalfPricing,
         loading: false,
         error: null,
         hasFetched: true,

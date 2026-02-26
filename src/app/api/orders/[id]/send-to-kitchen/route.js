@@ -17,6 +17,9 @@ export async function POST(req, context) {
     const conn = await getTenantConnection(tenant.dbName);
     const Order = OrderModel(conn);
 
+    const body = await req.json().catch(() => ({}));
+    const customerName = typeof body?.customerName === "string" ? body.customerName.trim() : "";
+
     const order = await Order.findById(orderId);
 
     if (!order || order.status !== "DRAFT") {
@@ -31,6 +34,7 @@ export async function POST(req, context) {
       order.inventoryDiscounted = true;
     }
 
+    order.customerName = customerName;
     order.status = "PENDING";
     order.kitchenStatus = "IN_PREPARATION";
     order.kitchenStartedAt = new Date();

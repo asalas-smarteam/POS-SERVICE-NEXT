@@ -13,9 +13,11 @@ import { Separator } from "@/components/ui/separator";
 import { AppSpinner } from "@/components/app-spinner";
 import { IngredientSearchSelect } from "@/components/ingredients/ingredient-search-select";
 import { filterCompatibleHalfProducts } from "@/lib/halfAndHalf";
+import { calculateOrderItemUnitPrice } from "../../../../lib/pricing/halfAndHalfPricing";
 import { cn } from "@/lib/utils";
 import { useIngredientsStore } from "../../../store/ingredientsStore";
 import { useProductsStore } from "../../../store/productsStore";
+import { useSettingsStore } from "../../../store/settingsStore";
 
 const normalizeBaseIngredients = (ingredients = []) =>
   ingredients
@@ -56,7 +58,7 @@ const buildNotes = (modifiers = []) =>
     return [];
   });
 
-export function OrderItemNotesDialog({ open, onOpenChange, item, onSave }) {
+export function OrderItemNotesDialog({ open, onOpenChange, item, onSave, customerName = "", onCustomerNameChange }) {
   const { ingredients, loading, fetchIngredients } = useIngredientsStore((state) => ({
     ingredients: state.ingredients,
     loading: state.loading,
@@ -68,12 +70,17 @@ export function OrderItemNotesDialog({ open, onOpenChange, item, onSave }) {
     fetchProducts: state.fetchProducts,
   }));
 
+  const { halfAndHalfPricing } = useSettingsStore((state) => ({
+    halfAndHalfPricing: state.halfAndHalfPricing,
+  }));
+
   const [modifiers, setModifiers] = useState([]);
   const [selectValue, setSelectValue] = useState("");
   const [ingredientSearch, setIngredientSearch] = useState("");
   const [extraQuantity, setExtraQuantity] = useState("1");
   const [isHalfAndHalf, setIsHalfAndHalf] = useState(false);
   const [selectedHalfProductId, setSelectedHalfProductId] = useState("");
+  const [cashierNote, setCashierNote] = useState("");
 
   const baseIngredients = useMemo(() => {
     return normalizeBaseIngredients(item?.baseIngredients ?? item?.ingredients ?? []);
@@ -139,6 +146,7 @@ export function OrderItemNotesDialog({ open, onOpenChange, item, onSave }) {
 
     setIsHalfAndHalf(initialHalfEnabled);
     setSelectedHalfProductId(initialHalfProductId);
+    setCashierNote(typeof item?.note === "string" ? item.note : "");
   }, [open, item, baseIngredients, canConfigureHalfAndHalf]);
 
   const compatibleHalfProducts = useMemo(
@@ -179,6 +187,7 @@ export function OrderItemNotesDialog({ open, onOpenChange, item, onSave }) {
     setExtraQuantity("1");
     setIsHalfAndHalf(false);
     setSelectedHalfProductId("");
+    setCashierNote("");
   };
 
   const handleDialogOpenChange = (nextOpen) => {
@@ -254,8 +263,17 @@ export function OrderItemNotesDialog({ open, onOpenChange, item, onSave }) {
       (product) => product._id === selectedHalfProductId
     );
 
+    const unitPrice = calculateOrderItemUnitPrice({
+      isHalfAndHalf,
+      priceA: Number(item?.basePrice ?? item?.price ?? 0),
+      priceB: Number(selectedHalfProduct?.price ?? 0),
+      regularPrice: Number(item?.basePrice ?? item?.price ?? 0),
+      pricingSettings: halfAndHalfPricing,
+    });
+
     onSave?.(item.id, {
-      notes: notesPreview,
+      modifierNotes: notesPreview,
+      note: cashierNote,
       modifiers,
       isHalfAndHalf,
       halves:
@@ -267,6 +285,7 @@ export function OrderItemNotesDialog({ open, onOpenChange, item, onSave }) {
               },
             ]
           : [],
+      price: unitPrice,
     });
     handleDialogOpenChange(false);
   };
@@ -283,6 +302,20 @@ export function OrderItemNotesDialog({ open, onOpenChange, item, onSave }) {
         </DialogHeader>
 
         <div className="space-y-4">
+
+        <div className="space-y-2">
+          <Label htmlFor={`customer-name-${item?.id}`}>Customer</Label>
+          <Input
+            id={`customer-name-${item?.id}`}
+            value={customerName}
+            onChange={(event) => onCustomerNameChange?.(event.target.value)}
+            placeholder="Customer name"
+          />
+          <p className="text-xs text-muted-foreground">
+            Optional: enter customer name for this order.
+          </p>
+        </div>
+
           {!hasBaseIngredients ? (
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground">
@@ -509,7 +542,20 @@ export function OrderItemNotesDialog({ open, onOpenChange, item, onSave }) {
           <Separator />
 
           <div className="space-y-2">
-            <p className="text-sm font-medium">Notes</p>
+            <Label htmlFor={`cashier-note-${item?.id}`}>Cashier Note</Label>
+            <textarea
+              id={`cashier-note-${item?.id}`}
+              className="min-h-[88px] w-full rounded-md border bg-background px-3 py-2 text-sm"
+              placeholder="Add an optional cashier note for kitchen"
+              value={cashierNote}
+              onChange={(event) => setCashierNote(event.target.value)}
+            />
+          </div>
+
+          <Separator />
+
+          <div className="space-y-2">
+            <p className="text-sm font-medium">Toppings / Modifiers</p>
             {notesPreview.length > 0 ? (
               <ul className="space-y-1 text-sm text-muted-foreground">
                 {notesPreview.map((note, index) => (
@@ -518,7 +564,7 @@ export function OrderItemNotesDialog({ open, onOpenChange, item, onSave }) {
               </ul>
             ) : (
               <p className="text-sm text-muted-foreground">
-                No generated notes.
+                No modifier changes.
               </p>
             )}
           </div>

@@ -9,6 +9,7 @@ import { SalesHeader } from "@/components/sales/sales-header";
 import { TicketPreviewDialog } from "@/components/sales/ticket-preview-dialog";
 import { generateKitchenTicketPdf } from "@/lib/pdf/ticketJsPdf";
 import { filterCompatibleHalfProducts } from "@/lib/halfAndHalf";
+import { calculateOrderItemUnitPrice } from "../../../../../lib/pricing/halfAndHalfPricing";
 import { toast } from "sonner";
 import { useAuthStore } from "../../../../store/authStore";
 import { useOrderStore } from "../../../../store/orderStore";
@@ -40,8 +41,9 @@ export default function OrdersPage() {
     })
   );
 
-  const { categories, fetchSettings } = useSettingsStore((state) => ({
+  const { categories, halfAndHalfPricing, fetchSettings } = useSettingsStore((state) => ({
     categories: state.categories,
+    halfAndHalfPricing: state.halfAndHalfPricing,
     fetchSettings: state.fetchSettings,
   }));
 
@@ -53,6 +55,8 @@ export default function OrdersPage() {
     removeItem,
     updateNotes,
     clearOrder,
+    customerName,
+    setCustomerName,
   } = useOrderStore((state) => ({
     items: state.items,
     addItem: state.addItem,
@@ -61,6 +65,8 @@ export default function OrdersPage() {
     removeItem: state.removeItem,
     updateNotes: state.updateNotes,
     clearOrder: state.clearOrder,
+    customerName: state.customerName,
+    setCustomerName: state.setCustomerName,
   }));
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -105,21 +111,35 @@ export default function OrdersPage() {
     });
   }, [products, searchTerm, activeCategory]);
 
+
+  const resolveItemUnitPrice = useCallback((item) => {
+    const basePrice = Number(item?.basePrice ?? item?.price ?? 0);
+    if (!item?.isHalfAndHalf) {
+      return basePrice;
+    }
+
+    const halfProductId = item?.halves?.[0]?.productId;
+    const halfProduct = (products || []).find((product) => product?._id === halfProductId);
+
+    return calculateOrderItemUnitPrice({
+      isHalfAndHalf: true,
+      priceA: Number(basePrice),
+      priceB: Number(halfProduct?.price ?? 0),
+      regularPrice: Number(basePrice),
+      pricingSettings: halfAndHalfPricing,
+    });
+  }, [products, halfAndHalfPricing]);
+
   const subtotal = useMemo(
     () =>
-      items.reduce(
-        (total, item) => total + Number(item.price ?? 0) * item.quantity,
-        0
-      ),
-    [items]
+      items.reduce((total, item) => total + resolveItemUnitPrice(item) * item.quantity, 0),
+    [items, resolveItemUnitPrice]
   );
 
   const buildItemPayload = useCallback((item) => {
-    const notes = Array.isArray(item?.notes)
-      ? item.notes.filter(Boolean)
-      : item?.notes
-        ? [item.notes]
-        : [];
+    const modifierNotes = Array.isArray(item?.modifierNotes)
+      ? item.modifierNotes.filter(Boolean)
+      : [];
     const modifiers = Array.isArray(item?.modifiers) ? item.modifiers : [];
     const removedIngredients = modifiers
       .filter(
@@ -143,11 +163,13 @@ export default function OrdersPage() {
       productId: item.id,
       productName: item.name,
       quantity: item.quantity,
-      notes,
-      note: notes.join(", "),
+      modifierNotes,
+      note: typeof item?.note === "string" ? item.note : "",
       modifiers: modifiers.length ? modifiers : undefined,
       removedIngredients,
       extraIngredients,
+      isHalfAndHalf: Boolean(item?.isHalfAndHalf),
+      halves: Array.isArray(item?.halves) ? item.halves : [],
     };
   }, []);
 
@@ -166,6 +188,7 @@ export default function OrdersPage() {
           "Content-Type": "application/json",
           ...getTenantHeader(),
         },
+        body: JSON.stringify({ customerName }),
       });
       if (!orderResponse.ok) {
         throw new Error("No se pudo crear la orden.");
@@ -194,6 +217,7 @@ export default function OrdersPage() {
           "Content-Type": "application/json",
           ...getTenantHeader(),
         },
+        body: JSON.stringify({ customerName }),
       });
       if (!sendResponse.ok) {
         throw new Error("No se pudo enviar la orden a cocina.");
@@ -202,18 +226,20 @@ export default function OrdersPage() {
       const ticketData = {
         orderNumber: normalizeOrderNumber(orderId),
         tableLabel: "Mesa / Cliente",
-        tableValue: "Walk-in Customer",
+        tableValue: customerName || "Walk-in Customer",
         datetimeLabel: "Fecha y hora",
         datetimeValue: new Date(order?.createdAt ?? Date.now()).toLocaleString(),
         items: items.map((item) => ({
           productName: item.name,
           quantity: item.quantity,
-          notes: Array.isArray(item.notes) ? item.notes : [],
+          modifierNotes: Array.isArray(item.modifierNotes) ? item.modifierNotes : [],
+          note: typeof item.note === "string" ? item.note : "",
           type: item.type,
           modifiers: Array.isArray(item.modifiers) ? item.modifiers : [],
           isHalfAndHalf: Boolean(item.isHalfAndHalf),
           halves: Array.isArray(item.halves) ? item.halves : [],
         })),
+        customerName,
         orderNotes: [],
         terminalLabel: "Terminal",
         terminalValue: "Caja 1",
@@ -235,7 +261,7 @@ export default function OrdersPage() {
       isSubmittingRef.current = false;
       setIsSubmitting(false);
     }
-  }, [items, buildItemPayload, clearOrder]);
+  }, [items, buildItemPayload, clearOrder, customerName]);
 
 
 
@@ -281,16 +307,25 @@ export default function OrdersPage() {
       const baseProductId = baseProduct?._id ?? baseProduct?.id;
       const secondHalfProductId = secondHalfProduct?._id ?? secondHalfProduct?.id;
 
+      const halfUnitPrice = calculateOrderItemUnitPrice({
+        isHalfAndHalf: true,
+        priceA: Number(baseProduct?.price ?? 0),
+        priceB: Number(secondHalfProduct?.price ?? 0),
+        regularPrice: Number(baseProduct?.price ?? 0),
+        pricingSettings: halfAndHalfPricing,
+      });
+
       addItem(baseProduct);
       updateNotes(baseProductId, {
         isHalfAndHalf: true,
         halves: [{ productId: secondHalfProductId, name: secondHalfProduct?.name ?? "Product" }],
+        price: halfUnitPrice,
       });
 
       setHalfSelectorOpen(false);
       setSelectedHalfBaseProduct(null);
     },
-    [addItem, selectedHalfBaseProduct, updateNotes]
+    [addItem, selectedHalfBaseProduct, updateNotes, halfAndHalfPricing]
   );
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -337,6 +372,8 @@ export default function OrdersPage() {
             onDecrease={decreaseQty}
             onRemove={removeItem}
             onUpdateNotes={updateNotes}
+            customerName={customerName}
+            onCustomerNameChange={setCustomerName}
             onClear={clearOrder}
             onCheckout={handleCheckout}
             isSubmitting={isSubmitting}

@@ -130,6 +130,9 @@ function KitchenTicketCard({ ticket, columnMeta, elapsedLabel, onContinue, onCan
           <CircleUserRound className="size-4" />
           Waiter: {ticket.waiterName || "N/A"}
         </p>
+        {ticket.customerName ? (
+          <p className="text-sm text-slate-300">Customer: {ticket.customerName}</p>
+        ) : null}
       </div>
 
       <ul className="mb-4 space-y-3 text-slate-100">
@@ -181,7 +184,7 @@ function KitchenTicketCard({ ticket, columnMeta, elapsedLabel, onContinue, onCan
 
               {notesText ? (
                 <div className="mt-2 border-t border-slate-700 pt-2 pl-3">
-                  <p className="text-sm text-amber-400">Notas: {notesText}</p>
+                  <p className="text-sm text-amber-400">Cashier Note: {notesText}</p>
                 </div>
               ) : null}
             </li>

@@ -37,7 +37,7 @@ export async function generateKitchenTicketPdf(ticket) {
   const jsPDF = await loadJsPdf();
 
   const lineHeight = 4.5;
-  const baseLines = 14;
+  const baseLines = 16;
   const itemLines = (ticket.items || []).reduce((count, item) => {
     const { subtitleLines } = getOrderItemDisplayData(item);
     return count + 1 + subtitleLines.length;
@@ -69,6 +69,11 @@ export async function generateKitchenTicketPdf(ticket) {
   doc.text(ticket.datetimeValue || "-", 6, y + 4);
 
   y += 9;
+  if (ticket.customerName) {
+    doc.text("Customer", 6, y);
+    doc.text(ticket.customerName, 6, y + 4);
+    y += 9;
+  }
   doc.line(4, y, 76, y);
 
   y += 4;
