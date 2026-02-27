@@ -2,11 +2,10 @@ import { getRequestConfig } from 'next-intl/server';
 import { locales, defaultLocale } from '../i18n';
 
 export default getRequestConfig(async ({ locale }) => {
-  if (!locales.includes(locale)) {
-    locale = defaultLocale;
-  }
+  const currentLocale = locales.includes(locale) ? locale : defaultLocale;
 
   return {
-    messages: (await import(`../messages/${locale}.json`)).default
+    locale: currentLocale,
+    messages: (await import(`../messages/${currentLocale}.json`)).default
   };
 });
