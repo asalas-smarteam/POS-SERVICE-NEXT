@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -12,6 +13,7 @@ export function HalfAndHalfQuickSelectorDialog({
   compatibleProducts = [],
   onConfirm,
 }) {
+  const t = useTranslations("Orders");
   const [selectedProductId, setSelectedProductId] = useState("");
 
   const selectedProduct = useMemo(
@@ -38,23 +40,23 @@ export function HalfAndHalfQuickSelectorDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Half and Half</DialogTitle>
+          <DialogTitle>{t("halfAndHalf")}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-2">
           <p className="text-sm text-muted-foreground">
-            Select the second half for <span className="font-medium text-foreground">{baseProduct?.name ?? "product"}</span>.
+            {t("selectSecondHalf", { product: baseProduct?.name ?? t("product") })}
           </p>
           <Select value={selectedProductId} onValueChange={setSelectedProductId}>
             <SelectTrigger>
-              <SelectValue placeholder="Choose a compatible product" />
+              <SelectValue placeholder={t("chooseCompatibleProduct")} />
             </SelectTrigger>
             <SelectContent>
               {compatibleProducts.map((product) => {
                 const value = product?._id ?? product?.id;
                 return (
                   <SelectItem key={value} value={value}>
-                    {product?.name ?? "Product"}
+                    {product?.name ?? t("unknownProduct")}
                   </SelectItem>
                 );
               })}
@@ -64,10 +66,10 @@ export function HalfAndHalfQuickSelectorDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => handleOpenChange(false)}>
-            Cancel
+            {t("cancel")}
           </Button>
           <Button onClick={handleConfirm} disabled={!selectedProduct}>
-            Add half and half
+            {t("addHalfAndHalf")}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef } from "react";
+import { useTranslations } from "next-intl";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -13,6 +14,7 @@ export function TicketPreviewDialog({
   ticket,
   onPrint,
 }) {
+  const t = useTranslations("Orders");
   const ticketRef = useRef(null);
 
   if (!ticket) {
@@ -52,14 +54,9 @@ export function TicketPreviewDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader className="no-print">
-          <DialogTitle>Previsualización de ticket</DialogTitle>
+          <DialogTitle>{t("ticketPreview")}</DialogTitle>
         </DialogHeader>
 
-        {/*
-          Web vs Print/PDF separation:
-          - La UI web mantiene el Dialog completo.
-          - El contenido imprimible/PDF vive en un único nodo (ticketRef).
-        */}
         <div ref={ticketRef} className="ticket-print-root flex flex-col items-center gap-4">
           <ScrollArea className="ticket-scroll-area h-[520px] w-full rounded-lg border bg-muted/30 p-6">
             <KitchenTicketContent
@@ -74,13 +71,13 @@ export function TicketPreviewDialog({
 
         <DialogFooter className="no-print gap-2 sm:gap-0">
           <Button className="no-print" variant="outline" type="button" onClick={() => onOpenChange?.(false)}>
-            Cerrar
+            {t("close")}
           </Button>
           <Button className="no-print" variant="secondary" type="button" onClick={generatePDF}>
-            Descargar PDF
+            {t("downloadPdf")}
           </Button>
           <Button className="no-print" type="button" onClick={handlePrint}>
-            Imprimir
+            {t("print")}
           </Button>
         </DialogFooter>
 

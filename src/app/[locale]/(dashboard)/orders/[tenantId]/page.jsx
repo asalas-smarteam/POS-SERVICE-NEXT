@@ -11,6 +11,7 @@ import { generateKitchenTicketPdf } from "@/lib/pdf/ticketJsPdf";
 import { filterCompatibleHalfProducts } from "@/lib/halfAndHalf";
 import { calculateOrderItemUnitPrice } from "../../../../../../lib/pricing/halfAndHalfPricing";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 import { useAuthStore } from "../../../../../store/authStore";
 import { useOrderStore } from "../../../../../store/orderStore";
 import { useProductsStore } from "../../../../../store/productsStore";
@@ -32,6 +33,7 @@ const normalizeOrderNumber = (orderId) => {
 
 
 export default function OrdersPage() {
+  const t = useTranslations("Orders");
   const { products, loading, error, fetchProducts } = useProductsStore(
     (state) => ({
       products: state.products,
@@ -191,7 +193,7 @@ export default function OrdersPage() {
         body: JSON.stringify({ customerName }),
       });
       if (!orderResponse.ok) {
-        throw new Error("No se pudo crear la orden.");
+        throw new Error(t("orderCreateError"));
       }
       const order = await orderResponse.json();
       const orderId = order?._id ?? order?.id;
@@ -207,7 +209,7 @@ export default function OrdersPage() {
           body: JSON.stringify(itemPayload),
         });
         if (!itemResponse.ok) {
-          throw new Error("No se pudieron agregar items a la orden.");
+          throw new Error(t("orderItemsError"));
         }
       }
 
@@ -220,14 +222,14 @@ export default function OrdersPage() {
         body: JSON.stringify({ customerName }),
       });
       if (!sendResponse.ok) {
-        throw new Error("No se pudo enviar la orden a cocina.");
+        throw new Error(t("sendKitchenError"));
       }
 
       const ticketData = {
         orderNumber: normalizeOrderNumber(orderId),
-        tableLabel: "Mesa / Cliente",
-        tableValue: customerName || "Walk-in Customer",
-        datetimeLabel: "Fecha y hora",
+        tableLabel: `${t("table")} / ${t("customer")}`,
+        tableValue: customerName || t("walkInCustomer"),
+        datetimeLabel: t("dateAndTime"),
         datetimeValue: new Date(order?.createdAt ?? Date.now()).toLocaleString(),
         items: items.map((item) => ({
           productName: item.name,
@@ -241,22 +243,22 @@ export default function OrdersPage() {
         })),
         customerName,
         orderNotes: [],
-        terminalLabel: "Terminal",
-        terminalValue: "Caja 1",
+        terminalLabel: t("terminal"),
+        terminalValue: t("register"),
       };
 
       try {
         const doc = await generateKitchenTicketPdf(ticketData);
         doc.output("datauristring");
       } catch (pdfError) {
-        console.warn("No se pudo generar el ticket PDF.", pdfError);
+        console.warn(t("pdfError"), pdfError);
       }
 
       setTicketPreview(ticketData);
       setTicketDialogOpen(true);
       clearOrder();
     } catch (error) {
-      setCheckoutError(error?.message || "Error al confirmar la compra.");
+      setCheckoutError(error?.message || t("checkoutError"));
     } finally {
       isSubmittingRef.current = false;
       setIsSubmitting(false);
@@ -287,7 +289,7 @@ export default function OrdersPage() {
       });
 
       if (!compatibleProducts.length) {
-        toast.error("No compatible products available for half-and-half.");
+        toast.error(t("noCompatibleHalfProducts"));
         return;
       }
 

@@ -1,12 +1,13 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 
-const defaultCategories = [{ id: "all", label: "All Items" }];
-
 export function CategoryTabs({ categories = [], activeCategory, onSelect }) {
+  const t = useTranslations("Orders");
+  const defaultCategories = [{ id: "all", label: t("allItems") }];
   const tabs = [
     ...defaultCategories,
     ...categories.map((category) => ({

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   Check,
   CheckCheck,
@@ -21,8 +22,8 @@ import { getKitchenItemDisplayData } from "@/lib/orders/getKitchenItemDisplayDat
 const STATUS_COLUMNS = [
   {
     key: "IN_PREPARATION",
-    label: "EN PREPARACIÓN",
-    buttonLabel: "Mover a Horno",
+    labelKey: "inPreparation",
+    buttonLabelKey: "moveToOven",
     icon: Clock3,
     iconClass: "text-amber-400",
     columnClass: "border-sky-950/70 bg-sky-950/35",
@@ -30,8 +31,8 @@ const STATUS_COLUMNS = [
   },
   {
     key: "IN_OVEN",
-    label: "EN HORNO",
-    buttonLabel: "Marcar como Listo",
+    labelKey: "inOven",
+    buttonLabelKey: "markAsReady",
     icon: Flame,
     iconClass: "text-orange-500",
     columnClass: "border-orange-900/40 bg-orange-950/10",
@@ -39,8 +40,8 @@ const STATUS_COLUMNS = [
   },
   {
     key: "READY",
-    label: "LISTO PARA SERVIR",
-    buttonLabel: "Despachar Pedido",
+    labelKey: "readyToServe",
+    buttonLabelKey: "dispatchOrder",
     icon: CheckCheck,
     iconClass: "text-green-500",
     columnClass: "border-emerald-900/50 bg-emerald-950/10",
@@ -92,7 +93,7 @@ const getElapsedMs = (ticket, now) => {
   return now - startedAt;
 };
 
-function KitchenTicketCard({ ticket, columnMeta, elapsedLabel, onContinue, onCancel }) {
+function KitchenTicketCard({ ticket, columnMeta, elapsedLabel, onContinue, onCancel, t }) {
   const orderItems = Array.isArray(ticket.items)
     ? ticket.items.map((item) => {
         const display = getKitchenItemDisplayData(item);
@@ -114,24 +115,24 @@ function KitchenTicketCard({ ticket, columnMeta, elapsedLabel, onContinue, onCan
       <div className="mb-3 flex items-start justify-between gap-2">
         <div>
           <p className="text-2xl font-bold text-sky-400">#{normalizeOrderNumber(ticket._id)}</p>
-          <h4 className="text-sm font-black text-slate-100">Mesa {ticket.tableName || ticket.tableNumber || "-"}</h4>
+          <h4 className="text-sm font-black text-slate-100">{t("table")} {ticket.tableName || ticket.tableNumber || "-"}</h4>
         </div>
         <div className="flex flex-col items-end text-xs">
           <span className={`flex items-center gap-1 font-bold ${isInOven ? "text-orange-400" : "text-red-400"}`}>
             <Clock3 className="size-3.5" />
             {elapsedLabel}
           </span>
-          <span className="text-[10px] uppercase tracking-wide text-slate-400">Wait Time</span>
+          <span className="text-[10px] uppercase tracking-wide text-slate-400">{t("waitTime")}</span>
         </div>
       </div>
 
       <div className="mb-4 space-y-2 border-b border-slate-700 pb-3 text-slate-300">
         <p className="flex items-center gap-2 text-lg">
           <CircleUserRound className="size-4" />
-          Waiter: {ticket.waiterName || "N/A"}
+          {t("waiter")}: {ticket.waiterName || t("notAvailable")}
         </p>
         {ticket.customerName ? (
-          <p className="text-sm text-slate-300">Customer: {ticket.customerName}</p>
+          <p className="text-sm text-slate-300">{t("customer")}: {ticket.customerName}</p>
         ) : null}
       </div>
 
@@ -151,7 +152,7 @@ function KitchenTicketCard({ ticket, columnMeta, elapsedLabel, onContinue, onCan
 
               {item.display.ingredients.length ? (
                 <div className="mt-2 pl-3">
-                  <p className="text-sm font-semibold text-slate-300">Ingredientes</p>
+                  <p className="text-sm font-semibold text-slate-300">{t("ingredients")}</p>
                   <ul className="mt-1 space-y-0.5 pl-3 text-xs text-slate-400">
                     {item.display.ingredients.map((ingredientName, ingredientIdx) => (
                       <li key={`${ingredientName}-${ingredientIdx}`}>- {ingredientName}</li>
@@ -162,7 +163,7 @@ function KitchenTicketCard({ ticket, columnMeta, elapsedLabel, onContinue, onCan
 
               {item.display.extras.length ? (
                 <div className="mt-2 pl-3">
-                  <p className="text-sm font-semibold text-amber-400">Extras</p>
+                  <p className="text-sm font-semibold text-amber-400">{t("extras")}</p>
                   <ul className="mt-1 space-y-0.5 pl-3 text-xs text-amber-400">
                     {item.display.extras.map((extraName, extraIdx) => (
                       <li key={`${extraName}-${extraIdx}`}>- {extraName}</li>
@@ -173,7 +174,7 @@ function KitchenTicketCard({ ticket, columnMeta, elapsedLabel, onContinue, onCan
 
               {item.display.removed.length ? (
                 <div className="mt-2 pl-3">
-                  <p className="text-sm font-semibold text-slate-400">Sin</p>
+                  <p className="text-sm font-semibold text-slate-400">{t("without")}</p>
                   <ul className="mt-1 space-y-0.5 pl-3 text-xs text-slate-400">
                     {item.display.removed.map((removedName, removedIdx) => (
                       <li key={`${removedName}-${removedIdx}`}>- {removedName}</li>
@@ -184,7 +185,7 @@ function KitchenTicketCard({ ticket, columnMeta, elapsedLabel, onContinue, onCan
 
               {notesText ? (
                 <div className="mt-2 border-t border-slate-700 pt-2 pl-3">
-                  <p className="text-sm text-amber-400">Cashier Note: {notesText}</p>
+                  <p className="text-sm text-amber-400">{t("cashierNote")}: {notesText}</p>
                 </div>
               ) : null}
             </li>
@@ -196,7 +197,7 @@ function KitchenTicketCard({ ticket, columnMeta, elapsedLabel, onContinue, onCan
         onClick={() => onContinue(ticket)}
         className={`w-full font-bold ${isReady ? "bg-slate-700 hover:bg-slate-600" : "bg-blue-500 hover:bg-blue-400"}`}
       >
-        {columnMeta.buttonLabel}
+        {t(columnMeta.buttonLabelKey)}
         {isReady ? <Send className="size-4" /> : <Check className="size-4" />}
       </Button>
       {!isReady ? (
@@ -205,21 +206,21 @@ function KitchenTicketCard({ ticket, columnMeta, elapsedLabel, onContinue, onCan
           onClick={() => onCancel(ticket)}
           className="mt-2 w-full text-xs text-slate-400 underline-offset-2 hover:text-red-300 hover:underline"
         >
-          Cancelar ticket
+          {t("cancelTicket")}
         </button>
       ) : null}
     </article>
   );
 }
 
-function KitchenColumn({ columnMeta, tickets, now, onContinue, onCancel }) {
+function KitchenColumn({ columnMeta, tickets, now, onContinue, onCancel, t }) {
   const Icon = columnMeta.icon;
 
   return (
     <section className="flex min-h-0 flex-col gap-4">
       <header className="flex items-center gap-2 px-1">
         <Icon className={`size-5 ${columnMeta.iconClass}`} />
-        <h3 className="text-3xl font-bold tracking-wide text-slate-200">{columnMeta.label}</h3>
+        <h3 className="text-3xl font-bold tracking-wide text-slate-200">{t(columnMeta.labelKey)}</h3>
         <span className="rounded-full bg-slate-700 px-2 py-0.5 text-xs font-bold text-slate-200">{tickets.length}</span>
       </header>
 
@@ -233,11 +234,12 @@ function KitchenColumn({ columnMeta, tickets, now, onContinue, onCancel }) {
               elapsedLabel={formatDuration(getElapsedMs(ticket, now))}
               onContinue={onContinue}
               onCancel={onCancel}
+              t={t}
             />
           ))
         ) : (
           <div className="rounded-xl border border-dashed border-slate-400/60 p-4 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
-            No hay tickets en esta columna.
+            {t("noTicketsInColumn")}
           </div>
         )}
       </div>
@@ -246,6 +248,7 @@ function KitchenColumn({ columnMeta, tickets, now, onContinue, onCancel }) {
 }
 
 export default function KitchenPage() {
+  const t = useTranslations("Kitchen");
   const [search, setSearch] = useState("");
 
   const { tickets, loading, error, now, fetchTickets, updateTicketStatus, startTimer, stopTimer } = useKitchenStore(
@@ -336,18 +339,18 @@ export default function KitchenPage() {
       <main className="mx-auto flex w-full max-w-[1600px] flex-1 flex-col gap-8 overflow-auto p-6 pb-28">
         <section className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
           <div>
-            <h2 className="text-5xl font-black">Kitchen Kanban Board</h2>
-            <p className="mt-1 text-lg text-slate-400">Manage active orders and preparation stages in real-time.</p>
+            <h2 className="text-5xl font-black">{t("kitchenBoardTitle")}</h2>
+            <p className="mt-1 text-lg text-slate-400">{t("kitchenBoardDescription")}</p>
           </div>
           <div className="rounded-lg bg-slate-100 px-4 py-2 dark:bg-[#0c1f30]">
             <div className="flex items-center gap-3">
               <div className="flex flex-col">
-                <span className="text-[10px] font-bold uppercase text-slate-400">Total Active</span>
-                <span className="text-2xl font-bold">{activeTickets.length} Orders</span>
+                <span className="text-[10px] font-bold uppercase text-slate-400">{t("totalActive")}</span>
+                <span className="text-2xl font-bold">{activeTickets.length} {t("orders")}</span>
               </div>
               <div className="h-8 w-px bg-slate-600" />
               <div className="flex flex-col">
-                <span className="text-[10px] font-bold uppercase text-slate-400">Avg. Time</span>
+                <span className="text-[10px] font-bold uppercase text-slate-400">{t("avgTime")}</span>
                 <span className="text-2xl font-bold">{averageTimeLabel}</span>
               </div>
             </div>
@@ -358,7 +361,7 @@ export default function KitchenPage() {
 
         {loading ? (
           <div className="flex items-center gap-2 text-sm text-slate-300">
-            <AppSpinner size={16} inline /> Actualizando...
+            <AppSpinner size={16} inline /> {t("updating")}
           </div>
         ) : null}
 
@@ -371,6 +374,7 @@ export default function KitchenPage() {
               now={now}
               onContinue={handleContinue}
               onCancel={handleCancel}
+              t={t}
             />
           ))}
         </section>
@@ -382,17 +386,17 @@ export default function KitchenPage() {
         <div className="max-w-[1600px] mx-auto flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-6 text-sm">
             <div className="flex items-center gap-2 text-slate-500">
-              <span>{pendingDelivery} Pending Delivery</span>
+              <span>{pendingDelivery} {t("pendingDelivery")}</span>
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <span className="text-sm text-slate-500 font-medium">Last synced: Just now</span>
+            <span className="text-sm text-slate-500 font-medium">{t("lastSynced")}</span>
             <button
               type="button"
               onClick={fetchTickets}
               className="rounded-lg p-2 text-slate-500 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
             >
-              <span className="material-symbols-outlined">refresh</span>
+              <span className="material-symbols-outlined">{t("refresh")}</span>
             </button>
           </div>
         </div>

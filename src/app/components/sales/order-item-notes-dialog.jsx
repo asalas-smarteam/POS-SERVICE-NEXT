@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Minus, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -59,6 +60,7 @@ const buildNotes = (modifiers = []) =>
   });
 
 export function OrderItemNotesDialog({ open, onOpenChange, item, onSave, customerName = "", onCustomerNameChange }) {
+  const t = useTranslations("Orders");
   const { ingredients, loading, fetchIngredients } = useIngredientsStore((state) => ({
     ingredients: state.ingredients,
     loading: state.loading,
@@ -129,7 +131,7 @@ export function OrderItemNotesDialog({ open, onOpenChange, item, onSave, custome
       .filter((modifier) => !baseMap.has(modifier.ingredientId))
       .map((modifier) => ({
         ingredientId: modifier.ingredientId,
-        name: modifier.name ?? "Ingredient",
+        name: modifier.name ?? t("unknownProduct"),
         baseQuantity: 0,
         quantity: Number(modifier.quantity ?? 0),
         isExtra: true,
@@ -237,7 +239,7 @@ export function OrderItemNotesDialog({ open, onOpenChange, item, onSave, custome
         ...current,
         {
           ingredientId: ingredient._id,
-          name: ingredient.name ?? "Ingredient",
+          name: ingredient.name ?? t("unknownProduct"),
           baseQuantity: 0,
           quantity: qty,
           isExtra: true,
@@ -298,32 +300,32 @@ export function OrderItemNotesDialog({ open, onOpenChange, item, onSave, custome
     <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Edit Order Item</DialogTitle>
+          <DialogTitle>{t("editOrderItem")}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
 
         <div className="space-y-2">
-          <Label htmlFor={`customer-name-${item?.id}`}>Customer</Label>
+          <Label htmlFor={`customer-name-${item?.id}`}>{t("customer")}</Label>
           <Input
             id={`customer-name-${item?.id}`}
             value={customerName}
             onChange={(event) => onCustomerNameChange?.(event.target.value)}
-            placeholder="Customer name"
+            placeholder={t("customerName")}
           />
           <p className="text-xs text-muted-foreground">
-            Optional: enter customer name for this order.
+            {t("customerNameHelp")}
           </p>
         </div>
 
           {!hasBaseIngredients ? (
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground">
-                This product has no configured ingredients. You can add extras.
+                {t("noConfiguredIngredients")}
               </p>
               {sortedModifiers.length > 0 ? (
                 <div className="space-y-2">
-                  <p className="text-sm font-medium">Added extras</p>
+                  <p className="text-sm font-medium">{t("addedExtras")}</p>
                   <ScrollArea className="h-[180px] pr-3">
                     <div className="space-y-2">
                       {sortedModifiers.map((modifier) => (
@@ -336,7 +338,7 @@ export function OrderItemNotesDialog({ open, onOpenChange, item, onSave, custome
                         >
                           <div>
                             <p className="text-sm font-medium">{modifier.name}</p>
-                            <p className="text-xs text-muted-foreground">Extra</p>
+                            <p className="text-xs text-muted-foreground">{t("extra")}</p>
                           </div>
                           <div className="flex items-center gap-2">
                             <Button
@@ -347,7 +349,7 @@ export function OrderItemNotesDialog({ open, onOpenChange, item, onSave, custome
                               onClick={() =>
                                 handleAdjustQuantity(modifier.ingredientId, -1)
                               }
-                              aria-label={`Remove ${modifier.name}`}
+                              aria-label={`${t("remove")} ${modifier.name}`}
                             >
                               <Minus className="size-3" />
                             </Button>
@@ -362,7 +364,7 @@ export function OrderItemNotesDialog({ open, onOpenChange, item, onSave, custome
                               onClick={() =>
                                 handleAdjustQuantity(modifier.ingredientId, 1)
                               }
-                              aria-label={`Add ${modifier.name}`}
+                              aria-label={`${t("add")} ${modifier.name}`}
                             >
                               <Plus className="size-3" />
                             </Button>
@@ -378,13 +380,13 @@ export function OrderItemNotesDialog({ open, onOpenChange, item, onSave, custome
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium">Base ingredients</p>
+                  <p className="text-sm font-medium">{t("baseIngredients")}</p>
                   <p className="text-xs text-muted-foreground">
-                    Adjust quantities to remove ingredients or add extras.
+                    {t("adjustIngredients")}
                   </p>
                 </div>
                 <span className="text-xs text-muted-foreground">
-                  {baseIngredients.length} ingredients
+                  {t("ingredientsCount", { count: baseIngredients.length })}
                 </span>
               </div>
               <ScrollArea className="h-[220px] pr-3">
@@ -400,7 +402,7 @@ export function OrderItemNotesDialog({ open, onOpenChange, item, onSave, custome
                       <div>
                         <p className="text-sm font-medium">{modifier.name}</p>
                         {modifier.baseQuantity === 0 ? (
-                          <p className="text-xs text-muted-foreground">Extra</p>
+                          <p className="text-xs text-muted-foreground">{t("extra")}</p>
                         ) : null}
                       </div>
                       <div className="flex items-center gap-2">
@@ -412,7 +414,7 @@ export function OrderItemNotesDialog({ open, onOpenChange, item, onSave, custome
                           onClick={() =>
                             handleAdjustQuantity(modifier.ingredientId, -1)
                           }
-                          aria-label={`Remove ${modifier.name}`}
+                          aria-label={`${t("remove")} ${modifier.name}`}
                         >
                           <Minus className="size-3" />
                         </Button>
@@ -427,7 +429,7 @@ export function OrderItemNotesDialog({ open, onOpenChange, item, onSave, custome
                           onClick={() =>
                             handleAdjustQuantity(modifier.ingredientId, 1)
                           }
-                          aria-label={`Add ${modifier.name}`}
+                          aria-label={`${t("add")} ${modifier.name}`}
                         >
                           <Plus className="size-3" />
                         </Button>
@@ -445,7 +447,7 @@ export function OrderItemNotesDialog({ open, onOpenChange, item, onSave, custome
 
               <div className="space-y-3">
                 <div>
-                  <p className="text-sm font-medium">Half and Half Configuration</p>
+                  <p className="text-sm font-medium">{t("halfAndHalfConfiguration")}</p>
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -454,19 +456,19 @@ export function OrderItemNotesDialog({ open, onOpenChange, item, onSave, custome
                     checked={isHalfAndHalf}
                     onCheckedChange={handleHalfAndHalfChange}
                   />
-                  <Label htmlFor={`half-and-half-${item?.id}`}>Half and Half</Label>
+                  <Label htmlFor={`half-and-half-${item?.id}`}>{t("halfAndHalf")}</Label>
                 </div>
 
                 {isHalfAndHalf ? (
                   <div className="space-y-2">
-                    <Label htmlFor={`half-product-${item?.id}`}>Select second product</Label>
+                    <Label htmlFor={`half-product-${item?.id}`}>{t("selectSecondProduct")}</Label>
                     <Select
                       value={selectedHalfProductId}
                       onValueChange={setSelectedHalfProductId}
                       disabled={!hasCompatibleHalfProducts}
                     >
                       <SelectTrigger id={`half-product-${item?.id}`}>
-                        <SelectValue placeholder="Choose a compatible product" />
+                        <SelectValue placeholder={t("chooseCompatibleProduct")} />
                       </SelectTrigger>
                       <SelectContent>
                         {compatibleHalfProducts.map((product) => (
@@ -478,7 +480,7 @@ export function OrderItemNotesDialog({ open, onOpenChange, item, onSave, custome
                     </Select>
                     {!hasCompatibleHalfProducts ? (
                       <p className="text-sm text-muted-foreground">
-                        No compatible products available for half-and-half.
+                        {t("noCompatibleHalfProducts")}
                       </p>
                     ) : null}
                   </div>
@@ -491,9 +493,9 @@ export function OrderItemNotesDialog({ open, onOpenChange, item, onSave, custome
 
           <div className="space-y-3">
             <div>
-              <p className="text-sm font-medium">Add extra</p>
+              <p className="text-sm font-medium">{t("addExtra")}</p>
               <p className="text-xs text-muted-foreground">
-                Select additional ingredients not included in the product.
+                {t("selectAdditionalIngredients")}
               </p>
             </div>
             <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
@@ -504,11 +506,11 @@ export function OrderItemNotesDialog({ open, onOpenChange, item, onSave, custome
                   searchValue={ingredientSearch}
                   onSearchChange={setIngredientSearch}
                   items={isLoadingIngredients ? [] : filteredExtras}
-                  placeholder="Select an extra ingredient"
+                  placeholder={t("selectExtraIngredient")}
                   emptyMessage={
                     isLoadingIngredients
-                      ? "Loading ingredients..."
-                      : "No results."
+                      ? t("loadingIngredients")
+                      : t("noResults")
                   }
                 />
               </div>
@@ -530,10 +532,10 @@ export function OrderItemNotesDialog({ open, onOpenChange, item, onSave, custome
                 {isLoadingIngredients ? (
                   <span className="flex items-center gap-2">
                     <AppSpinner size={14} inline />
-                    Loading...
+                    {t("loading")}
                   </span>
                 ) : (
-                  "Add"
+                  t("add")
                 )}
               </Button>
             </div>
@@ -542,11 +544,11 @@ export function OrderItemNotesDialog({ open, onOpenChange, item, onSave, custome
           <Separator />
 
           <div className="space-y-2">
-            <Label htmlFor={`cashier-note-${item?.id}`}>Cashier Note</Label>
+            <Label htmlFor={`cashier-note-${item?.id}`}>{t("cashierNote")}</Label>
             <textarea
               id={`cashier-note-${item?.id}`}
               className="min-h-[88px] w-full rounded-md border bg-background px-3 py-2 text-sm"
-              placeholder="Add an optional cashier note for kitchen"
+              placeholder={t("cashierNotePlaceholder")}
               value={cashierNote}
               onChange={(event) => setCashierNote(event.target.value)}
             />
@@ -555,7 +557,7 @@ export function OrderItemNotesDialog({ open, onOpenChange, item, onSave, custome
           <Separator />
 
           <div className="space-y-2">
-            <p className="text-sm font-medium">Toppings / Modifiers</p>
+            <p className="text-sm font-medium">{t("toppingsModifiers")}</p>
             {notesPreview.length > 0 ? (
               <ul className="space-y-1 text-sm text-muted-foreground">
                 {notesPreview.map((note, index) => (
@@ -564,7 +566,7 @@ export function OrderItemNotesDialog({ open, onOpenChange, item, onSave, custome
               </ul>
             ) : (
               <p className="text-sm text-muted-foreground">
-                No modifier changes.
+                {t("noModifierChanges")}
               </p>
             )}
           </div>
@@ -576,10 +578,10 @@ export function OrderItemNotesDialog({ open, onOpenChange, item, onSave, custome
             variant="outline"
             onClick={() => handleDialogOpenChange(false)}
           >
-            Cancel
+            {t("cancel")}
           </Button>
           <Button type="button" onClick={handleSave}>
-            Save changes
+            {t("saveChanges")}
           </Button>
         </DialogFooter>
       </DialogContent>

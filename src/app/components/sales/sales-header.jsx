@@ -1,11 +1,14 @@
 "use client";
 
 import { Bell, Search, Settings } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 export function SalesHeader({ searchTerm, onSearchChange }) {
+  const t = useTranslations("Orders");
+
   return (
     <div className="flex flex-col gap-4 rounded-xl border bg-card p-4 shadow-sm md:flex-row md:items-center md:justify-between">
       <div className="flex items-center gap-3">
@@ -15,10 +18,10 @@ export function SalesHeader({ searchTerm, onSearchChange }) {
         <div>
           <h2 className="text-lg font-semibold">PointOfSale Pro</h2>
           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-            <span>Terminal #04</span>
+            <span>{t("terminal")}</span>
             <span>•</span>
-            <span>Alex Johnson</span>
-            <Badge variant="secondary">Multi-tenant</Badge>
+            <span>{t("operator")}</span>
+            <Badge variant="secondary">{t("multiTenant")}</Badge>
           </div>
         </div>
       </div>
@@ -27,16 +30,16 @@ export function SalesHeader({ searchTerm, onSearchChange }) {
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             className="pl-9"
-            placeholder="Buscar productos, códigos..."
+            placeholder={t("searchProducts")}
             value={searchTerm}
             onChange={(event) => onSearchChange(event.target.value)}
           />
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" aria-label="Settings">
+          <Button variant="ghost" size="icon" aria-label={t("settings")}>
             <Settings className="size-4" />
           </Button>
-          <Button variant="ghost" size="icon" aria-label="Notifications">
+          <Button variant="ghost" size="icon" aria-label={t("notifications")}>
             <Bell className="size-4" />
           </Button>
         </div>
