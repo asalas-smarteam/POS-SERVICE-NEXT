@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { AppAlert } from "@/components/app-alert";
 import { AppSkeleton } from "@/components/app-skeleton";
 import { AppSpinner } from "@/components/app-spinner";
@@ -13,6 +14,8 @@ export function ProductGrid({
   onSelect,
   onLongSelect,
 }) {
+  const t = useTranslations("Orders");
+
   if (loading) {
     return <AppSkeleton variant="grid" count={8} className="mt-4" />;
   }
@@ -25,7 +28,7 @@ export function ProductGrid({
     return (
       <AppAlert
         type="info"
-        message="No hay productos disponibles para esta categoría."
+        message={t("noProductsInCategory")}
         className="mt-4"
       />
     );
@@ -36,7 +39,7 @@ export function ProductGrid({
       {isFiltering ? (
         <div className="flex items-center justify-end gap-2 text-xs text-muted-foreground">
           <AppSpinner inline size={16} />
-          Filtrando productos...
+          {t("filteringProducts")}
         </div>
       ) : null}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">

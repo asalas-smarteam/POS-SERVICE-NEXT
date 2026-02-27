@@ -2,16 +2,17 @@
 
 import { useMemo, useState } from "react";
 import { MessageSquarePlus, Minus, Plus, Trash2 } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { OrderItemNotesDialog } from "@/components/sales/order-item-notes-dialog";
 import { getOrderItemDisplayData } from "@/lib/orders/getOrderItemDisplayData";
 import { cn } from "@/lib/utils";
 
-const formatCurrency = (value) =>
-  Number(value ?? 0).toLocaleString("es-CL", {
+const formatCurrency = (value, locale) =>
+  new Intl.NumberFormat(locale, {
     style: "currency",
     currency: "CLP",
-  });
+  }).format(Number(value ?? 0));
 
 export function OrderItem({
   item,
@@ -23,6 +24,8 @@ export function OrderItem({
   onCustomerNameChange,
   className,
 }) {
+  const t = useTranslations("Orders");
+  const locale = useLocale();
   const [notesOpen, setNotesOpen] = useState(false);
   const displayData = useMemo(() => getOrderItemDisplayData(item), [item]);
 
@@ -43,11 +46,11 @@ export function OrderItem({
               ))}
             </ul>
           ) : (
-            <p className="text-xs text-muted-foreground">Sin observaciones</p>
+            <p className="text-xs text-muted-foreground">{t("noObservations")}</p>
           )}
         </div>
         <span className="text-sm font-semibold text-foreground">
-          {formatCurrency(item.price * item.quantity)}
+          {formatCurrency(item.price * item.quantity, locale)}
         </span>
       </div>
       <div className="mt-3 flex items-center justify-between">
@@ -57,7 +60,7 @@ export function OrderItem({
             size="icon"
             className="h-7 w-7"
             onClick={() => onDecrease(item.id)}
-            aria-label="Disminuir cantidad"
+            aria-label={t("decreaseQuantity")}
           >
             <Minus className="size-3" />
           </Button>
@@ -69,7 +72,7 @@ export function OrderItem({
             size="icon"
             className="h-7 w-7"
             onClick={() => onIncrease(item.id)}
-            aria-label="Aumentar cantidad"
+            aria-label={t("increaseQuantity")}
           >
             <Plus className="size-3" />
           </Button>
@@ -80,7 +83,7 @@ export function OrderItem({
             size="icon"
             className="h-8 w-8 text-muted-foreground hover:text-primary"
             onClick={() => setNotesOpen(true)}
-            aria-label="Agregar observaciones"
+            aria-label={t("addNotes")}
           >
             <MessageSquarePlus className="size-4" />
           </Button>
@@ -89,7 +92,7 @@ export function OrderItem({
             size="icon"
             className="h-8 w-8 text-muted-foreground hover:text-destructive"
             onClick={() => onRemove(item.id)}
-            aria-label="Eliminar producto"
+            aria-label={t("removeProduct")}
           >
             <Trash2 className="size-4" />
           </Button>

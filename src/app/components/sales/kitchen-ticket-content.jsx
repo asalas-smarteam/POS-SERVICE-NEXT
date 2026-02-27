@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { Separator } from "@/components/ui/separator";
 import { getOrderItemDisplayData } from "@/lib/orders/getOrderItemDisplayData";
 import { cn } from "@/lib/utils";
@@ -12,17 +13,19 @@ export function KitchenTicketContent({
   orderNotes = [],
   className,
 }) {
+  const t = useTranslations("Kitchen");
+
   return (
     <div className={cn("mx-auto w-[300px] rounded-md border bg-background p-4 text-xs text-foreground shadow-sm", className)}>
       <div className="space-y-1 text-center">
-        <p className="text-sm font-semibold uppercase">Orden de cocina</p>
+        <p className="text-sm font-semibold uppercase">{t("kitchenOrder")}</p>
         <p className="text-2xl font-bold">#{orderNumber}</p>
       </div>
 
       <Separator className="my-3" />
 
       <div className="space-y-1">
-        <p className="text-[11px] font-semibold">Fecha y hora</p>
+        <p className="text-[11px] font-semibold">{t("dateAndTime")}</p>
         <p className="text-[11px] text-muted-foreground">{datetimeValue}</p>
       </div>
 
@@ -31,7 +34,7 @@ export function KitchenTicketContent({
         <>
           <Separator className="my-3" />
           <div className="space-y-1">
-            <p className="text-[11px] font-semibold">Customer</p>
+            <p className="text-[11px] font-semibold">{t("customer")}</p>
             <p className="text-[11px] text-muted-foreground">{customerName}</p>
           </div>
         </>
@@ -62,7 +65,7 @@ export function KitchenTicketContent({
       <Separator className="my-3" />
 
       <div className="space-y-1 rounded-md border border-dashed border-border/70 bg-muted/30 p-2">
-        <p className="text-[11px] font-semibold">Notas</p>
+        <p className="text-[11px] font-semibold">{t("notes")}</p>
         {orderNotes.length ? (
           <ul className="space-y-1 text-[10px] text-muted-foreground">
             {orderNotes.map((note, idx) => (
@@ -70,7 +73,7 @@ export function KitchenTicketContent({
             ))}
           </ul>
         ) : (
-          <p className="text-[10px] text-muted-foreground">Sin notas</p>
+          <p className="text-[10px] text-muted-foreground">{t("noNotes")}</p>
         )}
       </div>
     </div>
