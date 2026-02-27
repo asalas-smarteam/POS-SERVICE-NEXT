@@ -15,6 +15,10 @@ const UserSchema = new mongoose.Schema({
     type: Boolean,
     default: true,
   },
+  language: {
+    type: String,
+    default: 'es',
+  },
 }, { timestamps: true });
 
 export function UserModel(conn) {
