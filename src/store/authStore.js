@@ -108,7 +108,7 @@ export const useAuthStore = create(
           Object.keys(permissionsMap).length > 0;
 
         if (!hasConfiguredPermissions) {
-          return normalizedPath === "/home";
+          return normalizedPath === "/dashboard";
         }
 
         return Boolean(permissionsMap[normalizedPath]);

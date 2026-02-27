@@ -24,7 +24,7 @@ const buildNavItem = (label, href, iconKey) => ({
 
 export const NAV_BY_ROLE = Object.freeze({
   [USER_ROLES.ADMIN]: [
-    buildNavItem("Home", "/home", "home"),
+    buildNavItem("Home", "/dashboard", "home"),
     buildNavItem("Orders", "/orders", "orders"),
     buildNavItem("Products", "/products", "products"),
     buildNavItem("Ingredients", "/ingredients", "ingredients"),
