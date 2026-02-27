@@ -12,7 +12,7 @@ import { UsersFilters } from "@/components/users/UsersFilters";
 import { UsersPagination } from "@/components/users/UsersPagination";
 import { UsersStats } from "@/components/users/UsersStats";
 import { UsersTable } from "@/components/users/UsersTable";
-import { useAuthStore } from "../../../../store/authStore";
+import { useAuthStore } from "../../../../../store/authStore";
 
 const ROLES = ["ADMIN", "KITCHEN", "CASHIER"];
 

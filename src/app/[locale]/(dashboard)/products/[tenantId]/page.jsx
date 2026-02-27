@@ -4,15 +4,23 @@ import { useEffect, useMemo, useState } from "react";
 import { LayoutGrid, List, Plus, Search, Table as TableIcon } from "lucide-react";
 import { AppAlert } from "@/components/app-alert";
 import { AppSkeleton } from "@/components/app-skeleton";
-import { IngredientCard } from "@/components/ingredients/ingredient-card";
-import { IngredientDialog } from "@/components/ingredients/ingredient-dialog";
-import { IngredientTable } from "@/components/ingredients/ingredient-table";
+import { ProductCard } from "@/components/products/product-card";
+import { ProductDialog } from "@/components/products/product-dialog";
+import { ProductTable } from "@/components/products/product-table";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { useIngredientsStore } from "../../../../store/ingredientsStore";
-import { useSettingsStore } from "../../../../store/settingsStore";
+import { useProductsStore } from "../../../../../store/productsStore";
+import { useSettingsStore } from "../../../../../store/settingsStore";
 
 const viewOptions = [
   { value: "grid", label: "Grid", icon: LayoutGrid },
@@ -22,91 +30,97 @@ const viewOptions = [
 
 const formatResults = (total, term) => {
   if (!term) {
-    return `${total} ingredientes`;
+    return `${total} productos`;
   }
   return `${total} resultados para "${term}"`;
 };
 
-const formatStock = (value) => {
-  if (value === 0) {
-    return "Sin stock";
-  }
-  return Number(value || 0).toLocaleString("es-CL");
-};
-
-export default function IngredientsPage() {
+export default function ProductsPage() {
   const {
-    ingredients,
+    products,
     loading,
     error,
     viewMode,
     searchTerm,
+    categoryFilter,
     page,
     pageSize,
-    actionLoading,
-    fetchIngredients,
+    fetchProducts,
     setViewMode,
     setSearchTerm,
+    setCategoryFilter,
     setPage,
-    deleteIngredient,
-  } = useIngredientsStore((state) => ({
-    ingredients: state.ingredients,
+  } = useProductsStore((state) => ({
+    products: state.products,
     loading: state.loading,
     error: state.error,
     viewMode: state.viewMode,
     searchTerm: state.searchTerm,
+    categoryFilter: state.categoryFilter,
     page: state.page,
     pageSize: state.pageSize,
-    actionLoading: state.actionLoading,
-    fetchIngredients: state.fetchIngredients,
+    fetchProducts: state.fetchProducts,
     setViewMode: state.setViewMode,
     setSearchTerm: state.setSearchTerm,
+    setCategoryFilter: state.setCategoryFilter,
     setPage: state.setPage,
-    deleteIngredient: state.deleteIngredient,
   }));
-  const { ingredientUnitLookup, fetchSettings } = useSettingsStore((state) => ({
-    ingredientUnitLookup: state.ingredientUnitLookup,
-    fetchSettings: state.fetchSettings,
-  }));
+
+  const { categories, categoryLookup, settingsLoading, fetchSettings } =
+    useSettingsStore((state) => ({
+      categories: state.categories,
+      categoryLookup: state.categoryLookup,
+      settingsLoading: state.loading,
+      fetchSettings: state.fetchSettings,
+    }));
 
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingIngredient, setEditingIngredient] = useState(null);
+  const [editingProduct, setEditingProduct] = useState(null);
   const [actionAlert, setActionAlert] = useState(null);
-  const [deletingId, setDeletingId] = useState(null);
 
   useEffect(() => {
-    fetchIngredients();
-  }, [fetchIngredients]);
+    fetchProducts();
+  }, [fetchProducts]);
 
   useEffect(() => {
     fetchSettings();
   }, [fetchSettings]);
 
-  const resolveUnitLabel = (unitId) => {
-    if (!unitId) {
-      return "-";
+  const resolveCategoryLabel = (product) => {
+    if (!product?.categoryId) {
+      return "Sin categoría";
     }
-    return ingredientUnitLookup[unitId] ?? unitId;
+    return categoryLookup[product.categoryId] ?? product.categoryId;
   };
 
-  const filteredIngredients = useMemo(() => {
-    const list = Array.isArray(ingredients) ? ingredients : [];
+  const filteredProducts = useMemo(() => {
+    const list = Array.isArray(products) ? products : [];
     const term = searchTerm.trim().toLowerCase();
-    if (!term) {
-      return list;
-    }
-    return list.filter((ingredient) =>
-      ingredient.name?.toLowerCase().includes(term)
-    );
-  }, [ingredients, searchTerm]);
+    return list.filter((product) => {
+      const matchesSearch = term
+        ? product.name?.toLowerCase().includes(term)
+        : true;
+      if (!matchesSearch) {
+        return false;
+      }
+      if (categoryFilter === "all") {
+        return true;
+      }
+      if (categoryFilter === "uncategorized") {
+        return !product.categoryId;
+      }
+      return product.categoryId === categoryFilter;
+    });
+  }, [products, searchTerm, categoryFilter]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredIngredients.length / pageSize));
+  const totalPages = Math.max(1, Math.ceil(filteredProducts.length / pageSize));
+
   const currentPage = Math.min(page, totalPages);
 
-  const paginatedIngredients = useMemo(() => {
+  const paginatedProducts = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
-    return filteredIngredients.slice(start, start + pageSize);
-  }, [filteredIngredients, currentPage, pageSize]);
+    return filteredProducts.slice(start, start + pageSize);
+  }, [filteredProducts, currentPage, pageSize]);
 
   useEffect(() => {
     if (page !== currentPage) {
@@ -115,12 +129,12 @@ export default function IngredientsPage() {
   }, [currentPage, page, setPage]);
 
   const handleCreate = () => {
-    setEditingIngredient(null);
+    setEditingProduct(null);
     setDialogOpen(true);
   };
 
-  const handleEdit = (ingredient) => {
-    setEditingIngredient(ingredient);
+  const handleEdit = (product) => {
+    setEditingProduct(product);
     setDialogOpen(true);
   };
 
@@ -129,29 +143,6 @@ export default function IngredientsPage() {
       type: "success",
       message: "Lista actualizada correctamente.",
     });
-  };
-
-  const handleDelete = async (ingredient) => {
-    if (!ingredient?._id) {
-      return;
-    }
-    const confirmed = window.confirm(
-      `¿Seguro que deseas eliminar "${ingredient.name}"?`
-    );
-    if (!confirmed) {
-      return;
-    }
-    setDeletingId(ingredient._id);
-    const result = await deleteIngredient(ingredient._id);
-    if (result?.success) {
-      setActionAlert({ type: "success", message: "Ingrediente eliminado." });
-    } else {
-      setActionAlert({
-        type: "error",
-        message: result?.message || "No se pudo eliminar el ingrediente.",
-      });
-    }
-    setDeletingId(null);
   };
 
   const renderContent = () => {
@@ -163,14 +154,14 @@ export default function IngredientsPage() {
       return <AppAlert type="error" message={error} />;
     }
 
-    if (filteredIngredients.length === 0) {
+    if (filteredProducts.length === 0) {
       return (
         <AppAlert
           type="info"
           message={
             searchTerm
-              ? "No encontramos ingredientes con ese nombre."
-              : "Aún no hay ingredientes registrados."
+              ? "No encontramos productos con ese nombre."
+              : "Aún no hay productos registrados."
           }
         />
       );
@@ -178,12 +169,10 @@ export default function IngredientsPage() {
 
     if (viewMode === "table") {
       return (
-        <IngredientTable
-          ingredients={paginatedIngredients}
+        <ProductTable
+          products={paginatedProducts}
           onEdit={handleEdit}
-          onDelete={handleDelete}
-          deletingId={deletingId}
-          getUnitLabel={resolveUnitLabel}
+          getCategoryLabel={resolveCategoryLabel}
         />
       );
     }
@@ -191,51 +180,42 @@ export default function IngredientsPage() {
     if (viewMode === "list") {
       return (
         <div className="space-y-3">
-          {paginatedIngredients.map((ingredient) => {
-            const unitLabel = resolveUnitLabel(ingredient?.unit);
-            return (
-              <Card key={ingredient._id ?? ingredient.name}>
-                <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <p className="text-sm font-semibold">{ingredient.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {unitLabel} · Stock {formatStock(ingredient.stock)}
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-3">
-                    <span className="text-sm font-medium">
-                      Stock mínimo {formatStock(ingredient.minStock)}
-                    </span>
-                    <Button variant="outline" size="sm" onClick={() => handleEdit(ingredient)}>
-                      Editar
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => handleDelete(ingredient)}
-                      disabled={actionLoading && deletingId === ingredient._id}
-                    >
-                      Eliminar
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+          {paginatedProducts.map((product) => (
+            <Card key={product._id ?? product.name}>
+              <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-semibold">{product.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {product.type === "COMPOSED" ? "Compuesto" : "Simple"} · {product.ingredients?.length ?? 0} ingredientes
+                  </p>
+                </div>
+                <Badge variant="secondary">{resolveCategoryLabel(product)}</Badge>
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-medium">
+                    {Number(product.price || 0).toLocaleString("es-CL", {
+                      style: "currency",
+                      currency: "CLP",
+                    })}
+                  </span>
+                  <Button variant="outline" size="sm" onClick={() => handleEdit(product)}>
+                    Editar
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       );
     }
 
     return (
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {paginatedIngredients.map((ingredient) => (
-          <IngredientCard
-            key={ingredient._id ?? ingredient.name}
-            ingredient={ingredient}
+        {paginatedProducts.map((product) => (
+          <ProductCard
+            key={product._id ?? product.name}
+            product={product}
             onEdit={handleEdit}
-            onDelete={handleDelete}
-            deleting={actionLoading && deletingId === ingredient._id}
-            getUnitLabel={resolveUnitLabel}
+            categoryLabel={resolveCategoryLabel(product)}
           />
         ))}
       </div>
@@ -247,14 +227,14 @@ export default function IngredientsPage() {
       <div className="@container/main flex flex-1 flex-col gap-4 px-4 py-6 lg:px-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <h2 className="text-lg font-semibold">Gestión de ingredientes</h2>
+            <h2 className="text-lg font-semibold">Gestión de productos</h2>
             <p className="text-sm text-muted-foreground">
-              Administra los ingredientes, controla stock y define tus insumos clave.
+              Administra tu catálogo, crea productos y controla su composición.
             </p>
           </div>
           <Button onClick={handleCreate}>
             <Plus className="mr-2 size-4" />
-            Crear ingrediente
+            Crear producto
           </Button>
         </div>
 
@@ -277,9 +257,29 @@ export default function IngredientsPage() {
                 onChange={(event) => setSearchTerm(event.target.value)}
               />
             </div>
+            <div className="w-full max-w-xs">
+              <Select
+                value={categoryFilter}
+                onValueChange={(value) => setCategoryFilter(value)}
+                disabled={settingsLoading}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Todas las categorías" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas</SelectItem>
+                  <SelectItem value="uncategorized">Sin categoría</SelectItem>
+                  {categories.map((category) => (
+                    <SelectItem key={category.id} value={category.id}>
+                      {category.label ?? category.id}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="flex flex-wrap items-center gap-3">
               <span className="text-xs text-muted-foreground">
-                {formatResults(filteredIngredients.length, searchTerm)}
+                {formatResults(filteredProducts.length, searchTerm)}
               </span>
               <ToggleGroup
                 type="single"
@@ -329,15 +329,15 @@ export default function IngredientsPage() {
         </div>
       </div>
 
-      <IngredientDialog
+      <ProductDialog
         open={dialogOpen}
         onOpenChange={(value) => {
           setDialogOpen(value);
           if (!value) {
-            setEditingIngredient(null);
+            setEditingProduct(null);
           }
         }}
-        ingredient={editingIngredient}
+        product={editingProduct}
         onSuccess={handleDialogSuccess}
       />
     </div>
