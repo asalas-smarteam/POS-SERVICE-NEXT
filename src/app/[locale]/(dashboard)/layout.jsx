@@ -8,7 +8,7 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { getTenantIdFromClient } from "@/lib/auth/getCurrentTenantId";
 import { useAuthStore } from "../../../store/authStore";
 
-const SAFE_DEFAULT_PATH = "/home";
+const SAFE_DEFAULT_PATH = "/dashboard";
 
 const LOCALE_PATTERN = /^[a-z]{2}(?:-[A-Z]{2})?$/;
 
@@ -29,12 +29,15 @@ const withTenantPath = (path, tenantId, locale) => {
   const hasLocalePrefix = LOCALE_PATTERN.test(parts[0]);
   const sectionIndex = hasLocalePrefix ? 1 : 0;
   const section = parts[sectionIndex] || "";
+  const normalizedSection = section === "home" ? "dashboard" : section;
 
-  if (!["dashboard", "orders", "kitchen", "users", "products", "ingredients", "settings"].includes(section)) {
+  if (!["dashboard", "orders", "kitchen", "users", "products", "ingredients", "settings"].includes(normalizedSection)) {
     return normalized;
   }
 
   const nextParts = [...parts];
+
+  nextParts[sectionIndex] = normalizedSection;
 
   if (locale) {
     if (hasLocalePrefix) {
@@ -61,7 +64,7 @@ const getFirstAllowedPath = (items = [], tenantId = "", locale = "") => {
     const child = getFirstAllowedPath(Array.isArray(item.items) ? item.items : [], tenantId, locale);
     if (child) return child;
   }
-  return SAFE_DEFAULT_PATH;
+  return withTenantPath(SAFE_DEFAULT_PATH, tenantId, locale);
 };
 
 const findNavItemByPath = (items, path, tenantId, locale) => {
