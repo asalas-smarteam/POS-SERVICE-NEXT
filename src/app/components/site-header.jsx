@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { LanguageSwitcher } from "@/components/language-switcher";
 
 const TITLE_TO_KEY = {
   dashboard: "dashboard",
@@ -30,6 +31,7 @@ export function SiteHeader({ title = "Dashboard" }) {
         <Separator orientation="vertical" className="mx-2 data-[orientation=vertical]:h-4" />
         <h1 className="text-base font-medium">{titleKey ? t(titleKey) : title}</h1>
         <div className="ml-auto flex items-center gap-2">
+          <LanguageSwitcher />
           <Button variant="ghost" asChild size="sm" className="hidden sm:flex">
             <a
               href="https://github.com/shadcn-ui/ui/tree/main/apps/v4/app/(examples)/dashboard"
