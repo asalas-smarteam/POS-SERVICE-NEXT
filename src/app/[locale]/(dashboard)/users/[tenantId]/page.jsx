@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Plus } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -26,6 +27,9 @@ const getHeaders = (tenant, token) => {
 };
 
 export default function UsersPage() {
+  const t = useTranslations("Users");
+  const tRoles = useTranslations("Roles");
+  const tStatus = useTranslations("UserStatus");
   const tenant = useAuthStore((state) => state.tenant);
   const token = useAuthStore((state) => state.token);
   const user = useAuthStore((state) => state.user);
@@ -273,12 +277,12 @@ export default function UsersPage() {
     <div className="flex flex-1 flex-col gap-6 bg-white p-4 dark:bg-[#061426] lg:p-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="space-y-1">
-          <h1 className="text-3xl font-black tracking-tight text-slate-900 dark:text-slate-50">User Management</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-300">Manage restaurant staff access and user roles.</p>
+          <h1 className="text-3xl font-black tracking-tight text-slate-900 dark:text-slate-50">{t("title")}</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-300">{t("subtitle")}</p>
         </div>
         <Button className="h-11 gap-2 bg-[#137fec] px-5 text-sm font-bold hover:bg-[#137fec]/90" onClick={() => setCreateOpen(true)}>
           <Plus className="size-4" />
-          Add New User
+          {t("addNewUser")}
         </Button>
       </div>
 
@@ -320,28 +324,28 @@ export default function UsersPage() {
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Create User</DialogTitle>
-            <DialogDescription>Add a new tenant user account.</DialogDescription>
+            <DialogTitle>{t("createUser")}</DialogTitle>
+            <DialogDescription>{t("createUserDescription")}</DialogDescription>
           </DialogHeader>
           <form className="space-y-4" onSubmit={submitCreate}>
-            <div className="space-y-2"><Label htmlFor="create-username">Name</Label><Input id="create-username" value={createForm.username} onChange={(e) => setCreateForm((prev) => ({ ...prev, username: e.target.value }))} /></div>
+            <div className="space-y-2"><Label htmlFor="create-username">{t("name")}</Label><Input id="create-username" value={createForm.username} onChange={(e) => setCreateForm((prev) => ({ ...prev, username: e.target.value }))} /></div>
             <div className="space-y-2">
-              <Label htmlFor="create-email">Email</Label>
+              <Label htmlFor="create-email">{t("email")}</Label>
               <Input id="create-email" value={createForm.email} onChange={(e) => setCreateForm((prev) => ({ ...prev, email: e.target.value }))} />
-              <p className="text-xs text-slate-500 dark:text-slate-300">Tip: You can type &apos;cashier&apos; and it will become &apos;cashier@yourcompany.internal&apos;.</p>
+              <p className="text-xs text-slate-500 dark:text-slate-300">{t("tipAlias")}</p>
             </div>
-            <div className="space-y-2"><Label htmlFor="create-password">Password</Label><Input id="create-password" type="password" value={createForm.password} onChange={(e) => setCreateForm((prev) => ({ ...prev, password: e.target.value }))} /></div>
+            <div className="space-y-2"><Label htmlFor="create-password">{t("password")}</Label><Input id="create-password" type="password" value={createForm.password} onChange={(e) => setCreateForm((prev) => ({ ...prev, password: e.target.value }))} /></div>
             <div className="space-y-2">
-              <Label>Role</Label>
+              <Label>{t("role")}</Label>
               <Select value={createForm.role} onValueChange={(role) => setCreateForm((prev) => ({ ...prev, role }))}>
-                <SelectTrigger><SelectValue placeholder="Select role" /></SelectTrigger>
-                <SelectContent>{ROLES.map((role) => <SelectItem key={role} value={role}>{role}</SelectItem>)}</SelectContent>
+                <SelectTrigger><SelectValue placeholder={t("selectRole")} /></SelectTrigger>
+                <SelectContent>{ROLES.map((role) => <SelectItem key={role} value={role}>{tRoles(role)}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             {createError ? <p className="text-sm text-destructive">{createError}</p> : null}
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
-              <Button type="submit" disabled={busyId === "create"}>{busyId === "create" ? <AppSpinner inline size={16} /> : "Create"}</Button>
+              <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>{t("cancel")}</Button>
+              <Button type="submit" disabled={busyId === "create"}>{busyId === "create" ? <AppSpinner inline size={16} /> : t("create")}</Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -350,31 +354,31 @@ export default function UsersPage() {
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit User</DialogTitle>
-            <DialogDescription>Update role and status for <strong>{editUser?.username}</strong>.</DialogDescription>
+            <DialogTitle>{t("editUser")}</DialogTitle>
+            <DialogDescription>{t("updateRoleStatus", { username: editUser?.username || "" })}</DialogDescription>
           </DialogHeader>
           <form className="space-y-4" onSubmit={submitEdit}>
             <div className="space-y-2">
-              <Label>Role</Label>
+              <Label>{t("role")}</Label>
               <Select value={editForm.role} onValueChange={(role) => setEditForm((prev) => ({ ...prev, role }))}>
-                <SelectTrigger><SelectValue placeholder="Select role" /></SelectTrigger>
-                <SelectContent>{ROLES.map((role) => <SelectItem key={role} value={role}>{role}</SelectItem>)}</SelectContent>
+                <SelectTrigger><SelectValue placeholder={t("selectRole")} /></SelectTrigger>
+                <SelectContent>{ROLES.map((role) => <SelectItem key={role} value={role}>{tRoles(role)}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Status</Label>
+              <Label>{t("status")}</Label>
               <Select value={editForm.isActive ? "active" : "inactive"} onValueChange={(value) => setEditForm((prev) => ({ ...prev, isActive: value === "active" }))}>
-                <SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={t("selectStatus")} /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
+                  <SelectItem value="active">{tStatus("ACTIVE")}</SelectItem>
+                  <SelectItem value="inactive">{tStatus("INACTIVE")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             {editError ? <p className="text-sm text-destructive">{editError}</p> : null}
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
-              <Button type="submit" disabled={!editUser || busyId === editUser?._id}>{busyId === editUser?._id ? <AppSpinner inline size={16} /> : "Save changes"}</Button>
+              <Button type="button" variant="outline" onClick={() => setEditOpen(false)}>{t("cancel")}</Button>
+              <Button type="submit" disabled={!editUser || busyId === editUser?._id}>{busyId === editUser?._id ? <AppSpinner inline size={16} /> : t("saveChanges")}</Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -383,15 +387,15 @@ export default function UsersPage() {
       <Dialog open={resetOpen} onOpenChange={setResetOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Reset Password</DialogTitle>
-            <DialogDescription>Set a new password for <strong>{resetUser?.username}</strong>.</DialogDescription>
+            <DialogTitle>{t("resetPasswordTitle")}</DialogTitle>
+            <DialogDescription>{t("resetPasswordDescription", { username: resetUser?.username || "" })}</DialogDescription>
           </DialogHeader>
           <form className="space-y-4" onSubmit={submitResetPassword}>
-            <div className="space-y-2"><Label htmlFor="reset-password">New Password</Label><Input id="reset-password" type="password" value={resetPassword} onChange={(e) => setResetPassword(e.target.value)} /></div>
+            <div className="space-y-2"><Label htmlFor="reset-password">{t("newPassword")}</Label><Input id="reset-password" type="password" value={resetPassword} onChange={(e) => setResetPassword(e.target.value)} /></div>
             {resetError ? <p className="text-sm text-destructive">{resetError}</p> : null}
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => { setResetOpen(false); setResetPassword(""); setResetUser(null); }}>Cancel</Button>
-              <Button type="submit" disabled={!resetUser || busyId === resetUser?._id}>{busyId === resetUser?._id ? <AppSpinner inline size={16} /> : "Reset"}</Button>
+              <Button type="button" variant="outline" onClick={() => { setResetOpen(false); setResetPassword(""); setResetUser(null); }}>{t("cancel")}</Button>
+              <Button type="submit" disabled={!resetUser || busyId === resetUser?._id}>{busyId === resetUser?._id ? <AppSpinner inline size={16} /> : t("reset")}</Button>
             </DialogFooter>
           </form>
         </DialogContent>

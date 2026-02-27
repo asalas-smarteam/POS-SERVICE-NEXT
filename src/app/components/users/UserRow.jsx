@@ -1,4 +1,7 @@
+"use client";
+
 import { MoreHorizontal, Pencil, Power, Trash2, Undo2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -31,14 +34,17 @@ const toInitials = (value = "") =>
     .map((part) => part[0]?.toUpperCase() || "")
     .join("") || "U";
 
-const formatLastLogin = (value) => {
-  if (!value) return "Never";
+const formatLastLogin = (value, neverLabel) => {
+  if (!value) return neverLabel;
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Never";
+  if (Number.isNaN(date.getTime())) return neverLabel;
   return new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(date);
 };
 
 export function UserRow({ user, index, isBusy, isSelf, onEdit, onDelete, onDeactivate, onResetPassword }) {
+  const t = useTranslations("Users");
+  const tRoles = useTranslations("Roles");
+  const tStatus = useTranslations("UserStatus");
   const roleLabel = user.role || "OTHER";
   const statusKey = user.isActive ? "active" : "inactive";
 
@@ -60,18 +66,18 @@ export function UserRow({ user, index, isBusy, isSelf, onEdit, onDelete, onDeact
 
       <TableCell className="px-6 py-4">
         <Badge className={`rounded-full border text-xs font-medium ${roleClasses[roleLabel] || "bg-slate-100 text-slate-700 border-slate-200"}`} variant="outline">
-          {roleLabel.charAt(0) + roleLabel.slice(1).toLowerCase()}
+          {tRoles.has(roleLabel) ? tRoles(roleLabel) : roleLabel}
         </Badge>
       </TableCell>
 
       <TableCell className="px-6 py-4">
         <span className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold ${statusClasses[statusKey]}`}>
           <span className={`size-1.5 rounded-full ${user.isActive ? "bg-emerald-500" : "bg-slate-400"}`} />
-          {user.isActive ? "Active" : "Inactive"}
+          {user.isActive ? tStatus("ACTIVE") : tStatus("INACTIVE")}
         </span>
       </TableCell>
 
-      <TableCell className="px-6 py-4 text-sm text-slate-500">{formatLastLogin(user.lastLoginAt || user.updatedAt)}</TableCell>
+      <TableCell className="px-6 py-4 text-sm text-slate-500">{formatLastLogin(user.lastLoginAt || user.updatedAt, t("never"))}</TableCell>
 
       <TableCell className="px-6 py-4 text-right">
         <DropdownMenu>
@@ -83,19 +89,19 @@ export function UserRow({ user, index, isBusy, isSelf, onEdit, onDelete, onDeact
           <DropdownMenuContent align="end" className="w-44">
             <DropdownMenuItem disabled={isBusy} onClick={() => onEdit(user)}>
               <Pencil className="mr-2 size-4" />
-              Edit
+              {t("edit")}
             </DropdownMenuItem>
             <DropdownMenuItem disabled={isBusy || isSelf || !user.isActive} onClick={() => onDeactivate(user)}>
               <Power className="mr-2 size-4" />
-              Deactivate
+              {t("deactivate")}
             </DropdownMenuItem>
             <DropdownMenuItem disabled={isBusy} onClick={() => onResetPassword(user)}>
               <Undo2 className="mr-2 size-4" />
-              Reset Password
+              {t("resetPassword")}
             </DropdownMenuItem>
             <DropdownMenuItem className="text-red-600 focus:text-red-600" disabled={isBusy || isSelf || !user.isActive} onClick={() => onDelete(user)}>
               <Trash2 className="mr-2 size-4" />
-              Delete
+              {t("delete")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
