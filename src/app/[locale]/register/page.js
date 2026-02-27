@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import {
   ArrowRight,
   CheckCircle2,
@@ -15,6 +16,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function RegisterPage() {
+  const t = useTranslations("Auth");
   const router = useRouter();
   const params = useParams();
   const locale = String(params?.locale ?? "");
@@ -34,18 +36,17 @@ export default function RegisterPage() {
     setFormData((prev) => ({ ...prev, [field]: event.target.value }));
   };
 
-
   useEffect(() => {
     let isMounted = true;
 
     const loadPlans = async () => {
       try {
         setPlansLoading(true);
-        const response = await fetch('/api/master/plans');
+        const response = await fetch("/api/master/plans");
         const data = await response.json().catch(() => []);
 
         if (!response.ok || !Array.isArray(data)) {
-          throw new Error('Unable to load available plans.');
+          throw new Error("load-plans-error");
         }
 
         if (!isMounted) return;
@@ -53,11 +54,11 @@ export default function RegisterPage() {
         setPlans(data);
         setFormData((prev) => ({
           ...prev,
-          plan: prev.plan || data?.[0]?.slug || '',
+          plan: prev.plan || data?.[0]?.slug || "",
         }));
-      } catch (fetchError) {
+      } catch {
         if (!isMounted) return;
-        setError(fetchError.message || 'Unable to load available plans.');
+        setError(t("plansLoadError"));
       } finally {
         if (isMounted) {
           setPlansLoading(false);
@@ -70,8 +71,7 @@ export default function RegisterPage() {
     return () => {
       isMounted = false;
     };
-  }, []);
-
+  }, [t]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -79,27 +79,27 @@ export default function RegisterPage() {
     setSuccess("");
 
     if (!formData.name) {
-      setError("Company name is required.");
+      setError(t("requiredField"));
       return;
     }
 
     if (!formData.adminEmail || !formData.adminPassword) {
-      setError("Admin email and password are required.");
+      setError(t("requiredField"));
       return;
     }
 
     if (!emailRegex.test(formData.adminEmail)) {
-      setError("Please enter a valid admin email.");
+      setError(t("invalidEmail"));
       return;
     }
 
     if (formData.adminPassword.length < 8) {
-      setError("Password must contain at least 8 characters.");
+      setError(t("passwordMinLength"));
       return;
     }
 
     if (!formData.plan) {
-      setError("Please select a valid plan.");
+      setError(t("requiredField"));
       return;
     }
 
@@ -120,17 +120,17 @@ export default function RegisterPage() {
         body: JSON.stringify(payload),
       });
 
-      const data = await response.json().catch(() => ({}));
+      await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        setError(data.message || data.error || "Unable to register tenant. Please try again.");
+        setError(t("registerFailed"));
         return;
       }
 
-      setSuccess("Tenant registered successfully. Redirecting to login...");
+      setSuccess(t("registerSuccess"));
       router.push(`/${locale}/login`);
     } catch {
-      setError("Unexpected error. Please try again later.");
+      setError(t("registerFailed"));
     } finally {
       setLoading(false);
     }
@@ -144,12 +144,14 @@ export default function RegisterPage() {
             <div className="rounded-lg bg-blue-500 p-2">
               <Store className="size-5" />
             </div>
-            <h2 className="text-2xl font-bold">RestoPOS <span className="text-blue-500">Admin</span></h2>
+            <h2 className="text-2xl font-bold">
+              RestoPOS <span className="text-blue-500">Admin</span>
+            </h2>
           </div>
           <div className="flex items-center gap-3">
             <div className="hidden gap-8 text-sm font-medium text-slate-600 dark:text-slate-300 md:flex">
-              <a className="hover:text-blue-400" href="#">Support</a>
-              <a className="hover:text-blue-400" href="#">Documentation</a>
+              <a className="hover:text-blue-400" href="#">{t("support")}</a>
+              <a className="hover:text-blue-400" href="#">{t("documentation")}</a>
             </div>
             <ThemeToggle />
           </div>
@@ -159,16 +161,10 @@ export default function RegisterPage() {
       <main className="mx-auto flex w-full max-w-6xl items-center justify-center px-6 py-10 lg:py-14">
         <div className="grid w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-[#0c1f30] md:grid-cols-[320px_1fr]">
           <aside className="border-b border-slate-200 bg-slate-50 p-8 dark:border-slate-800 dark:bg-[#10283f] md:border-b-0 md:border-r">
-            <h1 className="mb-4 text-5xl font-black leading-tight">Set Up Your Business</h1>
-            <p className="mb-8 text-lg leading-relaxed text-slate-300">
-              Join thousands of restaurants already optimizing operations with our leading POS platform.
-            </p>
+            <h1 className="mb-4 text-5xl font-black leading-tight">{t("registerTitle")}</h1>
+            <p className="mb-8 text-lg leading-relaxed text-slate-300">{t("registerDescription")}</p>
             <ul className="space-y-4 text-xl">
-              {[
-                "Real-time inventory management",
-                "Custom digital menu and QR",
-                "Advanced sales reporting",
-              ].map((item) => (
+              {[t("feature1"), t("feature2"), t("feature3")].map((item) => (
                 <li className="flex items-start gap-3" key={item}>
                   <CheckCircle2 className="mt-0.5 size-5 text-blue-500" />
                   <span>{item}</span>
@@ -183,31 +179,30 @@ export default function RegisterPage() {
               <div>
                 <div className="mb-6 flex items-center gap-2">
                   <Store className="size-5 text-blue-500" />
-                  <h3 className="text-3xl font-bold">Restaurant Details</h3>
+                  <h3 className="text-3xl font-bold">{t("restaurantDetails")}</h3>
                 </div>
                 <div className="space-y-6">
                   <div className="space-y-2">
-                    <label className="text-lg font-semibold text-slate-700 dark:text-slate-200" htmlFor="name">Restaurant Name</label>
-                    <input id="name" className="w-full rounded-lg border border-slate-300 bg-slate-50 dark:border-slate-700 dark:bg-slate-800 px-4 py-3 text-lg placeholder:text-slate-500 focus:border-blue-500 focus:outline-none" placeholder="e.g. Downtown Bistro" value={formData.name} onChange={handleChange("name")} required />
+                    <label className="text-lg font-semibold text-slate-700 dark:text-slate-200" htmlFor="name">{t("restaurantName")}</label>
+                    <input id="name" className="w-full rounded-lg border border-slate-300 bg-slate-50 dark:border-slate-700 dark:bg-slate-800 px-4 py-3 text-lg placeholder:text-slate-500 focus:border-blue-500 focus:outline-none" placeholder={t("restaurantNamePlaceholder")} value={formData.name} onChange={handleChange("name")} required />
                   </div>
 
-
                   <div className="space-y-2">
-                    <label className="text-lg font-semibold text-slate-700 dark:text-slate-200" htmlFor="plan">Select a Plan</label>
+                    <label className="text-lg font-semibold text-slate-700 dark:text-slate-200" htmlFor="plan">{t("selectPlan")}</label>
                     <select id="plan" value={formData.plan} onChange={handleChange("plan")} className="w-full rounded-lg border border-slate-300 bg-slate-50 dark:border-slate-700 dark:bg-slate-800 px-4 py-3 text-lg focus:border-blue-500 focus:outline-none" disabled={plansLoading || plans.length === 0}>
                       {plansLoading ? (
-                        <option value="">Loading plans...</option>
+                        <option value="">{t("loadingPlans")}</option>
                       ) : null}
                       {!plansLoading && plans.length === 0 ? (
-                        <option value="">No plans available</option>
+                        <option value="">{t("noPlans")}</option>
                       ) : null}
                       {!plansLoading ? plans.map((plan) => (
                         <option key={plan.slug} value={plan.slug}>
-                          {plan.name} - ${plan.priceMonthly}/month
+                          {plan.name} - ${plan.priceMonthly}/{t("perMonth")}
                         </option>
                       )) : null}
                     </select>
-                    {plansLoading ? <p className="text-sm text-slate-400">Loading plans...</p> : null}
+                    {plansLoading ? <p className="text-sm text-slate-400">{t("loadingPlans")}</p> : null}
                   </div>
                 </div>
               </div>
@@ -215,17 +210,17 @@ export default function RegisterPage() {
               <div className="border-t border-slate-700 pt-8">
                 <div className="mb-6 flex items-center gap-2">
                   <Lock className="size-5 text-blue-500" />
-                  <h3 className="text-3xl font-bold">Admin Credentials</h3>
+                  <h3 className="text-3xl font-bold">{t("adminCredentials")}</h3>
                 </div>
                 <div className="grid gap-6 md:grid-cols-2">
                   <div className="space-y-2">
-                    <label className="text-lg font-semibold text-slate-700 dark:text-slate-200" htmlFor="adminEmail">Admin Email</label>
+                    <label className="text-lg font-semibold text-slate-700 dark:text-slate-200" htmlFor="adminEmail">{t("adminEmail")}</label>
                     <div className="relative">
-                      <input id="adminEmail" type="email" className="w-full rounded-lg border border-slate-300 bg-slate-50 dark:border-slate-700 dark:bg-slate-800 py-3 px-4 text-lg placeholder:text-slate-500 focus:border-blue-500 focus:outline-none" placeholder="admin@company.com" value={formData.adminEmail} onChange={handleChange("adminEmail")} required />
+                      <input id="adminEmail" type="email" className="w-full rounded-lg border border-slate-300 bg-slate-50 dark:border-slate-700 dark:bg-slate-800 py-3 px-4 text-lg placeholder:text-slate-500 focus:border-blue-500 focus:outline-none" placeholder={t("adminEmailPlaceholder")} value={formData.adminEmail} onChange={handleChange("adminEmail")} required />
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-lg font-semibold text-slate-700 dark:text-slate-200" htmlFor="adminPassword">Admin Password</label>
+                    <label className="text-lg font-semibold text-slate-700 dark:text-slate-200" htmlFor="adminPassword">{t("adminPassword")}</label>
                     <div className="relative">
                       <KeyRound className="absolute left-3 top-1/2 size-5 -translate-y-1/2 text-slate-400" />
                       <input id="adminPassword" type="password" className="w-full rounded-lg border border-slate-300 bg-slate-50 dark:border-slate-700 dark:bg-slate-800 py-3 pl-10 pr-4 text-lg placeholder:text-slate-500 focus:border-blue-500 focus:outline-none" placeholder="••••••••" value={formData.adminPassword} onChange={handleChange("adminPassword")} required minLength={8} />
@@ -239,12 +234,12 @@ export default function RegisterPage() {
 
               <div className="space-y-3 pt-2">
                 <button type="submit" disabled={loading || plansLoading || !formData.plan} className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-500 py-4 text-lg font-bold text-white shadow-lg shadow-blue-500/20 transition hover:bg-blue-600 disabled:opacity-60">
-                  <span>{loading ? "Registering..." : "Register Restaurant"}</span>
+                  <span>{loading ? t("registerLoading") : t("registerButton")}</span>
                   <ArrowRight className="size-5" />
                 </button>
                 <div className="text-center">
                   <Link className="text-sm font-medium text-slate-400 hover:text-blue-400" href={`/${locale}/login`}>
-                    Back to Login
+                    {t("haveAccount")} {t("loginHere")}
                   </Link>
                 </div>
               </div>
@@ -254,8 +249,8 @@ export default function RegisterPage() {
       </main>
 
       <footer className="border-t border-slate-200 px-6 py-6 text-center text-xs text-slate-500 dark:border-slate-800">
-        © 2024 RestoPOS System. All rights reserved. |
-        <a className="ml-1 underline decoration-blue-500/30 hover:text-blue-400" href="#">Terms of Service</a>
+        {t("footerText")} |
+        <a className="ml-1 underline decoration-blue-500/30 hover:text-blue-400" href="#">{t("termsOfService")}</a>
       </footer>
     </div>
   );
