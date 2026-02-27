@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -15,20 +16,22 @@ export function IngredientSearchSelect({
   searchValue,
   onSearchChange,
   items = [],
-  placeholder = "Selecciona un ingrediente",
-  emptyMessage = "Sin resultados.",
+  placeholder,
+  emptyMessage,
 }) {
+  const t = useTranslations("Ingredients");
+
   return (
     <Select value={value} onValueChange={onValueChange}>
       <SelectTrigger className="w-full">
-        <SelectValue placeholder={placeholder} />
+        <SelectValue placeholder={placeholder ?? t("selectIngredient")} />
       </SelectTrigger>
       <SelectContent>
         <div className="p-2">
           <Input
             value={searchValue}
             onChange={(event) => onSearchChange?.(event.target.value)}
-            placeholder="Buscar ingrediente..."
+            placeholder={t("searchIngredient")}
             onKeyDown={(event) => event.stopPropagation()}
           />
         </div>
@@ -40,7 +43,7 @@ export function IngredientSearchSelect({
           ))
         ) : (
           <div className="px-3 py-2 text-xs text-muted-foreground">
-            {emptyMessage}
+            {emptyMessage ?? t("emptySelect")}
           </div>
         )}
       </SelectContent>
