@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import {
   ArrowRight,
   CheckCircle2,
@@ -16,6 +16,8 @@ const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function RegisterPage() {
   const router = useRouter();
+  const params = useParams();
+  const locale = String(params?.locale ?? "");
   const [formData, setFormData] = useState({
     name: "",
     plan: "",
@@ -126,7 +128,7 @@ export default function RegisterPage() {
       }
 
       setSuccess("Tenant registered successfully. Redirecting to login...");
-      router.push("/login");
+      router.push(`/${locale}/login`);
     } catch {
       setError("Unexpected error. Please try again later.");
     } finally {
@@ -241,7 +243,7 @@ export default function RegisterPage() {
                   <ArrowRight className="size-5" />
                 </button>
                 <div className="text-center">
-                  <Link className="text-sm font-medium text-slate-400 hover:text-blue-400" href="/login">
+                  <Link className="text-sm font-medium text-slate-400 hover:text-blue-400" href={`/${locale}/login`}>
                     Back to Login
                   </Link>
                 </div>
