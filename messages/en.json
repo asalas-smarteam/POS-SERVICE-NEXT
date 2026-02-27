@@ -3,5 +3,24 @@
     "loading": "Loading...",
     "save": "Save",
     "cancel": "Cancel"
+  },
+  "Navigation": {
+    "dashboard": "Dashboard",
+    "orders": "Orders",
+    "products": "Products",
+    "ingredients": "Ingredients",
+    "kitchen": "Kitchen",
+    "users": "Users",
+    "settings": "Settings",
+    "logout": "Logout",
+    "profile": "Profile",
+    "search": "Search",
+    "home": "Home",
+    "quickCreate": "Quick Create",
+    "inbox": "Inbox",
+    "billing": "Billing",
+    "notifications": "Notifications",
+    "noAccessAssigned": "No access assigned.",
+    "github": "GitHub"
   }
 }

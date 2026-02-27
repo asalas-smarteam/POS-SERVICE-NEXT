@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import {
   IconCashRegister,
   IconChartBar,
@@ -27,6 +28,16 @@ import {
 } from "@/components/ui/sidebar"
 
 const MODULE_ROUTES = ["dashboard", "orders", "kitchen", "users", "products", "ingredients", "settings"];
+const NAV_TRANSLATION_KEYS = {
+  dashboard: "dashboard",
+  orders: "orders",
+  products: "products",
+  ingredients: "ingredients",
+  kitchen: "kitchen",
+  users: "users",
+  settings: "settings",
+  home: "home",
+};
 
 const normalizePath = (value = "") => {
   if (!value) return "/";
@@ -62,7 +73,14 @@ const toTenantHref = (href, tenantId) => {
   return `/${moduleName}/${tenantId}`;
 };
 
+const getNavItemLabel = (item) => {
+  const value = String(item?.href ?? item?.url ?? "").toLowerCase();
+  const [, moduleName] = normalizePath(value).split("/");
+  return NAV_TRANSLATION_KEYS[moduleName];
+};
+
 export function NavMain({ items }) {
+  const t = useTranslations("Navigation");
   const pathname = usePathname();
   const tenantId = getTenantIdFromClient(pathname);
 
@@ -84,17 +102,17 @@ export function NavMain({ items }) {
         <SidebarMenu>
           <SidebarMenuItem className="flex items-center gap-2">
             <SidebarMenuButton
-              tooltip="Quick Create"
+              tooltip={t("quickCreate")}
               className="bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground min-w-8 duration-200 ease-linear">
               <IconCirclePlusFilled />
-              <span>Quick Create</span>
+              <span>{t("quickCreate")}</span>
             </SidebarMenuButton>
             <Button
               size="icon"
               className="size-8 group-data-[collapsible=icon]:opacity-0"
               variant="outline">
               <IconMail />
-              <span className="sr-only">Inbox</span>
+              <span className="sr-only">{t("inbox")}</span>
             </Button>
           </SidebarMenuItem>
         </SidebarMenu>
@@ -114,12 +132,15 @@ export function NavMain({ items }) {
               `nav-item-${index}`;
             const href = toTenantHref(item.href ?? item.url ?? "#", tenantId);
             const isActive = normalizePath(pathname) === normalizePath(href);
+            const navKey = getNavItemLabel(item);
+            const translatedLabel = navKey ? t(navKey) : item.title ?? item.label;
+
             return (
               <SidebarMenuItem key={key}>
-                <SidebarMenuButton asChild tooltip={item.title ?? item.label} isActive={isActive}>
+                <SidebarMenuButton asChild tooltip={translatedLabel} isActive={isActive}>
                   <Link href={href}>
                     {ResolvedIcon && <ResolvedIcon />}
-                    <span>{item.title ?? item.label}</span>
+                    <span>{translatedLabel}</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
