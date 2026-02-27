@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useParams, usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import {
   IconCashRegister,
@@ -17,7 +17,6 @@ import {
   IconUsers,
 } from "@tabler/icons-react";
 
-import { getTenantIdFromClient } from "@/lib/auth/getCurrentTenantId";
 import { Button } from "@/components/ui/button"
 import {
   SidebarGroup,
@@ -48,29 +47,20 @@ const normalizePath = (value = "") => {
   return normalized;
 };
 
-const toTenantHref = (href, tenantId) => {
+const toTenantHref = (href, locale, tenantId) => {
   const normalized = normalizePath(href);
-  if (!tenantId) return normalized;
+  if (!locale || !tenantId) return normalized;
 
-  const [_, moduleName] = normalized.split("/");
+  const [, moduleName] = normalized.split("/");
   if (!MODULE_ROUTES.includes(moduleName)) {
     return normalized;
   }
 
-  const [, root, currentTenant, ...rest] = normalized.split("/");
-  if (currentTenant && currentTenant === tenantId) {
-    return normalized;
+  if (moduleName === "dashboard" || moduleName === "home") {
+    return `/${locale}/dashboard/${tenantId}`;
   }
 
-  if (currentTenant && !rest.length) {
-    return `/${root}/${tenantId}`;
-  }
-
-  if (currentTenant && MODULE_ROUTES.includes(currentTenant)) {
-    return `/${root}/${tenantId}/${[currentTenant, ...rest].join("/")}`;
-  }
-
-  return `/${moduleName}/${tenantId}`;
+  return `/${locale}/dashboard/${tenantId}/${moduleName}`;
 };
 
 const getNavItemLabel = (item) => {
@@ -82,7 +72,9 @@ const getNavItemLabel = (item) => {
 export function NavMain({ items }) {
   const t = useTranslations("Navigation");
   const pathname = usePathname();
-  const tenantId = getTenantIdFromClient(pathname);
+  const params = useParams();
+  const locale = String(params?.locale ?? "");
+  const tenantId = String(params?.tenantId ?? "");
 
   const iconMap = {
     home: IconHome,
@@ -130,7 +122,7 @@ export function NavMain({ items }) {
               item.title ??
               item.label ??
               `nav-item-${index}`;
-            const href = toTenantHref(item.href ?? item.url ?? "#", tenantId);
+            const href = toTenantHref(item.href ?? item.url ?? "#", locale, tenantId);
             const isActive = normalizePath(pathname) === normalizePath(href);
             const navKey = getNavItemLabel(item);
             const translatedLabel = navKey ? t(navKey) : item.title ?? item.label;

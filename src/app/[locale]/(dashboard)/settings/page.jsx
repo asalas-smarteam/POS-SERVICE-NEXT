@@ -1,12 +1,13 @@
 import { redirect } from "next/navigation";
 import { getCurrentTenantId } from "@/lib/auth/getCurrentTenantId";
 
-export default async function SettingsRedirectPage() {
+export default async function SettingsRedirectPage({ params }) {
   const tenantId = await getCurrentTenantId();
+  const locale = String(params?.locale ?? "");
 
-  if (!tenantId) {
-    redirect("/login");
+  if (!tenantId || !locale) {
+    redirect(`/${locale || "en"}/login`);
   }
 
-  redirect(`/settings/${tenantId}`);
+  redirect(`/${locale}/dashboard/${tenantId}/settings`);
 }
