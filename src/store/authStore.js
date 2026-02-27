@@ -33,19 +33,11 @@ const normalizeTenantScopedPath = (path = "") => {
 
   const hasLocale = LOCALE_PATTERN.test(parts[0]);
 
-  if (hasLocale && parts[1] === "dashboard") {
-    const section = parts[3] || "dashboard";
-    if (AUTH_ROUTES.includes(section)) {
-      return `/${section}`;
-    }
-  }
+  const routeParts = hasLocale ? parts.slice(1) : parts;
+  const [moduleName, tenantId] = routeParts;
 
-  if (parts.length >= 2) {
-    const [moduleName, tenantId] = parts;
-
-    if (AUTH_ROUTES.includes(moduleName) && tenantId) {
-      return `/${moduleName}`;
-    }
+  if (AUTH_ROUTES.includes(moduleName) && tenantId) {
+    return `/${moduleName}`;
   }
 
   return normalized;
