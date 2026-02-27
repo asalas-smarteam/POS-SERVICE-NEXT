@@ -9,5 +9,5 @@ export default async function KitchenRedirectPage({ params }) {
     redirect(`/${locale || "en"}/login`);
   }
 
-  redirect(`/${locale}/dashboard/${tenantId}/kitchen`);
+  redirect(`/${locale}/kitchen/${tenantId}`);
 }

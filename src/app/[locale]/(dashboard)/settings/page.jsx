@@ -9,5 +9,5 @@ export default async function SettingsRedirectPage({ params }) {
     redirect(`/${locale || "en"}/login`);
   }
 
-  redirect(`/${locale}/dashboard/${tenantId}/settings`);
+  redirect(`/${locale}/settings/${tenantId}`);
 }
