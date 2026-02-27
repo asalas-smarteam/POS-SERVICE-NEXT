@@ -4,23 +4,15 @@ import { useEffect, useMemo, useState } from "react";
 import { LayoutGrid, List, Plus, Search, Table as TableIcon } from "lucide-react";
 import { AppAlert } from "@/components/app-alert";
 import { AppSkeleton } from "@/components/app-skeleton";
-import { ProductCard } from "@/components/products/product-card";
-import { ProductDialog } from "@/components/products/product-dialog";
-import { ProductTable } from "@/components/products/product-table";
-import { Badge } from "@/components/ui/badge";
+import { IngredientCard } from "@/components/ingredients/ingredient-card";
+import { IngredientDialog } from "@/components/ingredients/ingredient-dialog";
+import { IngredientTable } from "@/components/ingredients/ingredient-table";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { useProductsStore } from "../../../../store/productsStore";
-import { useSettingsStore } from "../../../../store/settingsStore";
+import { useIngredientsStore } from "../../../../../store/ingredientsStore";
+import { useSettingsStore } from "../../../../../store/settingsStore";
 
 const viewOptions = [
   { value: "grid", label: "Grid", icon: LayoutGrid },
@@ -30,97 +22,91 @@ const viewOptions = [
 
 const formatResults = (total, term) => {
   if (!term) {
-    return `${total} productos`;
+    return `${total} ingredientes`;
   }
   return `${total} resultados para "${term}"`;
 };
 
-export default function ProductsPage() {
+const formatStock = (value) => {
+  if (value === 0) {
+    return "Sin stock";
+  }
+  return Number(value || 0).toLocaleString("es-CL");
+};
+
+export default function IngredientsPage() {
   const {
-    products,
+    ingredients,
     loading,
     error,
     viewMode,
     searchTerm,
-    categoryFilter,
     page,
     pageSize,
-    fetchProducts,
+    actionLoading,
+    fetchIngredients,
     setViewMode,
     setSearchTerm,
-    setCategoryFilter,
     setPage,
-  } = useProductsStore((state) => ({
-    products: state.products,
+    deleteIngredient,
+  } = useIngredientsStore((state) => ({
+    ingredients: state.ingredients,
     loading: state.loading,
     error: state.error,
     viewMode: state.viewMode,
     searchTerm: state.searchTerm,
-    categoryFilter: state.categoryFilter,
     page: state.page,
     pageSize: state.pageSize,
-    fetchProducts: state.fetchProducts,
+    actionLoading: state.actionLoading,
+    fetchIngredients: state.fetchIngredients,
     setViewMode: state.setViewMode,
     setSearchTerm: state.setSearchTerm,
-    setCategoryFilter: state.setCategoryFilter,
     setPage: state.setPage,
+    deleteIngredient: state.deleteIngredient,
+  }));
+  const { ingredientUnitLookup, fetchSettings } = useSettingsStore((state) => ({
+    ingredientUnitLookup: state.ingredientUnitLookup,
+    fetchSettings: state.fetchSettings,
   }));
 
-  const { categories, categoryLookup, settingsLoading, fetchSettings } =
-    useSettingsStore((state) => ({
-      categories: state.categories,
-      categoryLookup: state.categoryLookup,
-      settingsLoading: state.loading,
-      fetchSettings: state.fetchSettings,
-    }));
-
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingProduct, setEditingProduct] = useState(null);
+  const [editingIngredient, setEditingIngredient] = useState(null);
   const [actionAlert, setActionAlert] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
 
   useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
+    fetchIngredients();
+  }, [fetchIngredients]);
 
   useEffect(() => {
     fetchSettings();
   }, [fetchSettings]);
 
-  const resolveCategoryLabel = (product) => {
-    if (!product?.categoryId) {
-      return "Sin categoría";
+  const resolveUnitLabel = (unitId) => {
+    if (!unitId) {
+      return "-";
     }
-    return categoryLookup[product.categoryId] ?? product.categoryId;
+    return ingredientUnitLookup[unitId] ?? unitId;
   };
 
-  const filteredProducts = useMemo(() => {
-    const list = Array.isArray(products) ? products : [];
+  const filteredIngredients = useMemo(() => {
+    const list = Array.isArray(ingredients) ? ingredients : [];
     const term = searchTerm.trim().toLowerCase();
-    return list.filter((product) => {
-      const matchesSearch = term
-        ? product.name?.toLowerCase().includes(term)
-        : true;
-      if (!matchesSearch) {
-        return false;
-      }
-      if (categoryFilter === "all") {
-        return true;
-      }
-      if (categoryFilter === "uncategorized") {
-        return !product.categoryId;
-      }
-      return product.categoryId === categoryFilter;
-    });
-  }, [products, searchTerm, categoryFilter]);
+    if (!term) {
+      return list;
+    }
+    return list.filter((ingredient) =>
+      ingredient.name?.toLowerCase().includes(term)
+    );
+  }, [ingredients, searchTerm]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredProducts.length / pageSize));
-
+  const totalPages = Math.max(1, Math.ceil(filteredIngredients.length / pageSize));
   const currentPage = Math.min(page, totalPages);
 
-  const paginatedProducts = useMemo(() => {
+  const paginatedIngredients = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
-    return filteredProducts.slice(start, start + pageSize);
-  }, [filteredProducts, currentPage, pageSize]);
+    return filteredIngredients.slice(start, start + pageSize);
+  }, [filteredIngredients, currentPage, pageSize]);
 
   useEffect(() => {
     if (page !== currentPage) {
@@ -129,12 +115,12 @@ export default function ProductsPage() {
   }, [currentPage, page, setPage]);
 
   const handleCreate = () => {
-    setEditingProduct(null);
+    setEditingIngredient(null);
     setDialogOpen(true);
   };
 
-  const handleEdit = (product) => {
-    setEditingProduct(product);
+  const handleEdit = (ingredient) => {
+    setEditingIngredient(ingredient);
     setDialogOpen(true);
   };
 
@@ -143,6 +129,29 @@ export default function ProductsPage() {
       type: "success",
       message: "Lista actualizada correctamente.",
     });
+  };
+
+  const handleDelete = async (ingredient) => {
+    if (!ingredient?._id) {
+      return;
+    }
+    const confirmed = window.confirm(
+      `¿Seguro que deseas eliminar "${ingredient.name}"?`
+    );
+    if (!confirmed) {
+      return;
+    }
+    setDeletingId(ingredient._id);
+    const result = await deleteIngredient(ingredient._id);
+    if (result?.success) {
+      setActionAlert({ type: "success", message: "Ingrediente eliminado." });
+    } else {
+      setActionAlert({
+        type: "error",
+        message: result?.message || "No se pudo eliminar el ingrediente.",
+      });
+    }
+    setDeletingId(null);
   };
 
   const renderContent = () => {
@@ -154,14 +163,14 @@ export default function ProductsPage() {
       return <AppAlert type="error" message={error} />;
     }
 
-    if (filteredProducts.length === 0) {
+    if (filteredIngredients.length === 0) {
       return (
         <AppAlert
           type="info"
           message={
             searchTerm
-              ? "No encontramos productos con ese nombre."
-              : "Aún no hay productos registrados."
+              ? "No encontramos ingredientes con ese nombre."
+              : "Aún no hay ingredientes registrados."
           }
         />
       );
@@ -169,10 +178,12 @@ export default function ProductsPage() {
 
     if (viewMode === "table") {
       return (
-        <ProductTable
-          products={paginatedProducts}
+        <IngredientTable
+          ingredients={paginatedIngredients}
           onEdit={handleEdit}
-          getCategoryLabel={resolveCategoryLabel}
+          onDelete={handleDelete}
+          deletingId={deletingId}
+          getUnitLabel={resolveUnitLabel}
         />
       );
     }
@@ -180,42 +191,51 @@ export default function ProductsPage() {
     if (viewMode === "list") {
       return (
         <div className="space-y-3">
-          {paginatedProducts.map((product) => (
-            <Card key={product._id ?? product.name}>
-              <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <p className="text-sm font-semibold">{product.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {product.type === "COMPOSED" ? "Compuesto" : "Simple"} · {product.ingredients?.length ?? 0} ingredientes
-                  </p>
-                </div>
-                <Badge variant="secondary">{resolveCategoryLabel(product)}</Badge>
-                <div className="flex items-center gap-3">
-                  <span className="text-sm font-medium">
-                    {Number(product.price || 0).toLocaleString("es-CL", {
-                      style: "currency",
-                      currency: "CLP",
-                    })}
-                  </span>
-                  <Button variant="outline" size="sm" onClick={() => handleEdit(product)}>
-                    Editar
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+          {paginatedIngredients.map((ingredient) => {
+            const unitLabel = resolveUnitLabel(ingredient?.unit);
+            return (
+              <Card key={ingredient._id ?? ingredient.name}>
+                <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm font-semibold">{ingredient.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {unitLabel} · Stock {formatStock(ingredient.stock)}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <span className="text-sm font-medium">
+                      Stock mínimo {formatStock(ingredient.minStock)}
+                    </span>
+                    <Button variant="outline" size="sm" onClick={() => handleEdit(ingredient)}>
+                      Editar
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => handleDelete(ingredient)}
+                      disabled={actionLoading && deletingId === ingredient._id}
+                    >
+                      Eliminar
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       );
     }
 
     return (
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {paginatedProducts.map((product) => (
-          <ProductCard
-            key={product._id ?? product.name}
-            product={product}
+        {paginatedIngredients.map((ingredient) => (
+          <IngredientCard
+            key={ingredient._id ?? ingredient.name}
+            ingredient={ingredient}
             onEdit={handleEdit}
-            categoryLabel={resolveCategoryLabel(product)}
+            onDelete={handleDelete}
+            deleting={actionLoading && deletingId === ingredient._id}
+            getUnitLabel={resolveUnitLabel}
           />
         ))}
       </div>
@@ -227,14 +247,14 @@ export default function ProductsPage() {
       <div className="@container/main flex flex-1 flex-col gap-4 px-4 py-6 lg:px-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <h2 className="text-lg font-semibold">Gestión de productos</h2>
+            <h2 className="text-lg font-semibold">Gestión de ingredientes</h2>
             <p className="text-sm text-muted-foreground">
-              Administra tu catálogo, crea productos y controla su composición.
+              Administra los ingredientes, controla stock y define tus insumos clave.
             </p>
           </div>
           <Button onClick={handleCreate}>
             <Plus className="mr-2 size-4" />
-            Crear producto
+            Crear ingrediente
           </Button>
         </div>
 
@@ -257,29 +277,9 @@ export default function ProductsPage() {
                 onChange={(event) => setSearchTerm(event.target.value)}
               />
             </div>
-            <div className="w-full max-w-xs">
-              <Select
-                value={categoryFilter}
-                onValueChange={(value) => setCategoryFilter(value)}
-                disabled={settingsLoading}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Todas las categorías" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas</SelectItem>
-                  <SelectItem value="uncategorized">Sin categoría</SelectItem>
-                  {categories.map((category) => (
-                    <SelectItem key={category.id} value={category.id}>
-                      {category.label ?? category.id}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
             <div className="flex flex-wrap items-center gap-3">
               <span className="text-xs text-muted-foreground">
-                {formatResults(filteredProducts.length, searchTerm)}
+                {formatResults(filteredIngredients.length, searchTerm)}
               </span>
               <ToggleGroup
                 type="single"
@@ -329,15 +329,15 @@ export default function ProductsPage() {
         </div>
       </div>
 
-      <ProductDialog
+      <IngredientDialog
         open={dialogOpen}
         onOpenChange={(value) => {
           setDialogOpen(value);
           if (!value) {
-            setEditingProduct(null);
+            setEditingIngredient(null);
           }
         }}
-        product={editingProduct}
+        ingredient={editingIngredient}
         onSuccess={handleDialogSuccess}
       />
     </div>

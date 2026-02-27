@@ -1,5 +1,12 @@
+import createMiddleware from 'next-intl/middleware';
 import { NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/auth/jwt';
+import { defaultLocale, locales } from './i18n';
+
+const intlMiddleware = createMiddleware({
+  locales,
+  defaultLocale,
+});
 
 const ROUTE_PERMISSIONS = {
   ADMIN: ['dashboard', 'orders', 'kitchen', 'users', 'settings'],
@@ -15,38 +22,49 @@ const DEFAULT_ROLE_ROUTE = {
 
 function getPathContext(pathname) {
   const segments = pathname.split('/').filter(Boolean);
-  const section = segments[0] || '';
-  const tenantId = segments[1] || '';
-  return { section, tenantId };
+  const hasLocale = locales.includes(segments[0]);
+  const locale = hasLocale ? segments[0] : defaultLocale;
+  const section = hasLocale ? segments[1] || '' : segments[0] || '';
+  const tenantId = hasLocale ? segments[2] || '' : segments[1] || '';
+
+  return { locale, section, tenantId };
 }
 
-function buildRoleRedirectUrl(role, tenantId, requestUrl) {
+function buildRoleRedirectUrl(role, tenantId, locale, requestUrl) {
   const fallbackSection = DEFAULT_ROLE_ROUTE[role] || 'login';
-  const path = tenantId ? `/${fallbackSection}/${tenantId}` : `/${fallbackSection}`;
+  const path = tenantId
+    ? `/${locale}/${fallbackSection}/${tenantId}`
+    : `/${locale}/${fallbackSection}`;
   return new URL(path, requestUrl);
 }
 
-function unauthorizedResponse(requestUrl) {
-  return NextResponse.redirect(new URL('/login', requestUrl));
+function unauthorizedResponse(requestUrl, locale) {
+  return NextResponse.redirect(new URL(`/${locale}/login`, requestUrl));
 }
 
 export function middleware(request) {
-  const token = request.cookies.get('auth_token')?.value;
+  const intlResponse = intlMiddleware(request);
+  const { locale, section, tenantId: urlTenantId } = getPathContext(request.nextUrl.pathname);
 
+  const protectedSections = new Set(['dashboard', 'orders', 'kitchen', 'users', 'settings']);
+  if (!protectedSections.has(section)) {
+    return intlResponse;
+  }
+
+  const token = request.cookies.get('auth_token')?.value;
   if (!token) {
-    return unauthorizedResponse(request.url);
+    return unauthorizedResponse(request.url, locale);
   }
 
   let decodedToken;
   try {
     decodedToken = verifyToken(token);
   } catch {
-    return unauthorizedResponse(request.url);
+    return unauthorizedResponse(request.url, locale);
   }
 
   const tokenTenantId = String(decodedToken?.tenantId || '');
   const role = String(decodedToken?.role || '').toUpperCase();
-  const { section, tenantId: urlTenantId } = getPathContext(request.nextUrl.pathname);
 
   if (!tokenTenantId || !urlTenantId || urlTenantId !== tokenTenantId) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
@@ -54,18 +72,14 @@ export function middleware(request) {
 
   const allowedSections = ROUTE_PERMISSIONS[role] || [];
   if (!allowedSections.includes(section)) {
-    return NextResponse.redirect(buildRoleRedirectUrl(role, tokenTenantId, request.url));
+    return NextResponse.redirect(
+      buildRoleRedirectUrl(role, tokenTenantId, locale, request.url),
+    );
   }
 
-  return NextResponse.next();
+  return intlResponse;
 }
 
 export const config = {
-  matcher: [
-    '/dashboard/:path*',
-    '/orders/:path*',
-    '/kitchen/:path*',
-    '/users/:path*',
-    '/settings/:path*',
-  ],
+  matcher: ['/((?!api|_next|favicon.ico|.*\\..*).*)'],
 };

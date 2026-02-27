@@ -6,7 +6,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { SiteHeader } from "@/components/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { getTenantIdFromClient } from "@/lib/auth/getCurrentTenantId";
-import { useAuthStore } from "../../store/authStore";
+import { useAuthStore } from "../../../store/authStore";
 
 const SAFE_DEFAULT_PATH = "/home";
 

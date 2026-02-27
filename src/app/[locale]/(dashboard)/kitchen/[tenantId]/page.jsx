@@ -15,7 +15,7 @@ import { AppAlert } from "@/components/app-alert";
 import { AppSpinner } from "@/components/app-spinner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useKitchenStore } from "../../../../store/kitchenStore";
+import { useKitchenStore } from "../../../../../store/kitchenStore";
 import { getKitchenItemDisplayData } from "@/lib/orders/getKitchenItemDisplayData";
 
 const STATUS_COLUMNS = [
