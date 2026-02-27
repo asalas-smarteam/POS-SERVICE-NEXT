@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -11,13 +12,15 @@ import {
 } from "@/components/ui/table";
 
 export function SettingsTable({ settings, onEdit }) {
+  const t = useTranslations("Settings");
+
   return (
     <div className="rounded-md border">
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>description</TableHead>
-            <TableHead className="w-[140px]">acciones</TableHead>
+            <TableHead>{t("descriptionColumn")}</TableHead>
+            <TableHead className="w-[140px]">{t("actions")}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -26,7 +29,7 @@ export function SettingsTable({ settings, onEdit }) {
               <TableCell className="font-medium">{setting.description}</TableCell>
               <TableCell>
                 <Button size="sm" variant="outline" onClick={() => onEdit(setting)}>
-                  Editar
+                  {t("editSetting")}
                 </Button>
               </TableCell>
             </TableRow>

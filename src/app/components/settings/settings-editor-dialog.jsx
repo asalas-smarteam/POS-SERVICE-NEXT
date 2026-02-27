@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { useTranslations } from "next-intl";
 import { AppAlert } from "@/components/app-alert";
 import { AppSpinner } from "@/components/app-spinner";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,7 @@ export function SettingsEditorDialog({
   onEditorChange,
   onSave,
 }) {
+  const t = useTranslations("Settings");
   const settingId = setting?._id;
 
   const canSave = useMemo(() => {
@@ -41,9 +43,9 @@ export function SettingsEditorDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-4xl">
         <DialogHeader>
-          <DialogTitle>Editar {setting?.description}</DialogTitle>
+          <DialogTitle>{t("editSetting")} {setting?.description}</DialogTitle>
           <DialogDescription>
-            Actualiza los valores de esta configuración del tenant.
+            {t("updateTenantValues")}
           </DialogDescription>
         </DialogHeader>
 
@@ -51,7 +53,7 @@ export function SettingsEditorDialog({
 
         <div className="py-2">
           {editorData === null ? (
-            <p className="text-sm text-muted-foreground">Selecciona una configuración.</p>
+            <p className="text-sm text-muted-foreground">{t("selectSetting")}</p>
           ) : (
             <DynamicJsonTableEditor data={editorData} onChange={onEditorChange} />
           )}
@@ -59,16 +61,16 @@ export function SettingsEditorDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
-            Cancelar
+            {t("cancel")}
           </Button>
           <Button onClick={handleSave} disabled={!canSave || saving}>
             {saving ? (
               <span className="inline-flex items-center gap-2">
                 <AppSpinner inline size={16} />
-                Guardando...
+                {t("saving")}
               </span>
             ) : (
-              "Guardar"
+              t("save")
             )}
           </Button>
         </DialogFooter>
