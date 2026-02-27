@@ -75,7 +75,16 @@ export default function LoginPage() {
         tenantId: data.tenantId,
         navMain: data.navMain ?? [],
       });
-      router.push(`/${locale}/dashboard/${data.tenantId}`);
+
+      const normalizedRole = String(data?.user?.role ?? "").toLowerCase();
+      const defaultPath =
+        normalizedRole === "cashier"
+          ? `/${locale}/orders/${data.tenantId}`
+          : normalizedRole === "kitchen"
+            ? `/${locale}/kitchen/${data.tenantId}`
+            : `/${locale}/dashboard/${data.tenantId}`;
+
+      router.push(defaultPath);
     } catch {
       setError(t("invalidCredentials"));
     } finally {

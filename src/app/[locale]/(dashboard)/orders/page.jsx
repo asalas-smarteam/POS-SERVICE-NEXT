@@ -9,5 +9,5 @@ export default async function OrdersRedirectPage({ params }) {
     redirect(`/${locale || "en"}/login`);
   }
 
-  redirect(`/${locale}/dashboard/${tenantId}/orders`);
+  redirect(`/${locale}/orders/${tenantId}`);
 }

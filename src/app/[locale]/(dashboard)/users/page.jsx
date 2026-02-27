@@ -9,5 +9,5 @@ export default async function UsersRedirectPage({ params }) {
     redirect(`/${locale || "en"}/login`);
   }
 
-  redirect(`/${locale}/dashboard/${tenantId}/users`);
+  redirect(`/${locale}/users/${tenantId}`);
 }

@@ -37,7 +37,7 @@ const toDashboardHref = (href, locale, tenantId) => {
     return `/${locale}/dashboard/${tenantId}`;
   }
 
-  return `/${locale}/dashboard/${tenantId}/${section}`;
+  return `/${locale}/${section}/${tenantId}`;
 };
 
 const TITLE_TO_KEY = {

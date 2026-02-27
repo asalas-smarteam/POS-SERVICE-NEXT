@@ -9,5 +9,5 @@ export default async function ProductsRedirectPage({ params }) {
     redirect(`/${locale || "en"}/login`);
   }
 
-  redirect(`/${locale}/dashboard/${tenantId}/products`);
+  redirect(`/${locale}/products/${tenantId}`);
 }

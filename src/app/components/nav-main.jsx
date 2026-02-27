@@ -60,7 +60,7 @@ const toTenantHref = (href, locale, tenantId) => {
     return `/${locale}/dashboard/${tenantId}`;
   }
 
-  return `/${locale}/dashboard/${tenantId}/${moduleName}`;
+  return `/${locale}/${moduleName}/${tenantId}`;
 };
 
 const getNavItemLabel = (item) => {

@@ -15,14 +15,18 @@ function getRoleDefaultPath(role, locale, tenantId) {
     return "/";
   }
 
-  const normalizedRole = String(role ?? "").toUpperCase();
+  const normalizedRole = String(role ?? "").toLowerCase();
 
-  if (normalizedRole === "CASHIER") {
-    return `/${locale}/dashboard/${tenantId}/orders`;
+  if (normalizedRole === "admin") {
+    return `/${locale}/dashboard/${tenantId}`;
   }
 
-  if (normalizedRole === "KITCHEN") {
-    return `/${locale}/dashboard/${tenantId}/kitchen`;
+  if (normalizedRole === "cashier") {
+    return `/${locale}/orders/${tenantId}`;
+  }
+
+  if (normalizedRole === "kitchen") {
+    return `/${locale}/kitchen/${tenantId}`;
   }
 
   return `/${locale}/dashboard/${tenantId}`;
@@ -61,7 +65,7 @@ const withTenantPath = (path, tenantId, locale) => {
     return `/${locale}/dashboard/${tenantId}`;
   }
 
-  return `/${locale}/dashboard/${tenantId}/${normalizedSection}`;
+  return `/${locale}/${normalizedSection}/${tenantId}`;
 };
 
 const getFirstAllowedPath = (items = [], tenantId = "", locale = "", role = "") => {
@@ -147,14 +151,14 @@ export default function DashboardLayout({ children }) {
     }
 
     if (hasTenantMismatch) {
-      router.replace(`/${locale}/dashboard/${storeTenantId}`);
+      router.replace(getRoleDefaultPath(user?.role, locale, storeTenantId));
       return;
     }
 
     if (!hasAccess(normalizedPath) && normalizedPath !== firstAllowedPath) {
       router.replace(firstAllowedPath);
     }
-  }, [firstAllowedPath, hasAccess, hasHydrated, hasSession, hasTenantMismatch, locale, normalizedPath, router, storeTenantId]);
+  }, [firstAllowedPath, hasAccess, hasHydrated, hasSession, hasTenantMismatch, locale, normalizedPath, router, storeTenantId, user?.role]);
 
   if (!hasHydrated) {
     return null;
