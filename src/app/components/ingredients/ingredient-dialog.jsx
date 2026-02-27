@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Boxes, Plus } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,6 +34,7 @@ const emptyForm = {
 };
 
 export function IngredientDialog({ open, onOpenChange, ingredient, onSuccess }) {
+  const t = useTranslations("Ingredients");
   const {
     actionLoading,
     createIngredient,
@@ -112,7 +114,7 @@ export function IngredientDialog({ open, onOpenChange, ingredient, onSuccess }) 
     };
 
     if (!payload.name) {
-      setAlert({ type: "error", message: "Completa el nombre del ingrediente." });
+      setAlert({ type: "error", message: t("completeName") });
       return;
     }
 
@@ -121,13 +123,13 @@ export function IngredientDialog({ open, onOpenChange, ingredient, onSuccess }) 
       : await createIngredient(payload);
 
     if (result?.success) {
-      setAlert({ type: "success", message: "Ingrediente guardado correctamente." });
+      setAlert({ type: "success", message: t("savedSuccessfully") });
       onSuccess?.();
       onOpenChange?.(false);
     } else {
       setAlert({
         type: "error",
-        message: result?.message || "No se pudo guardar el ingrediente.",
+        message: result?.message || t("saveError"),
       });
     }
   };
@@ -138,12 +140,10 @@ export function IngredientDialog({ open, onOpenChange, ingredient, onSuccess }) 
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Boxes className="size-5 text-muted-foreground" />
-            {isEditing ? "Editar ingrediente" : "Crear ingrediente"}
+            {isEditing ? t("editIngredient") : t("createIngredient")}
           </DialogTitle>
           <DialogDescription>
-            {isEditing
-              ? "Actualiza los datos del ingrediente seleccionado."
-              : "Completa la información para registrar un nuevo ingrediente."}
+            {isEditing ? t("editSelectedIngredient") : t("createIngredientDescription")}
           </DialogDescription>
         </DialogHeader>
 
@@ -152,7 +152,7 @@ export function IngredientDialog({ open, onOpenChange, ingredient, onSuccess }) 
         <form className="space-y-4" onSubmit={handleSubmit}>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="ingredient-name">Nombre</Label>
+              <Label htmlFor="ingredient-name">{t("name")}</Label>
               <Input
                 id="ingredient-name"
                 value={form.name}
@@ -166,33 +166,33 @@ export function IngredientDialog({ open, onOpenChange, ingredient, onSuccess }) 
               />
             </div>
             <div className="space-y-2">
-              <Label>Unidad</Label>
-                <Select
-                  value={form.unit}
-                  onValueChange={(value) =>
-                    setForm((current) => ({
-                      ...current,
+              <Label>{t("unit")}</Label>
+              <Select
+                value={form.unit}
+                onValueChange={(value) =>
+                  setForm((current) => ({
+                    ...current,
                     unit: value,
                   }))
                 }
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Selecciona una unidad" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {normalizedUnitOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder={t("selectUnit")} />
+                </SelectTrigger>
+                <SelectContent>
+                  {normalizedUnitOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="ingredient-stock">Stock</Label>
+              <Label htmlFor="ingredient-stock">{t("stock")}</Label>
               <Input
                 id="ingredient-stock"
                 type="number"
@@ -208,7 +208,7 @@ export function IngredientDialog({ open, onOpenChange, ingredient, onSuccess }) 
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="ingredient-min-stock">Stock mínimo</Label>
+              <Label htmlFor="ingredient-min-stock">{t("minStock")}</Label>
               <Input
                 id="ingredient-min-stock"
                 type="number"
@@ -232,18 +232,18 @@ export function IngredientDialog({ open, onOpenChange, ingredient, onSuccess }) 
               onClick={() => onOpenChange?.(false)}
               disabled={actionLoading}
             >
-              Cancelar
+              {t("cancel")}
             </Button>
             <Button type="submit" disabled={actionLoading}>
               {actionLoading ? (
                 <span className="flex items-center gap-2">
                   <AppSpinner size={16} inline />
-                  Guardando...
+                  {t("saving")}
                 </span>
               ) : (
                 <span className="flex items-center gap-2">
                   <Plus className="size-4" />
-                  Guardar
+                  {t("save")}
                 </span>
               )}
             </Button>

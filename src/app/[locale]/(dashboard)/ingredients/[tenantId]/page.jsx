@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { LayoutGrid, List, Plus, Search, Table as TableIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { AppAlert } from "@/components/app-alert";
 import { AppSkeleton } from "@/components/app-skeleton";
 import { IngredientCard } from "@/components/ingredients/ingredient-card";
@@ -14,27 +15,15 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useIngredientsStore } from "../../../../../store/ingredientsStore";
 import { useSettingsStore } from "../../../../../store/settingsStore";
 
-const viewOptions = [
-  { value: "grid", label: "Grid", icon: LayoutGrid },
-  { value: "table", label: "Tabla", icon: TableIcon },
-  { value: "list", label: "Lista", icon: List },
-];
-
-const formatResults = (total, term) => {
-  if (!term) {
-    return `${total} ingredientes`;
-  }
-  return `${total} resultados para "${term}"`;
-};
-
-const formatStock = (value) => {
+const formatStock = (value, t) => {
   if (value === 0) {
-    return "Sin stock";
+    return t("stockOut");
   }
   return Number(value || 0).toLocaleString("es-CL");
 };
 
 export default function IngredientsPage() {
+  const t = useTranslations("Ingredients");
   const {
     ingredients,
     loading,
@@ -73,6 +62,19 @@ export default function IngredientsPage() {
   const [editingIngredient, setEditingIngredient] = useState(null);
   const [actionAlert, setActionAlert] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
+
+  const viewOptions = [
+    { value: "grid", label: t("grid"), icon: LayoutGrid },
+    { value: "table", label: t("table"), icon: TableIcon },
+    { value: "list", label: t("list"), icon: List },
+  ];
+
+  const formatResults = (total, term) => {
+    if (!term) {
+      return t("ingredientsCount", { total });
+    }
+    return t("results", { total, term });
+  };
 
   useEffect(() => {
     fetchIngredients();
@@ -127,7 +129,7 @@ export default function IngredientsPage() {
   const handleDialogSuccess = () => {
     setActionAlert({
       type: "success",
-      message: "Lista actualizada correctamente.",
+      message: t("updatedList"),
     });
   };
 
@@ -136,7 +138,7 @@ export default function IngredientsPage() {
       return;
     }
     const confirmed = window.confirm(
-      `¿Seguro que deseas eliminar "${ingredient.name}"?`
+      t("confirmDeleteNamed", { name: ingredient.name })
     );
     if (!confirmed) {
       return;
@@ -144,11 +146,11 @@ export default function IngredientsPage() {
     setDeletingId(ingredient._id);
     const result = await deleteIngredient(ingredient._id);
     if (result?.success) {
-      setActionAlert({ type: "success", message: "Ingrediente eliminado." });
+      setActionAlert({ type: "success", message: t("deleted") });
     } else {
       setActionAlert({
         type: "error",
-        message: result?.message || "No se pudo eliminar el ingrediente.",
+        message: result?.message || t("deleteError"),
       });
     }
     setDeletingId(null);
@@ -167,11 +169,7 @@ export default function IngredientsPage() {
       return (
         <AppAlert
           type="info"
-          message={
-            searchTerm
-              ? "No encontramos ingredientes con ese nombre."
-              : "Aún no hay ingredientes registrados."
-          }
+          message={searchTerm ? t("noResultsSearch") : t("noIngredientsYet")}
         />
       );
     }
@@ -199,15 +197,15 @@ export default function IngredientsPage() {
                   <div>
                     <p className="text-sm font-semibold">{ingredient.name}</p>
                     <p className="text-xs text-muted-foreground">
-                      {unitLabel} · Stock {formatStock(ingredient.stock)}
+                      {unitLabel} · {t("stock")} {formatStock(ingredient.stock, t)}
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-3">
                     <span className="text-sm font-medium">
-                      Stock mínimo {formatStock(ingredient.minStock)}
+                      {t("minStock")} {formatStock(ingredient.minStock, t)}
                     </span>
                     <Button variant="outline" size="sm" onClick={() => handleEdit(ingredient)}>
-                      Editar
+                      {t("editIngredient")}
                     </Button>
                     <Button
                       variant="destructive"
@@ -215,7 +213,7 @@ export default function IngredientsPage() {
                       onClick={() => handleDelete(ingredient)}
                       disabled={actionLoading && deletingId === ingredient._id}
                     >
-                      Eliminar
+                      {t("deleteIngredient")}
                     </Button>
                   </div>
                 </CardContent>
@@ -247,14 +245,12 @@ export default function IngredientsPage() {
       <div className="@container/main flex flex-1 flex-col gap-4 px-4 py-6 lg:px-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <h2 className="text-lg font-semibold">Gestión de ingredientes</h2>
-            <p className="text-sm text-muted-foreground">
-              Administra los ingredientes, controla stock y define tus insumos clave.
-            </p>
+            <h2 className="text-lg font-semibold">{t("title")}</h2>
+            <p className="text-sm text-muted-foreground">{t("subtitle")}</p>
           </div>
           <Button onClick={handleCreate}>
             <Plus className="mr-2 size-4" />
-            Crear ingrediente
+            {t("createIngredient")}
           </Button>
         </div>
 
@@ -272,7 +268,7 @@ export default function IngredientsPage() {
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 className="pl-9"
-                placeholder="Buscar por nombre..."
+                placeholder={t("searchByName")}
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
               />
@@ -305,7 +301,7 @@ export default function IngredientsPage() {
 
           <div className="flex flex-col items-center justify-between gap-3 border-t pt-4 sm:flex-row">
             <span className="text-xs text-muted-foreground">
-              Página {currentPage} de {totalPages}
+              {t("pageOf", { current: currentPage, total: totalPages })}
             </span>
             <div className="flex items-center gap-2">
               <Button
@@ -314,7 +310,7 @@ export default function IngredientsPage() {
                 onClick={() => setPage(Math.max(1, currentPage - 1))}
                 disabled={currentPage <= 1}
               >
-                Anterior
+                {t("previous")}
               </Button>
               <Button
                 variant="outline"
@@ -322,7 +318,7 @@ export default function IngredientsPage() {
                 onClick={() => setPage(Math.min(totalPages, currentPage + 1))}
                 disabled={currentPage >= totalPages}
               >
-                Siguiente
+                {t("next")}
               </Button>
             </div>
           </div>

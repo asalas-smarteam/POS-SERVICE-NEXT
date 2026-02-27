@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Package, Plus, Trash2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -45,6 +46,8 @@ const normalizeIngredients = (ingredients = []) =>
   });
 
 export function ProductDialog({ open, onOpenChange, product, onSuccess }) {
+  const t = useTranslations("Products");
+  const tType = useTranslations("ProductTypes");
   const {
     ingredients,
     fetchIngredients,
@@ -118,7 +121,6 @@ export function ProductDialog({ open, onOpenChange, product, onSuccess }) {
       });
     }
   }, [open, product, sizes]);
-
 
   useEffect(() => {
     if (!open || isEditing || form.categoryId) {
@@ -212,7 +214,7 @@ export function ProductDialog({ open, onOpenChange, product, onSuccess }) {
     }
 
     if (!payload.name || !payload.price) {
-      setAlert({ type: "error", message: "Completa nombre y precio." });
+      setAlert({ type: "error", message: t("completeNameAndPrice") });
       return;
     }
 
@@ -221,13 +223,13 @@ export function ProductDialog({ open, onOpenChange, product, onSuccess }) {
       : await createProduct(payload);
 
     if (result?.success) {
-      setAlert({ type: "success", message: "Producto guardado correctamente." });
+      setAlert({ type: "success", message: t("savedSuccessfully") });
       onSuccess?.();
       onOpenChange?.(false);
     } else {
       setAlert({
         type: "error",
-        message: result?.message || "No se pudo guardar el producto.",
+        message: result?.message || t("saveError"),
       });
     }
   };
@@ -238,12 +240,10 @@ export function ProductDialog({ open, onOpenChange, product, onSuccess }) {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Package className="size-5 text-muted-foreground" />
-            {isEditing ? "Editar producto" : "Crear producto"}
+            {isEditing ? t("editProduct") : t("createProduct")}
           </DialogTitle>
           <DialogDescription>
-            {isEditing
-              ? "Actualiza los datos del producto seleccionado."
-              : "Completa la información para registrar un nuevo producto."}
+            {isEditing ? t("editSelectedProduct") : t("createProductDescription")}
           </DialogDescription>
         </DialogHeader>
 
@@ -254,7 +254,7 @@ export function ProductDialog({ open, onOpenChange, product, onSuccess }) {
         <form className="space-y-4" onSubmit={handleSubmit}>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="product-name">Nombre</Label>
+              <Label htmlFor="product-name">{t("name")}</Label>
               <Input
                 id="product-name"
                 value={form.name}
@@ -268,7 +268,7 @@ export function ProductDialog({ open, onOpenChange, product, onSuccess }) {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="product-price">Precio</Label>
+              <Label htmlFor="product-price">{t("price")}</Label>
               <Input
                 id="product-price"
                 type="number"
@@ -286,7 +286,7 @@ export function ProductDialog({ open, onOpenChange, product, onSuccess }) {
           </div>
 
           <div className="space-y-2">
-            <Label>Categoría</Label>
+            <Label>{t("category")}</Label>
             {settingsLoading ? (
               <Skeleton className="h-10 w-full" />
             ) : (
@@ -301,7 +301,7 @@ export function ProductDialog({ open, onOpenChange, product, onSuccess }) {
                 disabled={categories.length === 0}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Seleccionar categoría" />
+                  <SelectValue placeholder={t("selectCategory")} />
                 </SelectTrigger>
                 <SelectContent>
                   {categories.map((category) => (
@@ -314,13 +314,13 @@ export function ProductDialog({ open, onOpenChange, product, onSuccess }) {
             )}
             {!settingsLoading && categories.length === 0 ? (
               <p className="text-xs text-muted-foreground">
-                No hay categorías configuradas. Ve a /settings para agregarlas.
+                {t("noCategoriesConfigured")}
               </p>
             ) : null}
           </div>
 
           <div className="space-y-2">
-            <Label>Tipo de producto</Label>
+            <Label>{t("type")}</Label>
             <Select
               value={form.type}
               onValueChange={(value) =>
@@ -332,17 +332,17 @@ export function ProductDialog({ open, onOpenChange, product, onSuccess }) {
               }
             >
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Selecciona el tipo" />
+                <SelectValue placeholder={t("selectType")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="SIMPLE">Simple</SelectItem>
-                <SelectItem value="COMPOSED">Compuesto</SelectItem>
+                <SelectItem value="SIMPLE">{tType("SIMPLE")}</SelectItem>
+                <SelectItem value="COMPOSED">{tType("COMPOSED")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div className="space-y-2">
-            <Label>Size</Label>
+            <Label>{t("size")}</Label>
             {sizesLoading ? (
               <Skeleton className="h-10 w-full" />
             ) : (
@@ -357,7 +357,7 @@ export function ProductDialog({ open, onOpenChange, product, onSuccess }) {
                 disabled={sizes.length === 0}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select size" />
+                  <SelectValue placeholder={t("selectSize")} />
                 </SelectTrigger>
                 <SelectContent>
                   {sizes.map((size) => (
@@ -370,7 +370,7 @@ export function ProductDialog({ open, onOpenChange, product, onSuccess }) {
             )}
             {!sizesLoading && sizes.length === 0 ? (
               <p className="text-xs text-muted-foreground">
-                No product sizes configured.
+                {t("noProductSizesConfigured")}
               </p>
             ) : null}
           </div>
@@ -386,25 +386,25 @@ export function ProductDialog({ open, onOpenChange, product, onSuccess }) {
                 }))
               }
             />
-            <Label htmlFor="product-allows-half">Allow Half and Half</Label>
+            <Label htmlFor="product-allows-half">{t("allowHalfAndHalf")}</Label>
           </div>
 
           {form.type === "COMPOSED" ? (
             <div className="space-y-4 rounded-lg border p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium">Ingredientes</p>
+                  <p className="text-sm font-medium">{t("ingredients")}</p>
                   <p className="text-xs text-muted-foreground">
-                    Agrega ingredientes y define la cantidad necesaria.
+                    {t("ingredientsHelp")}
                   </p>
                 </div>
                 <span className="text-xs text-muted-foreground">
-                  {form.ingredients.length} seleccionados
+                  {t("selected", { count: form.ingredients.length })}
                 </span>
               </div>
 
               <div className="space-y-2">
-                <Label>Agregar ingrediente</Label>
+                <Label>{t("addIngredient")}</Label>
                 <IngredientSearchSelect
                   value={selectValue}
                   onValueChange={(value) => {
@@ -420,7 +420,7 @@ export function ProductDialog({ open, onOpenChange, product, onSuccess }) {
               <div className="space-y-3">
                 {form.ingredients.length === 0 ? (
                   <div className="rounded-md border border-dashed px-4 py-3 text-xs text-muted-foreground">
-                    No hay ingredientes agregados.
+                    {t("noIngredientsAdded")}
                   </div>
                 ) : (
                   form.ingredients.map((ingredient) => (
@@ -439,7 +439,7 @@ export function ProductDialog({ open, onOpenChange, product, onSuccess }) {
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
                         <div className="flex items-center gap-2">
-                          <Label className="text-xs">Cantidad</Label>
+                          <Label className="text-xs">{t("quantity")}</Label>
                           <Input
                             type="number"
                             min="0"
@@ -476,18 +476,18 @@ export function ProductDialog({ open, onOpenChange, product, onSuccess }) {
               onClick={() => onOpenChange?.(false)}
               disabled={actionLoading}
             >
-              Cancelar
+              {t("cancel")}
             </Button>
             <Button type="submit" disabled={actionLoading}>
               {actionLoading ? (
                 <span className="flex items-center gap-2">
                   <AppSpinner size={16} inline />
-                  Guardando...
+                  {t("saving")}
                 </span>
               ) : (
                 <span className="flex items-center gap-2">
                   <Plus className="size-4" />
-                  Guardar
+                  {t("save")}
                 </span>
               )}
             </Button>

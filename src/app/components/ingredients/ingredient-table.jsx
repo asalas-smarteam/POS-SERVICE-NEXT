@@ -1,6 +1,7 @@
 "use client";
 
 import { Pencil, Trash2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -12,9 +13,9 @@ import {
 } from "@/components/ui/table";
 import { AppSpinner } from "@/components/app-spinner";
 
-const formatStock = (value) => {
+const formatStock = (value, t) => {
   if (value === 0) {
-    return "Sin stock";
+    return t("stockOut");
   }
   return Number(value || 0).toLocaleString("es-CL");
 };
@@ -26,15 +27,17 @@ export function IngredientTable({
   deletingId,
   getUnitLabel,
 }) {
+  const t = useTranslations("Ingredients");
+
   return (
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Ingrediente</TableHead>
-          <TableHead>Unidad</TableHead>
-          <TableHead>Stock</TableHead>
-          <TableHead>Stock mínimo</TableHead>
-          <TableHead className="text-right">Acciones</TableHead>
+          <TableHead>{t("name")}</TableHead>
+          <TableHead>{t("unit")}</TableHead>
+          <TableHead>{t("stock")}</TableHead>
+          <TableHead>{t("minStock")}</TableHead>
+          <TableHead className="text-right">{t("actions")}</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -47,13 +50,13 @@ export function IngredientTable({
             <TableRow key={ingredient._id ?? ingredient.name}>
               <TableCell className="font-medium">{ingredient.name}</TableCell>
               <TableCell>{unitLabel}</TableCell>
-              <TableCell>{formatStock(ingredient.stock)}</TableCell>
-              <TableCell>{formatStock(ingredient.minStock)}</TableCell>
+              <TableCell>{formatStock(ingredient.stock, t)}</TableCell>
+              <TableCell>{formatStock(ingredient.minStock, t)}</TableCell>
               <TableCell className="text-right">
                 <div className="flex justify-end gap-2">
                   <Button variant="outline" size="sm" onClick={() => onEdit?.(ingredient)}>
                     <Pencil className="mr-2 size-4" />
-                    Editar
+                    {t("editIngredient")}
                   </Button>
                   <Button
                     variant="destructive"
@@ -64,12 +67,12 @@ export function IngredientTable({
                     {isDeleting ? (
                       <span className="flex items-center gap-2">
                         <AppSpinner size={14} inline />
-                        Eliminando...
+                        {t("deleting")}
                       </span>
                     ) : (
                       <span className="flex items-center gap-2">
                         <Trash2 className="size-4" />
-                        Eliminar
+                        {t("deleteIngredient")}
                       </span>
                     )}
                   </Button>

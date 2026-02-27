@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { LayoutGrid, List, Plus, Search, Table as TableIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { AppAlert } from "@/components/app-alert";
 import { AppSkeleton } from "@/components/app-skeleton";
 import { ProductCard } from "@/components/products/product-card";
@@ -22,20 +23,9 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useProductsStore } from "../../../../../store/productsStore";
 import { useSettingsStore } from "../../../../../store/settingsStore";
 
-const viewOptions = [
-  { value: "grid", label: "Grid", icon: LayoutGrid },
-  { value: "table", label: "Tabla", icon: TableIcon },
-  { value: "list", label: "Lista", icon: List },
-];
-
-const formatResults = (total, term) => {
-  if (!term) {
-    return `${total} productos`;
-  }
-  return `${total} resultados para "${term}"`;
-};
-
 export default function ProductsPage() {
+  const t = useTranslations("Products");
+  const tType = useTranslations("ProductTypes");
   const {
     products,
     loading,
@@ -88,9 +78,22 @@ export default function ProductsPage() {
 
   const resolveCategoryLabel = (product) => {
     if (!product?.categoryId) {
-      return "Sin categoría";
+      return t("uncategorized");
     }
     return categoryLookup[product.categoryId] ?? product.categoryId;
+  };
+
+  const viewOptions = [
+    { value: "grid", label: t("grid"), icon: LayoutGrid },
+    { value: "table", label: t("table"), icon: TableIcon },
+    { value: "list", label: t("list"), icon: List },
+  ];
+
+  const formatResults = (total, term) => {
+    if (!term) {
+      return t("productsCount", { total });
+    }
+    return t("results", { total, term });
   };
 
   const filteredProducts = useMemo(() => {
@@ -141,7 +144,7 @@ export default function ProductsPage() {
   const handleDialogSuccess = () => {
     setActionAlert({
       type: "success",
-      message: "Lista actualizada correctamente.",
+      message: t("updatedList"),
     });
   };
 
@@ -158,11 +161,7 @@ export default function ProductsPage() {
       return (
         <AppAlert
           type="info"
-          message={
-            searchTerm
-              ? "No encontramos productos con ese nombre."
-              : "Aún no hay productos registrados."
-          }
+          message={searchTerm ? t("emptyWithSearch") : t("emptyWithoutProducts")}
         />
       );
     }
@@ -186,7 +185,7 @@ export default function ProductsPage() {
                 <div>
                   <p className="text-sm font-semibold">{product.name}</p>
                   <p className="text-xs text-muted-foreground">
-                    {product.type === "COMPOSED" ? "Compuesto" : "Simple"} · {product.ingredients?.length ?? 0} ingredientes
+                    {tType(product.type)} · {product.ingredients?.length ?? 0} {t("ingredients").toLowerCase()}
                   </p>
                 </div>
                 <Badge variant="secondary">{resolveCategoryLabel(product)}</Badge>
@@ -198,7 +197,7 @@ export default function ProductsPage() {
                     })}
                   </span>
                   <Button variant="outline" size="sm" onClick={() => handleEdit(product)}>
-                    Editar
+                    {t("editProduct")}
                   </Button>
                 </div>
               </CardContent>
@@ -227,14 +226,12 @@ export default function ProductsPage() {
       <div className="@container/main flex flex-1 flex-col gap-4 px-4 py-6 lg:px-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <h2 className="text-lg font-semibold">Gestión de productos</h2>
-            <p className="text-sm text-muted-foreground">
-              Administra tu catálogo, crea productos y controla su composición.
-            </p>
+            <h2 className="text-lg font-semibold">{t("title")}</h2>
+            <p className="text-sm text-muted-foreground">{t("subtitle")}</p>
           </div>
           <Button onClick={handleCreate}>
             <Plus className="mr-2 size-4" />
-            Crear producto
+            {t("createProduct")}
           </Button>
         </div>
 
@@ -252,7 +249,7 @@ export default function ProductsPage() {
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 className="pl-9"
-                placeholder="Buscar por nombre..."
+                placeholder={t("searchByName")}
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
               />
@@ -264,11 +261,11 @@ export default function ProductsPage() {
                 disabled={settingsLoading}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Todas las categorías" />
+                  <SelectValue placeholder={t("allCategories")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todas</SelectItem>
-                  <SelectItem value="uncategorized">Sin categoría</SelectItem>
+                  <SelectItem value="all">{t("all")}</SelectItem>
+                  <SelectItem value="uncategorized">{t("uncategorized")}</SelectItem>
                   {categories.map((category) => (
                     <SelectItem key={category.id} value={category.id}>
                       {category.label ?? category.id}
@@ -305,7 +302,7 @@ export default function ProductsPage() {
 
           <div className="flex flex-col items-center justify-between gap-3 border-t pt-4 sm:flex-row">
             <span className="text-xs text-muted-foreground">
-              Página {currentPage} de {totalPages}
+              {t("pageOf", { current: currentPage, total: totalPages })}
             </span>
             <div className="flex items-center gap-2">
               <Button
@@ -314,7 +311,7 @@ export default function ProductsPage() {
                 onClick={() => setPage(Math.max(1, currentPage - 1))}
                 disabled={currentPage <= 1}
               >
-                Anterior
+                {t("previous")}
               </Button>
               <Button
                 variant="outline"
@@ -322,7 +319,7 @@ export default function ProductsPage() {
                 onClick={() => setPage(Math.min(totalPages, currentPage + 1))}
                 disabled={currentPage >= totalPages}
               >
-                Siguiente
+                {t("next")}
               </Button>
             </div>
           </div>
