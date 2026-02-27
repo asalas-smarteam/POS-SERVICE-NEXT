@@ -8,7 +8,25 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { getTenantIdFromClient } from "@/lib/auth/getCurrentTenantId";
 import { useAuthStore } from "../../../store/authStore";
 
-const SAFE_DEFAULT_PATH = "/dashboard";
+const DASHBOARD_SECTION = "dashboard";
+
+function getRoleDefaultPath(role, locale, tenantId) {
+  if (!locale || !tenantId) {
+    return "/";
+  }
+
+  const normalizedRole = String(role ?? "").toUpperCase();
+
+  if (normalizedRole === "CASHIER") {
+    return `/${locale}/dashboard/${tenantId}/orders`;
+  }
+
+  if (normalizedRole === "KITCHEN") {
+    return `/${locale}/dashboard/${tenantId}/kitchen`;
+  }
+
+  return `/${locale}/dashboard/${tenantId}`;
+}
 
 const LOCALE_PATTERN = /^[a-z]{2}(?:-[A-Z]{2})?$/;
 
@@ -29,42 +47,32 @@ const withTenantPath = (path, tenantId, locale) => {
   const hasLocalePrefix = LOCALE_PATTERN.test(parts[0]);
   const sectionIndex = hasLocalePrefix ? 1 : 0;
   const section = parts[sectionIndex] || "";
-  const normalizedSection = section === "home" ? "dashboard" : section;
+  const normalizedSection = section === "home" ? DASHBOARD_SECTION : section;
 
-  if (!["dashboard", "orders", "kitchen", "users", "products", "ingredients", "settings"].includes(normalizedSection)) {
+  if (![DASHBOARD_SECTION, "orders", "kitchen", "users", "products", "ingredients", "settings"].includes(normalizedSection)) {
     return normalized;
   }
 
-  const nextParts = [...parts];
-
-  nextParts[sectionIndex] = normalizedSection;
-
-  if (locale) {
-    if (hasLocalePrefix) {
-      nextParts[0] = locale;
-    } else {
-      nextParts.unshift(locale);
-    }
+  if (!locale || !tenantId) {
+    return normalized;
   }
 
-  const tenantIndex = hasLocalePrefix || locale ? 2 : 1;
-
-  if (tenantId) {
-    nextParts[tenantIndex] = tenantId;
+  if (normalizedSection === DASHBOARD_SECTION) {
+    return `/${locale}/dashboard/${tenantId}`;
   }
 
-  return `/${nextParts.filter(Boolean).join("/")}`;
+  return `/${locale}/dashboard/${tenantId}/${normalizedSection}`;
 };
 
-const getFirstAllowedPath = (items = [], tenantId = "", locale = "") => {
+const getFirstAllowedPath = (items = [], tenantId = "", locale = "", role = "") => {
   for (const item of items) {
     if (!item) continue;
     const href = item.href ?? item.url;
     if (href) return withTenantPath(href, tenantId, locale);
-    const child = getFirstAllowedPath(Array.isArray(item.items) ? item.items : [], tenantId, locale);
+    const child = getFirstAllowedPath(Array.isArray(item.items) ? item.items : [], tenantId, locale, role);
     if (child) return child;
   }
-  return withTenantPath(SAFE_DEFAULT_PATH, tenantId, locale);
+  return getRoleDefaultPath(role, locale, tenantId);
 };
 
 const findNavItemByPath = (items, path, tenantId, locale) => {
@@ -109,15 +117,15 @@ export default function DashboardLayout({ children }) {
     [navMain]
   );
 
-  const normalizedPath = useMemo(() => normalizePath(pathname || SAFE_DEFAULT_PATH), [pathname]);
+  const normalizedPath = useMemo(() => normalizePath(pathname || "/"), [pathname]);
   const locale = useMemo(() => String(params?.locale ?? ""), [params]);
   const tenantIdFromPath = useMemo(() => getTenantIdFromClient(normalizedPath) ?? "", [normalizedPath]);
   const tenantIdFromParams = useMemo(() => String(params?.tenantId ?? ""), [params]);
   const activeTenantId = tenantIdFromPath || tenantIdFromParams;
 
   const firstAllowedPath = useMemo(
-    () => getFirstAllowedPath(safeNavMain, activeTenantId, locale),
-    [safeNavMain, activeTenantId, locale]
+    () => getFirstAllowedPath(safeNavMain, activeTenantId, locale, user?.role),
+    [safeNavMain, activeTenantId, locale, user?.role]
   );
 
   const headerTitle = useMemo(() => {

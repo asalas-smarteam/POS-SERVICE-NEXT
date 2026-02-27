@@ -1,6 +1,6 @@
 "use client"
 
-import { useRouter } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 import {
   IconCreditCard,
@@ -38,12 +38,14 @@ export function NavUser({
   const t = useTranslations("Navigation")
   const { isMobile } = useSidebar()
   const router = useRouter()
+  const params = useParams()
+  const locale = String(params?.locale ?? "")
   const logout = useAuthStore((state) => state.logout)
 
   const handleLogout = () => {
     document.cookie = "pos-token=; path=/; max-age=0; samesite=lax"
     logout()
-    router.push("/login")
+    router.push(`/${locale}/login`)
   }
 
   return (

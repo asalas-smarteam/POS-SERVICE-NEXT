@@ -1,6 +1,8 @@
 "use client";
 
 import * as React from "react"
+import Link from "next/link";
+import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 
 import {
@@ -10,6 +12,33 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
+
+
+const DASHBOARD_SECTIONS = ["dashboard", "orders", "kitchen", "users", "products", "ingredients", "settings"];
+
+const normalizePath = (value = "") => {
+  if (!value) return "/";
+  const normalized = value.startsWith("/") ? value : `/${value}`;
+  return normalized.length > 1 && normalized.endsWith("/")
+    ? normalized.slice(0, -1)
+    : normalized;
+};
+
+const toDashboardHref = (href, locale, tenantId) => {
+  const normalized = normalizePath(href);
+  if (!locale || !tenantId) return normalized;
+
+  const [, section] = normalized.split("/");
+  if (!DASHBOARD_SECTIONS.includes(section)) {
+    return normalized;
+  }
+
+  if (section === "dashboard" || section === "home") {
+    return `/${locale}/dashboard/${tenantId}`;
+  }
+
+  return `/${locale}/dashboard/${tenantId}/${section}`;
+};
 
 const TITLE_TO_KEY = {
   dashboard: "dashboard",
@@ -29,6 +58,9 @@ export function NavSecondary({
   ...props
 }) {
   const t = useTranslations("Navigation");
+  const params = useParams();
+  const locale = String(params?.locale ?? "");
+  const tenantId = String(params?.tenantId ?? "");
 
   return (
     <SidebarGroup {...props}>
@@ -41,10 +73,10 @@ export function NavSecondary({
             return (
               <SidebarMenuItem key={item.title}>
                 <SidebarMenuButton asChild>
-                  <a href={item.url}>
+                  <Link href={toDashboardHref(item.url, locale, tenantId)}>
                     <item.icon />
                     <span>{label}</span>
-                  </a>
+                  </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             );

@@ -21,9 +21,24 @@ const normalizePath = (path = "") => {
   return normalized.endsWith("/") ? normalized.slice(0, -1) : normalized;
 };
 
+const LOCALE_PATTERN = /^[a-z]{2}(?:-[A-Z]{2})?$/;
+
 const normalizeTenantScopedPath = (path = "") => {
   const normalized = normalizePath(path);
   const parts = normalized.split("/").filter(Boolean);
+
+  if (!parts.length) {
+    return normalized;
+  }
+
+  const hasLocale = LOCALE_PATTERN.test(parts[0]);
+
+  if (hasLocale && parts[1] === "dashboard") {
+    const section = parts[3] || "dashboard";
+    if (AUTH_ROUTES.includes(section)) {
+      return `/${section}`;
+    }
+  }
 
   if (parts.length >= 2) {
     const [moduleName, tenantId] = parts;
