@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import {
   ArrowRight,
   Eye,
@@ -19,6 +19,8 @@ const heroImage =
 
 export default function LoginPage() {
   const router = useRouter();
+  const params = useParams();
+  const locale = String(params?.locale ?? "");
   const loginSuccess = useAuthStore((state) => state.loginSuccess);
   const [formData, setFormData] = useState({
     email: "",
@@ -75,7 +77,7 @@ export default function LoginPage() {
         tenantId: data.tenantId,
         navMain: data.navMain ?? [],
       });
-      router.push(`/dashboard/${data.tenantId}`);
+      router.push(`/${locale}/dashboard/${data.tenantId}`);
     } catch {
       setError("Ocurrió un error inesperado. Intenta más tarde.");
     } finally {
@@ -249,7 +251,7 @@ export default function LoginPage() {
               <div className="mt-6 text-center">
                 <Link
                   className="inline-flex items-center gap-2 font-bold text-[#137fec] transition-colors hover:text-[#137fec]/80"
-                  href="/register"
+                  href={`/${locale}/register`}
                 >
                   <span>Registrar nuevo restaurante</span>
                   <ArrowRight className="size-4" />
