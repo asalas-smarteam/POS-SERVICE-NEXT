@@ -1,6 +1,7 @@
 "use client";
 
 import { Plus, Trash2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,7 +33,7 @@ const parseInputValue = (input, previous) => {
   return input;
 };
 
-function PrimitiveObjectEditor({ data, onChange }) {
+function PrimitiveObjectEditor({ data, onChange, t }) {
   const entries = Object.entries(data ?? {});
 
   return (
@@ -40,8 +41,8 @@ function PrimitiveObjectEditor({ data, onChange }) {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Key</TableHead>
-            <TableHead>Valor</TableHead>
+            <TableHead>{t("key")}</TableHead>
+            <TableHead>{t("value")}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -74,7 +75,7 @@ function PrimitiveObjectEditor({ data, onChange }) {
   );
 }
 
-function ArrayEditor({ data, onChange, title }) {
+function ArrayEditor({ data, onChange, title, t }) {
   const rows = Array.isArray(data) ? data : [];
   const columns = Array.from(
     rows.reduce((acc, row) => {
@@ -116,7 +117,7 @@ function ArrayEditor({ data, onChange, title }) {
         <h4 className="text-sm font-semibold">{title}</h4>
         <Button type="button" size="sm" variant="outline" onClick={addRow}>
           <Plus className="mr-2 size-4" />
-          Agregar fila
+          {t("addRow")}
         </Button>
       </div>
       <div className="rounded-md border">
@@ -126,14 +127,14 @@ function ArrayEditor({ data, onChange, title }) {
               {resolvedColumns.map((column) => (
                 <TableHead key={column}>{column}</TableHead>
               ))}
-              <TableHead className="w-[90px]">Acciones</TableHead>
+              <TableHead className="w-[90px]">{t("actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {rows.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={resolvedColumns.length + 1} className="text-center text-muted-foreground">
-                  No hay filas.
+                  {t("noResults")}
                 </TableCell>
               </TableRow>
             ) : (
@@ -169,7 +170,7 @@ function ArrayEditor({ data, onChange, title }) {
                       size="icon"
                       variant="ghost"
                       onClick={() => removeRow(rowIndex)}
-                      aria-label="Eliminar fila"
+                      aria-label={t("deleteRow")}
                     >
                       <Trash2 className="size-4 text-destructive" />
                     </Button>
@@ -185,8 +186,10 @@ function ArrayEditor({ data, onChange, title }) {
 }
 
 export function DynamicJsonTableEditor({ data, onChange }) {
+  const t = useTranslations("Settings");
+
   if (Array.isArray(data)) {
-    return <ArrayEditor data={data} onChange={onChange} title="Datos" />;
+    return <ArrayEditor data={data} onChange={onChange} title={t("data")} t={t} />;
   }
 
   if (isObject(data)) {
@@ -195,7 +198,7 @@ export function DynamicJsonTableEditor({ data, onChange }) {
     );
 
     if (!hasNestedCollections) {
-      return <PrimitiveObjectEditor data={data} onChange={onChange} />;
+      return <PrimitiveObjectEditor data={data} onChange={onChange} t={t} />;
     }
 
     return (
@@ -204,16 +207,18 @@ export function DynamicJsonTableEditor({ data, onChange }) {
           <div key={sectionKey} className="space-y-2">
             <Label className="text-sm font-semibold capitalize">{sectionKey}</Label>
             {Array.isArray(sectionValue) ? (
-              <ArrayEditor
-                data={sectionValue}
-                onChange={(nextSection) => onChange({ ...data, [sectionKey]: nextSection })}
-                title={`Sección ${sectionKey}`}
-              />
-            ) : isObject(sectionValue) ? (
-              <PrimitiveObjectEditor
-                data={sectionValue}
-                onChange={(nextSection) => onChange({ ...data, [sectionKey]: nextSection })}
-              />
+                <ArrayEditor
+                  data={sectionValue}
+                  onChange={(nextSection) => onChange({ ...data, [sectionKey]: nextSection })}
+                  title={t("section", { name: sectionKey })}
+                  t={t}
+                />
+              ) : isObject(sectionValue) ? (
+                <PrimitiveObjectEditor
+                  data={sectionValue}
+                  onChange={(nextSection) => onChange({ ...data, [sectionKey]: nextSection })}
+                  t={t}
+                />
             ) : (
               <Input
                 value={toInputValue(sectionValue)}
@@ -231,5 +236,5 @@ export function DynamicJsonTableEditor({ data, onChange }) {
     );
   }
 
-  return <p className="text-sm text-muted-foreground">Formato no soportado.</p>;
+  return <p className="text-sm text-muted-foreground">{t("unsupportedFormat")}</p>;
 }

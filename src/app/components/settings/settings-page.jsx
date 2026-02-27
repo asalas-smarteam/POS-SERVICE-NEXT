@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import { AppAlert } from "@/components/app-alert";
 import { AppSkeleton } from "@/components/app-skeleton";
 import { AppSpinner } from "@/components/app-spinner";
@@ -16,9 +17,9 @@ import { useAuthStore } from "../../../store/authStore";
 const cloneData = (value) => JSON.parse(JSON.stringify(value));
 
 const PRICING_STRATEGY_OPTIONS = [
-  { value: "HIGHEST", label: "Charge highest price" },
-  { value: "AVERAGE", label: "Charge average price" },
-  { value: "BASE_PLUS", label: "Charge highest price + extra fee" },
+  { value: "HIGHEST", labelKey: "chargeHighestPrice" },
+  { value: "AVERAGE", labelKey: "chargeAveragePrice" },
+  { value: "BASE_PLUS", labelKey: "chargeHighestPlusFee" },
 ];
 
 const DEFAULT_HALF_AND_HALF_PRICING = {
@@ -47,6 +48,7 @@ const normalizePricingForm = (value) => {
 };
 
 export function SettingsPage() {
+  const t = useTranslations("Settings");
   const [settings, setSettings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -71,12 +73,12 @@ export function SettingsPage() {
 
       const body = await response.json();
       if (!response.ok) {
-        throw new Error(body?.error || "No se pudieron cargar las configuraciones.");
+        throw new Error(body?.error || t("loadError"));
       }
 
       setSettings(Array.isArray(body) ? body : []);
     } catch (fetchError) {
-      setError(fetchError?.message || "No se pudieron cargar las configuraciones.");
+      setError(fetchError?.message || t("loadError"));
     } finally {
       setLoading(false);
     }
@@ -125,18 +127,18 @@ export function SettingsPage() {
 
       const body = await response.json();
       if (!response.ok) {
-        throw new Error(body?.error || "No se pudo guardar la configuración.");
+        throw new Error(body?.error || t("saveError"));
       }
 
-      setDialogAlert({ type: "success", message: "Configuración guardada correctamente." });
-      setGlobalAlert({ type: "success", message: "Cambios aplicados en la configuración." });
+      setDialogAlert({ type: "success", message: t("saved") });
+      setGlobalAlert({ type: "success", message: t("changesApplied") });
       setSelectedSetting(null);
       setEditorData(null);
       await fetchSettings();
     } catch (saveError) {
       setDialogAlert({
         type: "error",
-        message: saveError?.message || "No se pudo guardar la configuración.",
+        message: saveError?.message || t("saveError"),
       });
     } finally {
       setSaving(false);
@@ -145,7 +147,7 @@ export function SettingsPage() {
 
   const handleHalfAndHalfSave = async () => {
     if (!baseSettings?._id) {
-      setGlobalAlert({ type: "error", message: "Settings document is not available for this tenant." });
+      setGlobalAlert({ type: "error", message: t("settingsUnavailable") });
       return;
     }
 
@@ -171,15 +173,15 @@ export function SettingsPage() {
 
       const body = await response.json();
       if (!response.ok) {
-        throw new Error(body?.error || "Unable to save half-and-half pricing settings.");
+        throw new Error(body?.error || t("halfAndHalfSaveError"));
       }
 
-      setGlobalAlert({ type: "success", message: "Half-and-half pricing settings saved." });
+      setGlobalAlert({ type: "success", message: t("halfAndHalfSaved") });
       await fetchSettings();
     } catch (saveError) {
       setGlobalAlert({
         type: "error",
-        message: saveError?.message || "Unable to save half-and-half pricing settings.",
+        message: saveError?.message || t("halfAndHalfSaveError"),
       });
     } finally {
       setPricingSaving(false);
@@ -190,10 +192,8 @@ export function SettingsPage() {
     <div className="flex flex-1 flex-col">
       <div className="@container/main flex flex-1 flex-col gap-4 px-4 py-6 lg:px-6">
         <div>
-          <h2 className="text-lg font-semibold">Configuración</h2>
-          <p className="text-sm text-muted-foreground">
-            Ajusta los parámetros base de tu tenant.
-          </p>
+          <h2 className="text-lg font-semibold">{t("title")}</h2>
+          <p className="text-sm text-muted-foreground">{t("description")}</p>
         </div>
 
         {globalAlert ? (
@@ -205,16 +205,16 @@ export function SettingsPage() {
         ) : error ? (
           <AppAlert type="error" message={error} />
         ) : settings.length === 0 ? (
-          <AppAlert type="info" message="No hay configuraciones registradas." />
+          <AppAlert type="info" message={t("empty")} />
         ) : (
           <>
             <Card>
               <CardHeader>
-                <CardTitle>Half-and-Half Pricing</CardTitle>
+                <CardTitle>{t("pricingTitle")}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="half-and-half-pricing-strategy">Pricing strategy</Label>
+                  <Label htmlFor="half-and-half-pricing-strategy">{t("pricingStrategy")}</Label>
                   <Select
                     value={halfAndHalfPricing.strategy}
                     onValueChange={(value) =>
@@ -225,12 +225,12 @@ export function SettingsPage() {
                     }
                   >
                     <SelectTrigger id="half-and-half-pricing-strategy" className="max-w-md">
-                      <SelectValue placeholder="Select a pricing strategy" />
+                      <SelectValue placeholder={t("selectPricingStrategy")} />
                     </SelectTrigger>
                     <SelectContent>
                       {PRICING_STRATEGY_OPTIONS.map((option) => (
                         <SelectItem key={option.value} value={option.value}>
-                          {option.label}
+                          {t(option.labelKey)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -239,7 +239,7 @@ export function SettingsPage() {
 
                 {halfAndHalfPricing.strategy === "BASE_PLUS" ? (
                   <div className="space-y-2 max-w-md">
-                    <Label htmlFor="half-and-half-pricing-extra-amount">Extra amount</Label>
+                    <Label htmlFor="half-and-half-pricing-extra-amount">{t("extraAmount")}</Label>
                     <Input
                       id="half-and-half-pricing-extra-amount"
                       type="number"
@@ -260,10 +260,10 @@ export function SettingsPage() {
                   {pricingSaving ? (
                     <span className="inline-flex items-center gap-2">
                       <AppSpinner inline size={16} />
-                      Saving...
+                      {t("saving")}
                     </span>
                   ) : (
-                    "Save"
+                    t("save")
                   )}
                 </Button>
               </CardContent>
