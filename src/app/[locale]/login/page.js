@@ -40,7 +40,7 @@ export default function LoginPage() {
   const handleSubmit = async (event) => {
     event.preventDefault();
     setError("");
-
+    
     if (!formData.email || !formData.password) {
       setError("Please enter your email and password.");
       return;
