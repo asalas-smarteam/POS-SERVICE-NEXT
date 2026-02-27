@@ -83,6 +83,7 @@ export async function POST(req) {
         username: user.username,
         email: user.email,
         role: user.role,
+        language: user.language || 'es',
       },
       tenant: {
         tenantId: tenant.tenantId,

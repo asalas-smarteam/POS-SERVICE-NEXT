@@ -77,12 +77,14 @@ export default function LoginPage() {
       });
 
       const normalizedRole = String(data?.user?.role ?? "").toLowerCase();
+      const userLanguage = String(data?.user?.language ?? "").toLowerCase();
+      const targetLocale = userLanguage || locale || "es";
       const defaultPath =
         normalizedRole === "cashier"
-          ? `/${locale}/orders/${data.tenantId}`
+          ? `/${targetLocale}/orders/${data.tenantId}`
           : normalizedRole === "kitchen"
-            ? `/${locale}/kitchen/${data.tenantId}`
-            : `/${locale}/dashboard/${data.tenantId}`;
+            ? `/${targetLocale}/kitchen/${data.tenantId}`
+            : `/${targetLocale}/dashboard/${data.tenantId}`;
 
       router.push(defaultPath);
     } catch {
