@@ -1,6 +1,7 @@
 "use client"
 
 import { useRouter } from "next/navigation"
+import { useTranslations } from "next-intl"
 import {
   IconCreditCard,
   IconDotsVertical,
@@ -34,6 +35,7 @@ import { useAuthStore } from "../../store/authStore"
 export function NavUser({
   user
 }) {
+  const t = useTranslations("Navigation")
   const { isMobile } = useSidebar()
   const router = useRouter()
   const logout = useAuthStore((state) => state.logout)
@@ -88,21 +90,21 @@ export function NavUser({
             <DropdownMenuGroup>
               <DropdownMenuItem>
                 <IconUserCircle />
-                Account
+                {t("profile")}
               </DropdownMenuItem>
               <DropdownMenuItem>
                 <IconCreditCard />
-                Billing
+                {t("settings")}
               </DropdownMenuItem>
               <DropdownMenuItem>
                 <IconNotification />
-                Notifications
+                {t("notifications")}
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout}>
               <IconLogout />
-              Log out
+              {t("logout")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

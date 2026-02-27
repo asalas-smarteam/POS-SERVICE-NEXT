@@ -3,5 +3,24 @@
     "loading": "Cargando...",
     "save": "Guardar",
     "cancel": "Cancelar"
+  },
+  "Navigation": {
+    "dashboard": "Panel",
+    "orders": "Órdenes",
+    "products": "Productos",
+    "ingredients": "Ingredientes",
+    "kitchen": "Cocina",
+    "users": "Usuarios",
+    "settings": "Configuración",
+    "logout": "Cerrar sesión",
+    "profile": "Perfil",
+    "search": "Buscar",
+    "home": "Inicio",
+    "quickCreate": "Creación rápida",
+    "inbox": "Bandeja de entrada",
+    "billing": "Facturación",
+    "notifications": "Notificaciones",
+    "noAccessAssigned": "Sin accesos asignados.",
+    "github": "GitHub"
   }
 }
