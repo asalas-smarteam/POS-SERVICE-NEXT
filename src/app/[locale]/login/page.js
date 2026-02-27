@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import {
   ArrowRight,
   Eye,
@@ -18,6 +19,7 @@ const heroImage =
   "https://lh3.googleusercontent.com/aida-public/AB6AXuA53l-iE5HbCn9_s53LaqVLy5tz849IyFF0w6vlCaym5ZM_tGfpQTVEcpz-PYKKIwZ9VifMn5rU9Wv5mn3HuPet1Iv-99J-vvpqRzVzmnqb5VokP3vPGHBPt-n-TsN4-VpzRxDGgkbsdOKcGtxdMYQziN8KxMErti-yujhlaKTmWj92f48jsGXwwiAAhB9AV_jiEeycqg97e1sno33oxFvHAptPK1vFmgM2yl6VS_uxu1ovd7t7YFVKzpJOjfL_T-0KEtYHjvEx7IAH";
 
 export default function LoginPage() {
+  const t = useTranslations("Auth");
   const router = useRouter();
   const params = useParams();
   const locale = String(params?.locale ?? "");
@@ -40,9 +42,9 @@ export default function LoginPage() {
   const handleSubmit = async (event) => {
     event.preventDefault();
     setError("");
-    
+
     if (!formData.email || !formData.password) {
-      setError("Please enter your email and password.");
+      setError(t("requiredField"));
       return;
     }
 
@@ -62,11 +64,7 @@ export default function LoginPage() {
       const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        setError(
-          data.message ||
-            data.error ||
-            "No pudimos iniciar sesión. Intenta otra vez."
-        );
+        setError(t("invalidCredentials"));
         return;
       }
 
@@ -79,7 +77,7 @@ export default function LoginPage() {
       });
       router.push(`/${locale}/dashboard/${data.tenantId}`);
     } catch {
-      setError("Ocurrió un error inesperado. Intenta más tarde.");
+      setError(t("invalidCredentials"));
     } finally {
       setLoading(false);
     }
@@ -95,7 +93,7 @@ export default function LoginPage() {
           <div className="absolute inset-0 z-0">
             <div className="absolute inset-0 z-10 bg-gradient-to-t from-[#0b1726] via-[#0b1726]/45 to-transparent" />
             <div
-              aria-label="Interior de un restaurante moderno"
+              aria-label={t("restaurantInterior")}
               className="h-full w-full scale-105 bg-cover bg-center bg-no-repeat"
               style={{ backgroundImage: `url(${heroImage})` }}
             />
@@ -112,12 +110,9 @@ export default function LoginPage() {
             </div>
 
             <h1 className="text-5xl leading-tight font-black tracking-tight text-white">
-              La inteligencia detrás de <span className="text-[#137fec]">tu cocina.</span>
+              {t("heroTitle")} <span className="text-[#137fec]">{t("heroTitleAccent")}</span>
             </h1>
-            <p className="text-xl text-slate-300">
-              Optimice sus operaciones, gestione pedidos en tiempo real y aumente la
-              satisfacción de sus clientes con nuestra plataforma líder.
-            </p>
+            <p className="text-xl text-slate-300">{t("heroDescription")}</p>
           </div>
         </section>
 
@@ -134,11 +129,9 @@ export default function LoginPage() {
 
             <div className="text-center lg:text-left">
               <h2 className="text-4xl font-black tracking-tight text-slate-900 dark:text-slate-100">
-                Acceso al Sistema POS
+                {t("loginHeading")}
               </h2>
-              <p className="mt-3 text-lg text-slate-600 dark:text-slate-400">
-                Bienvenido de nuevo. Por favor, ingrese sus credenciales.
-              </p>
+              <p className="mt-3 text-lg text-slate-600 dark:text-slate-400">{t("loginSubheading")}</p>
             </div>
 
             <form className="mt-10 space-y-6" onSubmit={handleSubmit}>
@@ -148,13 +141,13 @@ export default function LoginPage() {
                     className="ml-1 text-sm font-semibold text-slate-700 dark:text-slate-300"
                     htmlFor="email"
                   >
-                    Email
+                    {t("email")}
                   </label>
                   <input
                     className="block w-full rounded-xl border border-slate-200 bg-white px-4 py-4 text-slate-900 placeholder:text-slate-500 outline-none transition-all focus:border-[#137fec] focus:ring-2 focus:ring-[#137fec]/20 dark:border-slate-800 dark:bg-[#0c1f30] dark:text-slate-100"
                     id="email"
                     name="email"
-                    placeholder="you@example.com"
+                    placeholder={t("emailPlaceholder")}
                     required
                     type="email"
                     value={formData.email}
@@ -168,13 +161,13 @@ export default function LoginPage() {
                       className="ml-1 text-sm font-semibold text-slate-700 dark:text-slate-300"
                       htmlFor="password"
                     >
-                      Contraseña
+                      {t("password")}
                     </label>
                     <button
                       className="text-xs font-medium text-[#137fec] hover:underline"
                       type="button"
                     >
-                      ¿Olvidó su contraseña?
+                      {t("forgotPassword")}
                     </button>
                   </div>
                   <div className="group relative">
@@ -193,7 +186,7 @@ export default function LoginPage() {
                     />
                     <button
                       aria-label={
-                        showPassword ? "Ocultar contraseña" : "Mostrar contraseña"
+                        showPassword ? t("hidePassword") : t("showPassword")
                       }
                       className="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-400 transition-colors hover:text-slate-700 dark:hover:text-slate-200"
                       type="button"
@@ -203,7 +196,6 @@ export default function LoginPage() {
                     </button>
                   </div>
                 </div>
-
               </div>
 
               {error ? (
@@ -222,7 +214,7 @@ export default function LoginPage() {
                   onChange={handleChange("remember")}
                 />
                 <label className="text-sm text-slate-600 dark:text-slate-400" htmlFor="remember-me">
-                  Recordar sesión en este equipo
+                  {t("rememberSession")}
                 </label>
               </div>
 
@@ -233,7 +225,7 @@ export default function LoginPage() {
                   disabled={loading}
                   type="submit"
                 >
-                  <span>{loading ? "Ingresando..." : "Iniciar Sesión"}</span>
+                  <span>{loading ? t("loggingIn") : t("loginButton")}</span>
                   <LogIn className="size-5" />
                 </button>
               </div>
@@ -245,7 +237,7 @@ export default function LoginPage() {
                   <div className="w-full border-t border-slate-200 dark:border-slate-800" />
                 </div>
                 <div className="relative flex justify-center text-sm font-medium">
-                  <span className="bg-slate-50 px-4 text-slate-500 dark:bg-[#0c1f30]">¿Nuevo en GastroPOS?</span>
+                  <span className="bg-slate-50 px-4 text-slate-500 dark:bg-[#0c1f30]">{t("noAccount")}</span>
                 </div>
               </div>
               <div className="mt-6 text-center">
@@ -253,7 +245,7 @@ export default function LoginPage() {
                   className="inline-flex items-center gap-2 font-bold text-[#137fec] transition-colors hover:text-[#137fec]/80"
                   href={`/${locale}/register`}
                 >
-                  <span>Registrar nuevo restaurante</span>
+                  <span>{t("createAccount")}</span>
                   <ArrowRight className="size-4" />
                 </Link>
               </div>
@@ -261,14 +253,14 @@ export default function LoginPage() {
 
             <footer className="pt-10 text-center">
               <p className="text-xs text-slate-600 dark:text-slate-400">
-                © 2024 GastroPOS Systems Inc.
+                {t("copyright")}
                 <span className="mx-2">•</span>
                 <button className="hover:text-slate-700 dark:hover:text-slate-300" type="button">
-                  Privacidad
+                  {t("privacy")}
                 </button>
                 <span className="mx-2">•</span>
                 <button className="hover:text-slate-700 dark:hover:text-slate-300" type="button">
-                  Términos
+                  {t("terms")}
                 </button>
               </p>
             </footer>
