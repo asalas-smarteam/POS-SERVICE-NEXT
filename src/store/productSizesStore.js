@@ -1,11 +1,5 @@
 import { create } from "./zustand";
-import { useAuthStore } from "./authStore";
-
-const getTenantHeader = () => {
-  const tenant = useAuthStore.getState().tenant;
-  const tenantSlug = tenant?.slug ?? tenant ?? null;
-  return tenantSlug ? { "x-tenant": tenantSlug } : {};
-};
+import { getTenantHeaders } from "./tenantHeaders";
 
 export const useProductSizesStore = create((set) => ({
   sizes: [],
@@ -16,7 +10,7 @@ export const useProductSizesStore = create((set) => ({
     try {
       const response = await fetch("/api/product-sizes", {
         headers: {
-          ...getTenantHeader(),
+          ...getTenantHeaders(),
         },
       });
       const body = await response.json();

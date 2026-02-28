@@ -12,7 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useAuthStore } from "../../../store/authStore";
+import { getTenantHeaders } from "@/store/tenantHeaders";
 
 const cloneData = (value) => JSON.parse(JSON.stringify(value));
 
@@ -25,12 +25,6 @@ const PRICING_STRATEGY_OPTIONS = [
 const DEFAULT_HALF_AND_HALF_PRICING = {
   strategy: "HIGHEST",
   extraAmount: 0,
-};
-
-const getTenantHeader = () => {
-  const tenant = useAuthStore.getState().tenant;
-  const tenantSlug = tenant?.slug ?? tenant ?? null;
-  return tenantSlug ? { "x-tenant": tenantSlug } : {};
 };
 
 const normalizePricingForm = (value) => {
@@ -67,7 +61,7 @@ export function SettingsPage() {
     try {
       const response = await fetch("/api/settings", {
         headers: {
-          ...getTenantHeader(),
+          ...getTenantHeaders(),
         },
       });
 
@@ -120,7 +114,7 @@ export function SettingsPage() {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          ...getTenantHeader(),
+          ...getTenantHeaders(),
         },
         body: JSON.stringify({ data }),
       });
@@ -166,7 +160,7 @@ export function SettingsPage() {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          ...getTenantHeader(),
+          ...getTenantHeaders(),
         },
         body: JSON.stringify({ data }),
       });

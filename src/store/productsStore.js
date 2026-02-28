@@ -1,13 +1,7 @@
 import { create } from "./zustand";
-import { useAuthStore } from "./authStore";
+import { getTenantHeaders } from "./tenantHeaders";
 
 const INITIAL_PAGE_SIZE = 9;
-const getTenantHeader = () => {
-  const tenant = useAuthStore.getState().tenant;
-  const tenantSlug = tenant?.slug ?? tenant ?? null;
-  return tenantSlug ? { "x-tenant": tenantSlug } : {};
-};
-
 export const useProductsStore = create((set, get) => ({
   products: [],
   ingredients: [],
@@ -29,7 +23,7 @@ export const useProductsStore = create((set, get) => ({
     try {
       const response = await fetch("/api/products", {
       headers: {
-        ...getTenantHeader(),
+        ...getTenantHeaders(),
       },
     });
       if (!response.ok) {
@@ -48,7 +42,7 @@ export const useProductsStore = create((set, get) => ({
     try {
       const response = await fetch("/api/ingredients", {
         headers: {
-          ...getTenantHeader(),
+          ...getTenantHeaders(),
         },
       });
       if (!response.ok) {
@@ -66,7 +60,7 @@ export const useProductsStore = create((set, get) => ({
       const response = await fetch("/api/products", {
         method: "POST",
         headers: { "Content-Type": "application/json",
-        ...getTenantHeader(),
+        ...getTenantHeaders(),
       },
         body: JSON.stringify(payload),
       });
@@ -90,7 +84,7 @@ export const useProductsStore = create((set, get) => ({
       const response = await fetch(`/api/products/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json",
-        ...getTenantHeader(),
+        ...getTenantHeaders(),
       },
         body: JSON.stringify(payload),
       });
