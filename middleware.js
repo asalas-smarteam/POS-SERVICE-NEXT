@@ -2,12 +2,13 @@ import createMiddleware from 'next-intl/middleware';
 import { NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/auth/jwt';
 import { defaultLocale, locales } from './i18n';
-import { isPublicRoute } from '@/lib/security/routeDefinitions';
-import { resolveModuleFromPath } from '@/lib/security/resolveModule';
+import { isPublicRoute } from './lib/security/routeDefinitions';
+import { resolveModuleFromPath } from './lib/security/resolveModule';
+
 import {
   canRoleAccessModule,
   getDefaultModuleForRole,
-} from '@/lib/security/rolePermissions';
+} from './lib/security/rolePermissions';
 
 const intlMiddleware = createMiddleware({
   locales,
