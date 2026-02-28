@@ -1,6 +1,6 @@
 import { ProductModel } from '@/models/tenant/Product';
 import { IngredientModel } from '@/models/tenant/Ingredient';
-import { calculateIngredientsToDiscount } from '../../../../lib/inventory/calculateIngredientsToDiscount';
+import { calculateIngredientsToDiscount } from '@/lib/inventory/calculateIngredientsToDiscount';
 
 export async function discountInventory(conn, order) {
   const Product = ProductModel(conn);

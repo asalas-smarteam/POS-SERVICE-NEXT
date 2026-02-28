@@ -14,7 +14,7 @@ import { Separator } from "@/components/ui/separator";
 import { AppSpinner } from "@/components/app-spinner";
 import { IngredientSearchSelect } from "@/components/ingredients/ingredient-search-select";
 import { filterCompatibleHalfProducts } from "@/lib/halfAndHalf";
-import { calculateOrderItemUnitPrice } from "../../../../lib/pricing/halfAndHalfPricing";
+import { calculateOrderItemUnitPrice } from "@/lib/pricing/halfAndHalfPricing";
 import { cn } from "@/lib/utils";
 import { useIngredientsStore } from "../../../store/ingredientsStore";
 import { useProductsStore } from "../../../store/productsStore";
