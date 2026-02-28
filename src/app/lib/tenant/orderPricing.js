@@ -1,6 +1,6 @@
 import { ProductModel } from '@/models/tenant/Product';
 import { TenantSettingModel } from '@/models/tenant/TenantSetting';
-import { calculateOrderItemUnitPrice } from '../../../../lib/pricing/halfAndHalfPricing';
+import { calculateOrderItemUnitPrice } from '@/lib/pricing/halfAndHalfPricing';
 import {
   DEFAULT_HALF_AND_HALF_PRICING,
   normalizeHalfAndHalfPricing,

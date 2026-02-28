@@ -9,7 +9,7 @@ import { SalesHeader } from "@/components/sales/sales-header";
 import { TicketPreviewDialog } from "@/components/sales/ticket-preview-dialog";
 import { generateKitchenTicketPdf } from "@/lib/pdf/ticketJsPdf";
 import { filterCompatibleHalfProducts } from "@/lib/halfAndHalf";
-import { calculateOrderItemUnitPrice } from "../../../../../../lib/pricing/halfAndHalfPricing";
+import { calculateOrderItemUnitPrice } from "@/lib/pricing/halfAndHalfPricing";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
 import { useAuthStore } from "../../../../../store/authStore";

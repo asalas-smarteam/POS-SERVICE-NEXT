@@ -1,5 +1,5 @@
 import { verifyToken } from '../auth/jwt';
-import { canRoleAccessModule } from '../../../../lib/security/rolePermissions';
+import { canRoleAccessModule } from '@/lib/security/rolePermissions';
 
 function unauthorizedError(message = 'Unauthorized') {
   const error = new Error(message);
