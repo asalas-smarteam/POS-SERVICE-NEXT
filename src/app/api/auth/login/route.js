@@ -68,11 +68,13 @@ export async function POST(req) {
 
     const roleNav = await RoleNav.findOne({ role: user.role }).lean();
 
-    const token = signToken({
-      userId: user._id,
-      tenantId: tenant.tenantId,
-      role: user.role,
-    });
+    const signTokenInfo = {
+      userId: String(user._id),
+      tenantId: String(tenant.tenantId),
+      role: String(user.role).toLowerCase(),
+    }
+
+    const token = await signToken(signTokenInfo);
 
     const response = NextResponse.json({
       success: true,

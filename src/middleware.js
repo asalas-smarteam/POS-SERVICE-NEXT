@@ -1,7 +1,7 @@
 import createMiddleware from 'next-intl/middleware';
 import { NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/auth/jwt';
-import { defaultLocale, locales } from './i18n';
+import { defaultLocale, locales } from '../i18n';
 import { isPublicRoute } from '@/lib/security/routeDefinitions';
 import { resolveModuleFromPath } from '@/lib/security/resolveModule';
 
@@ -36,9 +36,10 @@ function redirectToRoleDefaultModule({ requestUrl, locale, role, tenantId }) {
   );
 }
 
-export function middleware(request) {
+export async function middleware(request) {
   const intlResponse = intlMiddleware(request);
   const { pathname } = request.nextUrl;
+  console.log("PATH:" + pathname)
   const locale = getLocaleFromPath(pathname);
 
   if (isPublicRoute(pathname, locales)) {
@@ -46,17 +47,16 @@ export function middleware(request) {
   }
 
   const token = request.cookies.get('auth_token')?.value;
+
   if (!token) {
     return redirectToLogin(request.url, locale);
   }
-
   let decodedToken;
   try {
-    decodedToken = verifyToken(token);
-  } catch {
+    decodedToken = await verifyToken(token);
+  } catch(err) {
     return redirectToLogin(request.url, locale);
   }
-
   const { module: moduleName, tenantId: urlTenantId } = resolveModuleFromPath(pathname, locales);
 
   if (!moduleName) {
