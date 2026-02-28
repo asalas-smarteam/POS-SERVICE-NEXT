@@ -12,7 +12,7 @@ import { filterCompatibleHalfProducts } from "@/lib/halfAndHalf";
 import { calculateOrderItemUnitPrice } from "@/lib/pricing/halfAndHalfPricing";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
-import { getTenantHeaders } from "@/store/tenantHeaders";
+import { getTenantHeaders } from "../../../../../store/tenantHeaders";
 import { useOrderStore } from "../../../../../store/orderStore";
 import { useProductsStore } from "../../../../../store/productsStore";
 import { useSettingsStore } from "../../../../../store/settingsStore";
