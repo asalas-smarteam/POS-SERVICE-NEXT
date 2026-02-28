@@ -3,20 +3,36 @@ import { resolveTenant } from '@/lib/tenant/resolveTenant';
 import { getTenantConnection } from '@/lib/db/connections';
 import { UserModel } from '@/models/tenant/User';
 
-export async function getAuthContext(req) {
+function getTokenFromRequest(req) {
   const authHeader = req.headers.get('authorization');
 
-  if (!authHeader?.startsWith('Bearer ')) {
+  if (authHeader?.startsWith('Bearer ')) {
+    return authHeader.replace('Bearer ', '');
+  }
+
+  return req.cookies.get('auth_token')?.value ?? null;
+}
+
+export async function getAuthContext(req) {
+  const token = getTokenFromRequest(req);
+
+  if (!token) {
     const error = new Error('Unauthorized');
     error.status = 401;
     throw error;
   }
 
-  const token = authHeader.replace('Bearer ', '');
-  const payload = verifyToken(token);
+  let payload;
+  try {
+    payload = await verifyToken(token);
+  } catch {
+    const error = new Error('Unauthorized');
+    error.status = 401;
+    throw error;
+  }
 
   const tenant = await resolveTenant(req);
-  if (payload.tenant !== tenant.slug) {
+  if (String(payload?.tenantId || '') !== String(tenant?.tenantId || '')) {
     const error = new Error('Forbidden');
     error.status = 403;
     throw error;
