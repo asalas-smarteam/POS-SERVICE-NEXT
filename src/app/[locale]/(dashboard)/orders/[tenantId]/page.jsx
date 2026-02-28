@@ -12,16 +12,10 @@ import { filterCompatibleHalfProducts } from "@/lib/halfAndHalf";
 import { calculateOrderItemUnitPrice } from "@/lib/pricing/halfAndHalfPricing";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
-import { useAuthStore } from "../../../../../store/authStore";
+import { getTenantHeaders } from "@/store/tenantHeaders";
 import { useOrderStore } from "../../../../../store/orderStore";
 import { useProductsStore } from "../../../../../store/productsStore";
 import { useSettingsStore } from "../../../../../store/settingsStore";
-
-const getTenantHeader = () => {
-  const tenant = useAuthStore.getState().tenant;
-  const tenantSlug = tenant?.slug ?? tenant ?? null;
-  return tenantSlug ? { "x-tenant": tenantSlug } : {};
-};
 
 const normalizeOrderNumber = (orderId) => {
   if (!orderId) {
@@ -188,7 +182,7 @@ export default function OrdersPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...getTenantHeader(),
+          ...getTenantHeaders(),
         },
         body: JSON.stringify({ customerName }),
       });
@@ -204,7 +198,7 @@ export default function OrdersPage() {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            ...getTenantHeader(),
+            ...getTenantHeaders(),
           },
           body: JSON.stringify(itemPayload),
         });
@@ -217,7 +211,7 @@ export default function OrdersPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...getTenantHeader(),
+          ...getTenantHeaders(),
         },
         body: JSON.stringify({ customerName }),
       });

@@ -1,12 +1,6 @@
 import { create } from "./zustand";
-import { useAuthStore } from "./authStore";
+import { getTenantHeaders } from "./tenantHeaders";
 import { DEFAULT_HALF_AND_HALF_PRICING, normalizeHalfAndHalfPricing } from "@/lib/tenant/halfAndHalfPricingSettings";
-
-const getTenantHeader = () => {
-  const tenant = useAuthStore.getState().tenant;
-  const tenantSlug = tenant?.slug ?? tenant ?? null;
-  return tenantSlug ? { "x-tenant": tenantSlug } : {};
-};
 
 const findCategorySetting = (settings = []) => {
   const normalized = Array.isArray(settings) ? settings : [];
@@ -95,7 +89,7 @@ export const useSettingsStore = create((set) => ({
     try {
       const response = await fetch("/api/settings", {
         headers: {
-          ...getTenantHeader(),
+          ...getTenantHeaders(),
         },
       });
       const body = await response.json();

@@ -13,18 +13,16 @@ import { UsersFilters } from "@/components/users/UsersFilters";
 import { UsersPagination } from "@/components/users/UsersPagination";
 import { UsersStats } from "@/components/users/UsersStats";
 import { UsersTable } from "@/components/users/UsersTable";
-import { useAuthStore } from "../../../../../store/authStore";
+import { getTenantHeaders } from "@/store/tenantHeaders";
+import { useAuthStore } from "@/store/authStore";
 
 const ROLES = ["ADMIN", "KITCHEN", "CASHIER"];
 
-const getHeaders = (tenant, token) => {
-  const tenantSlug = tenant?.slug ?? tenant ?? "";
-  return {
-    "Content-Type": "application/json",
-    ...(tenantSlug ? { "x-tenant": tenantSlug } : {}),
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-};
+const getHeaders = (token) => ({
+  "Content-Type": "application/json",
+  ...getTenantHeaders(),
+  ...(token ? { Authorization: `Bearer ${token}` } : {}),
+});
 
 export default function UsersPage() {
   const t = useTranslations("Users");
@@ -88,7 +86,7 @@ export default function UsersPage() {
       });
 
       const response = await fetch(`/api/users?${query.toString()}`, {
-        headers: getHeaders(tenant, token),
+        headers: getHeaders(token),
         cache: "no-store",
       });
 
@@ -110,7 +108,7 @@ export default function UsersPage() {
     setStatsLoading(true);
     try {
       const response = await fetch("/api/users/stats", {
-        headers: getHeaders(tenant, token),
+        headers: getHeaders(token),
         cache: "no-store",
       });
       const data = await response.json().catch(() => ({}));
@@ -147,7 +145,7 @@ export default function UsersPage() {
       setBusyId("create");
       const response = await fetch("/api/users", {
         method: "POST",
-        headers: getHeaders(tenant, token),
+        headers: getHeaders(token),
         body: JSON.stringify({
           username: createForm.username.trim(),
           email: createForm.email.trim(),
@@ -183,13 +181,13 @@ export default function UsersPage() {
 
       const roleRequest = fetch(`/api/users/${editUser._id}/role`, {
         method: "PATCH",
-        headers: getHeaders(tenant, token),
+        headers: getHeaders(token),
         body: JSON.stringify({ role: editForm.role }),
       });
 
       const statusRequest = fetch(`/api/users/${editUser._id}/status`, {
         method: "PATCH",
-        headers: getHeaders(tenant, token),
+        headers: getHeaders(token),
         body: JSON.stringify({ isActive: editForm.isActive }),
       });
 
@@ -215,7 +213,7 @@ export default function UsersPage() {
       setBusyId(targetUser._id);
       const response = await fetch(`/api/users/${targetUser._id}/status`, {
         method: "PATCH",
-        headers: getHeaders(tenant, token),
+        headers: getHeaders(token),
         body: JSON.stringify({ isActive }),
       });
       const data = await response.json().catch(() => ({}));
@@ -252,7 +250,7 @@ export default function UsersPage() {
       setBusyId(resetUser?._id || "reset");
       const response = await fetch(`/api/users/${resetUser?._id}/reset-password`, {
         method: "PATCH",
-        headers: getHeaders(tenant, token),
+        headers: getHeaders(token),
         body: JSON.stringify({ newPassword: resetPassword }),
       });
       const data = await response.json().catch(() => ({}));

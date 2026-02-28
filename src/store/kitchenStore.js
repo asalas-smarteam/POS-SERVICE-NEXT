@@ -1,11 +1,5 @@
 import { create } from "./zustand";
-import { useAuthStore } from "./authStore";
-
-const getTenantHeader = () => {
-  const tenant = useAuthStore.getState().tenant;
-  const tenantSlug = tenant?.slug ?? tenant ?? null;
-  return tenantSlug ? { "x-tenant": tenantSlug } : {};
-};
+import { getTenantHeaders } from "./tenantHeaders";
 
 const normalizeTicketId = (ticket) => ticket?._id ?? ticket?.id;
 
@@ -37,7 +31,7 @@ export const useKitchenStore = create((set, get) => ({
     try {
       const response = await fetch("/api/kitchen", {
         headers: {
-          ...getTenantHeader(),
+          ...getTenantHeaders(),
         },
       });
       if (!response.ok) {
@@ -69,7 +63,7 @@ export const useKitchenStore = create((set, get) => ({
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
-          ...getTenantHeader(),
+          ...getTenantHeaders(),
         },
         body: JSON.stringify({ status: kitchenStatus }),
       });
