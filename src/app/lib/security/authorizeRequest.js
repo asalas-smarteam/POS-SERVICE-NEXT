@@ -53,7 +53,7 @@ export async function authorizeRequest(request, moduleName) {
 
   let payload;
   try {
-    payload = verifyToken(token);
+    payload = await verifyToken(token);
   } catch (_error) {
     throw unauthorizedError('Unauthorized');
   }

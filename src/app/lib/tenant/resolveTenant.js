@@ -2,14 +2,14 @@ import { connectMasterDB } from '@/lib/db/master';
 import { TenantModel } from '@/models/master/Tenant';
 import { verifyToken } from '@/lib/auth/jwt';
 
-function getTenantIdFromCookie(request) {
+async function getTenantIdFromCookie(request) {
   const token = request.cookies.get('auth_token')?.value;
   if (!token) {
     return null;
   }
 
   try {
-    const payload = verifyToken(token);
+    const payload = await verifyToken(token);
     return payload?.tenantId ? String(payload.tenantId) : null;
   } catch {
     return null;
@@ -17,7 +17,7 @@ function getTenantIdFromCookie(request) {
 }
 
 export async function resolveTenant(request) {
-  const tenantIdFromToken = getTenantIdFromCookie(request);
+  const tenantIdFromToken = await getTenantIdFromCookie(request);
   const tenantIdHeader = request.headers.get('x-tenant-id');
   const legacyTenantSlug = request.headers.get('x-tenant');
 
