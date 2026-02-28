@@ -68,17 +68,6 @@ const withTenantPath = (path, tenantId, locale) => {
   return `/${locale}/${normalizedSection}/${tenantId}`;
 };
 
-const getFirstAllowedPath = (items = [], tenantId = "", locale = "", role = "") => {
-  for (const item of items) {
-    if (!item) continue;
-    const href = item.href ?? item.url;
-    if (href) return withTenantPath(href, tenantId, locale);
-    const child = getFirstAllowedPath(Array.isArray(item.items) ? item.items : [], tenantId, locale, role);
-    if (child) return child;
-  }
-  return getRoleDefaultPath(role, locale, tenantId);
-};
-
 const findNavItemByPath = (items, path, tenantId, locale) => {
   if (!Array.isArray(items)) {
     return null;
@@ -110,7 +99,6 @@ export default function DashboardLayout({ children }) {
   const params = useParams();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const hasHydrated = useAuthStore((state) => state.hasHydrated);
-  const hasAccess = useAuthStore((state) => state.hasAccess);
   const navMain = useAuthStore((state) => state.navMain);
   const token = useAuthStore((state) => state.token);
   const user = useAuthStore((state) => state.user);
@@ -126,11 +114,6 @@ export default function DashboardLayout({ children }) {
   const tenantIdFromPath = useMemo(() => getTenantIdFromClient(normalizedPath) ?? "", [normalizedPath]);
   const tenantIdFromParams = useMemo(() => String(params?.tenantId ?? ""), [params]);
   const activeTenantId = tenantIdFromPath || tenantIdFromParams;
-
-  const firstAllowedPath = useMemo(
-    () => getFirstAllowedPath(safeNavMain, activeTenantId, locale, user?.role),
-    [safeNavMain, activeTenantId, locale, user?.role]
-  );
 
   const headerTitle = useMemo(() => {
     const match = findNavItemByPath(safeNavMain, normalizePath(normalizedPath), activeTenantId, locale);
@@ -155,20 +138,13 @@ export default function DashboardLayout({ children }) {
       return;
     }
 
-    if (!hasAccess(normalizedPath) && normalizedPath !== firstAllowedPath) {
-      router.replace(firstAllowedPath);
-    }
-  }, [firstAllowedPath, hasAccess, hasHydrated, hasSession, hasTenantMismatch, locale, normalizedPath, router, storeTenantId, user?.role]);
+  }, [hasHydrated, hasSession, hasTenantMismatch, locale, router, storeTenantId, user?.role]);
 
   if (!hasHydrated) {
     return null;
   }
 
   if (!hasSession || hasTenantMismatch) {
-    return null;
-  }
-
-  if (!hasAccess(normalizedPath) && normalizedPath !== firstAllowedPath) {
     return null;
   }
 
