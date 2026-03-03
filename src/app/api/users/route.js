@@ -58,7 +58,7 @@ export async function POST(req) {
   try {
     const { User, authUser } = await getAuthContext(req);
     requireAdmin(authUser);
-    const authContext = getJwtAuthContext(req);
+    const authContext = await getJwtAuthContext(req);
 
     if (authContext.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
