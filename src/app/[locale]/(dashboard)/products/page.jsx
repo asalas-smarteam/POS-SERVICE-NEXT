@@ -1,12 +1,13 @@
 import { redirect } from "next/navigation";
 import { getCurrentTenantId } from "@/lib/auth/getCurrentTenantId";
+import { defaultLocale } from "../../../../../i18n";
 
 export default async function ProductsRedirectPage({ params }) {
   const tenantId = await getCurrentTenantId();
   const locale = String(params?.locale ?? "");
 
   if (!tenantId || !locale) {
-    redirect(`/${locale || "en"}/login`);
+    redirect(`/${locale || defaultLocale}/login`);
   }
 
   redirect(`/${locale}/products/${tenantId}`);

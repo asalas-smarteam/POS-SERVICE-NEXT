@@ -10,6 +10,7 @@ import { signToken } from '@/lib/auth/jwt';
 import { setAuthCookie } from '@/lib/auth/cookie';
 import { normalizeEmail } from '@/lib/utils/normalizeEmail';
 import { hashEmail } from '@/lib/utils/hashEmail';
+import { defaultLocale } from '../../../../../i18n';
 
 export async function POST(req) {
   try {
@@ -85,7 +86,7 @@ export async function POST(req) {
         username: user.username,
         email: user.email,
         role: user.role,
-        language: user.language || 'es',
+        language: user.language || defaultLocale,
       },
       tenant: {
         tenantId: tenant.tenantId,
