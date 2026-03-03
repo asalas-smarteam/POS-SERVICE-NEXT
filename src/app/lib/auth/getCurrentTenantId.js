@@ -71,7 +71,7 @@ export async function getCurrentTenantId() {
       return null;
     }
 
-    const payload = verifyToken(token);
+    const payload = await verifyToken(token);
     return payload?.tenantId ? String(payload.tenantId) : null;
   } catch {
     return null;

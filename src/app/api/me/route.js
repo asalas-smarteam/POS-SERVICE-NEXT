@@ -13,12 +13,12 @@ export async function GET(req) {
     }
 
     const token = auth.replace('Bearer ', '');
-    const payload = verifyToken(token);
+    const payload = await verifyToken(token);
 
     return NextResponse.json({
       userId: payload.userId,
       role: payload.role,
-      tenant: payload.tenant,
+      tenantId: payload.tenantId,
     });
 
   } catch (error) {

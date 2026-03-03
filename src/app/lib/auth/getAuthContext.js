@@ -1,6 +1,6 @@
 import { verifyToken } from '@/lib/auth/jwt';
 
-export function getAuthContext(request) {
+export async function getAuthContext(request) {
   const token = request.cookies.get('auth_token')?.value;
 
   if (!token) {
@@ -11,7 +11,7 @@ export function getAuthContext(request) {
 
   let payload;
   try {
-    payload = verifyToken(token);
+    payload = await verifyToken(token);
   } catch {
     const error = new Error('Unauthorized');
     error.status = 401;

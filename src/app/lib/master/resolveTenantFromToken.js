@@ -9,7 +9,7 @@ export async function resolveTenantFromToken(request) {
     throw new Error('auth_token cookie is required');
   }
 
-  const payload = verifyToken(token);
+  const payload = await verifyToken(token);
   const tenantId = payload?.tenantId;
 
   if (!tenantId) {
