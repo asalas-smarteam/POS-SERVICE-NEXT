@@ -1,11 +1,13 @@
 import { NextResponse } from 'next/server';
 import { resolveTenant } from '@/lib/tenant/resolveTenant';
+import { authorizeRequest } from '@/lib/security/authorizeRequest';
 import { getTenantConnection } from '@/lib/db/connections';
 import { OrderModel } from '@/models/tenant/Order';
 
 export async function GET(req) {
   try {
     const tenant = await resolveTenant(req);
+    await authorizeRequest(req, 'kitchen');
     const conn = await getTenantConnection(tenant.dbName);
     const Order = OrderModel(conn);
 

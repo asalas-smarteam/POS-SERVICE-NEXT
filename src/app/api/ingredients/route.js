@@ -1,11 +1,13 @@
 import { NextResponse } from 'next/server';
 import { resolveTenant } from '@/lib/tenant/resolveTenant';
+import { authorizeRequest } from '@/lib/security/authorizeRequest';
 import { getTenantConnection } from '@/lib/db/connections';
 import { IngredientModel } from '@/models/tenant/Ingredient';
 
 export async function POST(req) {
   try {
     const tenant = await resolveTenant(req);
+    await authorizeRequest(req, 'ingredients');
     const conn = await getTenantConnection(tenant.dbName);
     const Ingredient = IngredientModel(conn);
 
@@ -21,6 +23,7 @@ export async function POST(req) {
 export async function GET(req) {
   try {
     const tenant = await resolveTenant(req);
+    await authorizeRequest(req, 'ingredients');
     const conn = await getTenantConnection(tenant.dbName);
     const Ingredient = IngredientModel(conn);
 

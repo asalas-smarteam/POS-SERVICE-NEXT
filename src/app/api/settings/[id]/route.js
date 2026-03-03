@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { resolveTenant } from '@/lib/tenant/resolveTenant';
+import { authorizeRequest } from '@/lib/security/authorizeRequest';
 import { getTenantConnection } from '@/lib/db/connections';
 import { TenantSettingModel } from '@/models/tenant/TenantSetting';
 import {
@@ -19,6 +20,7 @@ export async function PUT(req, { params }) {
     }
 
     const tenant = await resolveTenant(req);
+    await authorizeRequest(req, 'settings');
     const conn = await getTenantConnection(tenant.dbName);
     const TenantSetting = TenantSettingModel(conn);
 
