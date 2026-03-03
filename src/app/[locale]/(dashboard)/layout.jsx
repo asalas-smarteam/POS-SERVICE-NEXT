@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
-import { useParams, usePathname, useRouter } from "next/navigation";
+import { useMemo } from "react";
+import { useParams, usePathname } from "next/navigation";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SiteHeader } from "@/components/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
@@ -9,28 +9,6 @@ import { getTenantIdFromClient } from "@/lib/auth/getCurrentTenantId";
 import { useAuthStore } from "../../../store/authStore";
 
 const DASHBOARD_SECTION = "dashboard";
-
-function getRoleDefaultPath(role, locale, tenantId) {
-  if (!locale || !tenantId) {
-    return "/";
-  }
-
-  const normalizedRole = String(role ?? "").toLowerCase();
-
-  if (normalizedRole === "admin") {
-    return `/${locale}/dashboard/${tenantId}`;
-  }
-
-  if (normalizedRole === "cashier") {
-    return `/${locale}/orders/${tenantId}`;
-  }
-
-  if (normalizedRole === "kitchen") {
-    return `/${locale}/kitchen/${tenantId}`;
-  }
-
-  return `/${locale}/dashboard/${tenantId}`;
-}
 
 const LOCALE_PATTERN = /^[a-z]{2}(?:-[A-Z]{2})?$/;
 
@@ -94,15 +72,10 @@ const findNavItemByPath = (items, path, tenantId, locale) => {
 };
 
 export default function DashboardLayout({ children }) {
-  const router = useRouter();
   const pathname = usePathname();
   const params = useParams();
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const hasHydrated = useAuthStore((state) => state.hasHydrated);
   const navMain = useAuthStore((state) => state.navMain);
-  const token = useAuthStore((state) => state.token);
-  const user = useAuthStore((state) => state.user);
-  const storeTenantId = useAuthStore((state) => state.tenantId);
 
   const safeNavMain = useMemo(
     () => (Array.isArray(navMain) ? navMain : []),
@@ -120,31 +93,7 @@ export default function DashboardLayout({ children }) {
     return match?.label ?? match?.title ?? "Dashboard";
   }, [normalizedPath, safeNavMain, activeTenantId, locale]);
 
-  const hasSession = Boolean(isAuthenticated && (token || user));
-  const hasTenantMismatch = Boolean(activeTenantId && storeTenantId && activeTenantId !== storeTenantId);
-
-  useEffect(() => {
-    if (!hasHydrated) {
-      return;
-    }
-
-    if (!hasSession) {
-      router.replace(`/${locale}/login`);
-      return;
-    }
-
-    if (hasTenantMismatch) {
-      router.replace(getRoleDefaultPath(user?.role, locale, storeTenantId));
-      return;
-    }
-
-  }, [hasHydrated, hasSession, hasTenantMismatch, locale, router, storeTenantId, user?.role]);
-
   if (!hasHydrated) {
-    return null;
-  }
-
-  if (!hasSession || hasTenantMismatch) {
     return null;
   }
 
