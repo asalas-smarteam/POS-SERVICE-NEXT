@@ -1,4 +1,5 @@
 import { resolveTenant } from "@/lib/tenant/resolveTenant";
+import { authorizeRequest } from "@/lib/security/authorizeRequest";
 import { getTenantConnection } from "@/lib/db/connections";
 import { OrderModel } from "@/models/tenant/Order";
 import { generateTicketPDF } from "@/lib/pdf/ticketPdf";
@@ -7,6 +8,7 @@ export async function GET(req, { params }) {
   const { id: orderId } = await params;
 
   const tenant = await resolveTenant(req);
+  await authorizeRequest(req, "orders");
   const conn = await getTenantConnection(tenant.dbName);
   const Order = OrderModel(conn);
 

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { resolveTenant } from '@/lib/tenant/resolveTenant';
+import { authorizeRequest } from '@/lib/security/authorizeRequest';
 import { getTenantConnection } from '@/lib/db/connections';
 import { IngredientModel } from '@/models/tenant/Ingredient';
 
@@ -12,6 +13,7 @@ export async function PUT(req, { params }) {
     }
 
     const tenant = await resolveTenant(req);
+    await authorizeRequest(req, 'ingredients');
     const conn = await getTenantConnection(tenant.dbName);
     const Ingredient = IngredientModel(conn);
 
@@ -40,6 +42,7 @@ export async function DELETE(req, { params }) {
     }
 
     const tenant = await resolveTenant(req);
+    await authorizeRequest(req, 'ingredients');
     const conn = await getTenantConnection(tenant.dbName);
     const Ingredient = IngredientModel(conn);
 
