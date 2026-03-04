@@ -14,6 +14,7 @@ const NAV_ICON_MAP = Object.freeze({
   settings: "settings",
   kitchen: "chef-hat",
   users: "users",
+  floor: "layout-grid",
 });
 
 const buildNavItem = (label, href, iconKey) => ({
@@ -32,9 +33,13 @@ export const NAV_BY_ROLE = Object.freeze({
     buildNavItem("Kitchen", "/kitchen", "kitchen"),
     buildNavItem("Users", "/users", "users"),
     buildNavItem("Dashboard", "/dashboard", "users"),
+    buildNavItem("Floor", "/floor", "floor"),
   ],
   [USER_ROLES.KITCHEN]: [buildNavItem("Kitchen", "/kitchen", "kitchen")],
-  [USER_ROLES.CASHIER]: [buildNavItem("Orders", "/orders", "orders")],
+  [USER_ROLES.CASHIER]: [
+    buildNavItem("Orders", "/orders", "orders"),
+    buildNavItem("Floor", "/floor", "floor"),
+  ],
 });
 
 export const getRoleNav = (role) => {

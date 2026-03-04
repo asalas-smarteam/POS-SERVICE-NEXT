@@ -1,0 +1,14 @@
+import { redirect } from "next/navigation";
+import { getCurrentTenantId } from "@/lib/auth/getCurrentTenantId";
+import { defaultLocale } from "../../../../../i18n";
+
+export default async function FloorsRedirectPage({ params }) {
+  const tenantId = await getCurrentTenantId();
+  const locale = String(params?.locale ?? "");
+
+  if (!tenantId || !locale) {
+    redirect(`/${locale || defaultLocale}/floor`);
+  }
+
+  redirect(`/${locale}/floor/${tenantId}`);
+}

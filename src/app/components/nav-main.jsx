@@ -9,6 +9,7 @@ import {
   IconChefHat,
   IconCirclePlusFilled,
   IconHome,
+  IconLayoutGrid,
   IconMail,
   IconPackage,
   IconReceipt2,
@@ -26,7 +27,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 
-const MODULE_ROUTES = ["dashboard", "orders", "kitchen", "users", "products", "ingredients", "settings"];
+const MODULE_ROUTES = ["dashboard", "orders", "kitchen", "users", "products", "ingredients", "settings", "floor"];
 const NAV_TRANSLATION_KEYS = {
   dashboard: "dashboard",
   orders: "orders",
@@ -86,6 +87,7 @@ export function NavMain({ items }) {
     "chart-bar": IconChartBar,
     "chef-hat": IconChefHat,
     settings: IconSettings,
+    "layout-grid": IconLayoutGrid,
   };
 
   return (
