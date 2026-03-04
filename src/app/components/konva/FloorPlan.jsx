@@ -6,7 +6,7 @@ import { Group, Text, Layer, Stage, Rect } from "react-konva";
 import Grid from "./Grid";
 import TableItem from "./TableItem";
 import { useTranslations } from "next-intl";
-import { useThemeStore } from "@/store/themeStore";
+import { useThemeStore } from "../../../store/themeStore";
 
 // ----------------------------------------------------
 // Helpers
