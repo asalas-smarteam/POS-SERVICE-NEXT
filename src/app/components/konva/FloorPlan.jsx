@@ -6,6 +6,7 @@ import { Group, Text, Layer, Stage, Rect } from "react-konva";
 import Grid from "./Grid";
 import TableItem from "./TableItem";
 import { useTranslations } from "next-intl";
+import { useThemeStore } from "@/store/themeStore";
 
 // ----------------------------------------------------
 // Helpers
@@ -18,20 +19,15 @@ function nextStatus(current) {
   return STATUS_ORDER[nextIdx];
 }
 
-function getThemeFromSystem() {
-  if (typeof window === "undefined") return "light";
-  return window.matchMedia?.("(prefers-color-scheme: dark)")?.matches ? "dark" : "light";
-}
-
 // ----------------------------------------------------
 // FloorPlan Component (Stage wrapper)
 // ----------------------------------------------------
 export function FloorPlan({ tables, setTables }) {
   const t = useTranslations("Floor");
   const [mode, setMode] = useState("edit");
+  const { theme } = useThemeStore();
 
   const [stageSize, setStageSize] = useState({ width: 1000, height: 700 });
-  const [theme, setTheme] = useState("light");
 
   useEffect(() => {
     const apply = () => setStageSize({ width: window.innerWidth, height: window.innerHeight });
@@ -40,17 +36,8 @@ export function FloorPlan({ tables, setTables }) {
     const onResize = () => apply();
     window.addEventListener("resize", onResize);
 
-    // theme
-    const initialTheme = getThemeFromSystem();
-    setTheme(initialTheme);
-
-    const mq = window.matchMedia?.("(prefers-color-scheme: dark)");
-    const onThemeChange = () => setTheme(mq.matches ? "dark" : "light");
-    mq?.addEventListener?.("change", onThemeChange);
-
     return () => {
       window.removeEventListener("resize", onResize);
-      mq?.removeEventListener?.("change", onThemeChange);
     };
   }, []);
 
