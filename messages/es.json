@@ -449,5 +449,11 @@
     "chargeAveragePrice": "Cobrar el precio promedio",
     "chargeHighestPlusFee": "Cobrar el precio más alto + cargo extra",
     "updateTenantValues": "Actualiza los valores de esta configuración del tenant."
+  },
+  "Floor": {
+    "table": "Mesa",
+    "editMode": "Modo Edición",
+    "operationMode": "Modo Operativo",
+    "addTable": "Agregar Mesa"
   }
 }

@@ -449,5 +449,11 @@
     "chargeAveragePrice": "Charge average price",
     "chargeHighestPlusFee": "Charge highest price + extra fee",
     "updateTenantValues": "Update values for this tenant setting."
+  },
+  "Floor": {
+    "table": "Table",
+    "editMode": "Edit Mode",
+    "operationMode": "Operation Mode",
+    "addTable": "Add Table"
   }
 }

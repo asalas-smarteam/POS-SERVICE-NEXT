@@ -5,6 +5,8 @@ import React, { useEffect, useState } from "react";
 import { Group, Text, Layer, Stage, Rect } from "react-konva";
 import Grid from "./Grid";
 import TableItem from "./TableItem";
+import { useTranslations } from "next-intl";
+
 // ----------------------------------------------------
 // Helpers
 // ----------------------------------------------------
@@ -25,6 +27,7 @@ function getThemeFromSystem() {
 // FloorPlan Component (Stage wrapper)
 // ----------------------------------------------------
 export function FloorPlan({ tables, setTables }) {
+  const t = useTranslations("Floor");
   const [mode, setMode] = useState("edit");
 
   const [stageSize, setStageSize] = useState({ width: 1000, height: 700 });
@@ -70,7 +73,7 @@ export function FloorPlan({ tables, setTables }) {
     ...prev,
     {
       id: newId,
-      name: `Mesa ${prev.length + 1}`,
+      name: `${t('table')} ${prev.length + 1}`,
       x: 200 + (prev.length * 20),
       y: 200 + (prev.length * 20),
       size: 80,
@@ -106,7 +109,7 @@ export function FloorPlan({ tables, setTables }) {
             />
 
             <Text
-              text="+ Add Table"
+              text= { `+ ${t('addTable')}` }
               width={140}
               height={40}
               align="center"
@@ -134,27 +137,8 @@ export function FloorPlan({ tables, setTables }) {
             />
 
             <Text
-              text={mode === "edit" ? "Editing Mode" : "Operation Mode"}
+              text={mode === "edit" ? t('editMode') : t('operationMode')}
               width={160}
-              height={40}
-              align="center"
-              verticalAlign="middle"
-              fontSize={14}
-              fill="white"
-              listening={false}
-            />
-          </Group>
-          <Group x={stageSize.width - 500} y={20}>
-            <Rect
-              width={180}
-              height={40}
-              cornerRadius={8}
-              fill={mode === "edit" ? "#f97316" : "#16a34a"}
-            />
-
-            <Text
-              text={mode === "edit" ? "EDIT MODE" : "OPERATION MODE"}
-              width={180}
               height={40}
               align="center"
               verticalAlign="middle"
