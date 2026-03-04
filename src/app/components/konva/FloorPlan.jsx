@@ -1,6 +1,5 @@
 "use client";
 
-
 import React, { useEffect, useState } from "react";
 import { Group, Text, Layer, Stage, Rect } from "react-konva";
 import Grid from "./Grid";
@@ -8,9 +7,6 @@ import TableItem from "./TableItem";
 import { useTranslations } from "next-intl";
 import { useThemeStore } from "../../../store/themeStore";
 
-// ----------------------------------------------------
-// Helpers
-// ----------------------------------------------------
 const STATUS_ORDER = ["available", "reserved", "occupied"];
 
 function nextStatus(current) {
@@ -19,10 +15,7 @@ function nextStatus(current) {
   return STATUS_ORDER[nextIdx];
 }
 
-// ----------------------------------------------------
-// FloorPlan Component (Stage wrapper)
-// ----------------------------------------------------
-export function FloorPlan({ tables, setTables }) {
+export function FloorPlan({ tables, setTables, onCreateTable, onUpdateTable }) {
   const t = useTranslations("Floor");
   const [mode, setMode] = useState("edit");
   const { theme } = useThemeStore();
@@ -43,31 +36,55 @@ export function FloorPlan({ tables, setTables }) {
 
   const background = theme === "dark" ? "#0b1220" : "#f8fafc";
 
-  const onMove = (id, pos) => {
-    setTables((prev) => prev.map((t) => (t.id === id ? { ...t, ...pos } : t)));
-  };
+  const onMove = async (id, pos) => {
+    const previous = tables;
+    setTables((prev) => prev.map((table) => (table.id === id ? { ...table, ...pos } : table)));
 
-  const onToggleStatus = (id) => {
-    setTables((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, status: nextStatus(t.status) } : t))
-    );
-  };
-
-  const addTable = () => {
-  const newId = `t-${Date.now()}`;
-
-  setTables(prev => [
-    ...prev,
-    {
-      id: newId,
-      name: `${t('table')} ${prev.length + 1}`,
-      x: 200 + (prev.length * 20),
-      y: 200 + (prev.length * 20),
-      size: 80,
-      status: "available"
+    try {
+      await onUpdateTable?.(id, pos);
+    } catch (error) {
+      console.error(error?.message || "No se pudo guardar la posición de la mesa.");
+      setTables(previous);
     }
-  ]);
-};
+  };
+
+  const onToggleStatus = async (id) => {
+    const previous = tables;
+    const current = tables.find((table) => table.id === id);
+    const next = nextStatus(current?.status);
+
+    setTables((prev) =>
+      prev.map((table) => (table.id === id ? { ...table, status: next } : table))
+    );
+
+    try {
+      await onUpdateTable?.(id, { status: next });
+    } catch (error) {
+      console.error(error?.message || "No se pudo actualizar el estado de la mesa.");
+      setTables(previous);
+    }
+  };
+
+  const addTable = async () => {
+    const newId = `t-${Date.now()}`;
+    const newTable = {
+      id: newId,
+      name: `${t("table")} ${tables.length + 1}`,
+      x: 200 + tables.length * 20,
+      y: 200 + tables.length * 20,
+      size: 80,
+      status: "available",
+    };
+
+    setTables((prev) => [...prev, newTable]);
+
+    try {
+      await onCreateTable?.(newTable);
+    } catch (error) {
+      console.error(error?.message || "No se pudo crear la mesa.");
+      setTables((prev) => prev.filter((table) => table.id !== newId));
+    }
+  };
 
   return (
     <div style={{ width: "100vw", height: "100vh", background }}>
@@ -77,42 +94,34 @@ export function FloorPlan({ tables, setTables }) {
         </Layer>
 
         <Layer>
-
-          {/* Add new table */}
           {mode === "edit" && (
-          <Group
-            x={190}
-            y={20}
-            onClick={() => addTable()}
-            onTap={() => addTable()}
-            cursor="pointer"
-          >
-            <Rect
-              width={140}
-              height={40}
-              cornerRadius={8}
-              fill={theme === "dark" ? "#1f2937" : "#e5e7eb"}
-              shadowBlur={4}
-            />
+            <Group x={190} y={20} onClick={addTable} onTap={addTable} cursor="pointer">
+              <Rect
+                width={140}
+                height={40}
+                cornerRadius={8}
+                fill={theme === "dark" ? "#1f2937" : "#e5e7eb"}
+                shadowBlur={4}
+              />
 
-            <Text
-              text= { `+ ${t('addTable')}` }
-              width={140}
-              height={40}
-              align="center"
-              verticalAlign="middle"
-              fontSize={14}
-              fill={theme === "dark" ? "white" : "black"}
-              listening={false}
-            />
-          </Group>
+              <Text
+                text={`+ ${t("addTable")}`}
+                width={140}
+                height={40}
+                align="center"
+                verticalAlign="middle"
+                fontSize={14}
+                fill={theme === "dark" ? "white" : "black"}
+                listening={false}
+              />
+            </Group>
           )}
-          {/* Toggle Mode Button */}
+
           <Group
             x={20}
             y={20}
-            onClick={() => setMode(prev => prev === "edit" ? "operate" : "edit")}
-            onTap={() => setMode(prev => prev === "edit" ? "operate" : "edit")}
+            onClick={() => setMode((prev) => (prev === "edit" ? "operate" : "edit"))}
+            onTap={() => setMode((prev) => (prev === "edit" ? "operate" : "edit"))}
             cursor="pointer"
           >
             <Rect
@@ -124,7 +133,7 @@ export function FloorPlan({ tables, setTables }) {
             />
 
             <Text
-              text={mode === "edit" ? t('editMode') : t('operationMode')}
+              text={mode === "edit" ? t("editMode") : t("operationMode")}
               width={160}
               height={40}
               align="center"
@@ -134,7 +143,7 @@ export function FloorPlan({ tables, setTables }) {
               listening={false}
             />
           </Group>
-          
+
           {tables.map((table) => (
             <TableItem
               key={table.id}
@@ -145,7 +154,6 @@ export function FloorPlan({ tables, setTables }) {
               mode={mode}
             />
           ))}
-
         </Layer>
       </Stage>
     </div>
