@@ -25,7 +25,7 @@ export function ThemeToggle({ className = "" }) {
           variant="outline"
         >
           {isDark ? <Sun className="size-4" /> : <Moon className="size-4" />}
-          <span>{isDark ? "☀ Light Mode" : "🌙 Dark Mode"}</span>
+          <span>{isDark ? "Light Mode" : "Dark Mode"}</span>
         </Button>
       </TooltipTrigger>
       <TooltipContent side="right">Switch Theme</TooltipContent>
