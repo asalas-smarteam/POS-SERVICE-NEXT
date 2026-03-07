@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import { FloorPlan } from "@/components/konva/FloorPlan";
-import { getTenantHeaders } from "../../../../../../store/tenantHeaders";
+import { getTenantHeaders } from "../../../../../store/tenantHeaders";
 
 export default function FloorGridPage() {
   const [tables, setTables] = useState([]);
