@@ -11,6 +11,7 @@ import { TicketPreviewDialog } from "@/components/sales/ticket-preview-dialog";
 import { generateKitchenTicketPdf } from "@/lib/pdf/ticketJsPdf";
 import { filterCompatibleHalfProducts } from "@/lib/halfAndHalf";
 import { calculateOrderItemUnitPrice } from "@/lib/pricing/halfAndHalfPricing";
+import { resolvePaymentModeFromStrategy } from "@/lib/tenant/paymentStrategySettings";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
 import { getTenantHeaders } from "../../../../../store/tenantHeaders";
@@ -26,9 +27,6 @@ const normalizeOrderNumber = (orderId) => {
   return trimmed.padStart(3, "0");
 };
 
-const resolvePaymentMode = (paymentStrategy) =>
-  paymentStrategy === "pay_now" ? "pay_now" : "pay_later";
-
 export default function OrdersPage() {
   const t = useTranslations("Orders");
   const { products, loading, error, fetchProducts } = useProductsStore(
@@ -40,10 +38,18 @@ export default function OrdersPage() {
     })
   );
 
-  const { categories, halfAndHalfPricing, paymentStrategy, orderTypes, fetchSettings } = useSettingsStore((state) => ({
+  const {
+    categories,
+    halfAndHalfPricing,
+    paymentStrategy,
+    paymentStrategyOptions,
+    orderTypes,
+    fetchSettings,
+  } = useSettingsStore((state) => ({
     categories: state.categories,
     halfAndHalfPricing: state.halfAndHalfPricing,
     paymentStrategy: state.paymentStrategy,
+    paymentStrategyOptions: state.paymentStrategyOptions,
     orderTypes: state.orderTypes,
     fetchSettings: state.fetchSettings,
   }));
@@ -212,7 +218,7 @@ export default function OrdersPage() {
       const orderTypeValue = checkoutValues?.orderType ?? selectedOrderType;
       const tableIdValue = checkoutValues?.tableId ?? null;
       const tableLabelValue = checkoutValues?.tableLabel ?? null;
-      const paymentMode = resolvePaymentMode(paymentStrategy);
+      const paymentMode = resolvePaymentModeFromStrategy(paymentStrategy, paymentStrategyOptions);
 
       const orderResponse = await fetch("/api/orders", {
         method: "POST",
@@ -314,7 +320,17 @@ export default function OrdersPage() {
       isSubmittingRef.current = false;
       setIsSubmitting(false);
     }
-  }, [items, buildItemPayload, clearOrder, customerName, selectedOrderType, paymentStrategy, orderTypes, t]);
+  }, [
+    items,
+    buildItemPayload,
+    clearOrder,
+    customerName,
+    selectedOrderType,
+    paymentStrategy,
+    paymentStrategyOptions,
+    orderTypes,
+    t,
+  ]);
 
   const handleCheckoutRequest = useCallback(() => {
     if (!items.length || isSubmittingRef.current) {

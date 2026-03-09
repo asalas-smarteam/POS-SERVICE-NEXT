@@ -31,7 +31,7 @@ export async function POST(req, context) {
     const incomingTableId = normalizeText(body?.tableId);
     const incomingTableLabel = normalizeText(body?.tableLabel);
     const incomingPaymentMode = normalizeText(body?.paymentMode);
-    const { orderTypes, paymentModeDefault } = await getTenantOrderConfig(conn);
+    const { orderTypes, paymentModeDefault, paymentModeOptions } = await getTenantOrderConfig(conn);
 
     const order = await Order.findById(orderId);
 
@@ -80,7 +80,7 @@ export async function POST(req, context) {
     order.orderType = selectedOrderType.id;
     order.tableId = tableId;
     order.tableLabel = tableLabel;
-    order.paymentMode = normalizePaymentMode(incomingPaymentMode, paymentModeDefault);
+    order.paymentMode = normalizePaymentMode(incomingPaymentMode, paymentModeDefault, paymentModeOptions);
     order.status = "PENDING";
     order.kitchenStatus = "IN_PREPARATION";
     order.kitchenStartedAt = new Date();

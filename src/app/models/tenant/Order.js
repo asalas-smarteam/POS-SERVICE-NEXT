@@ -86,7 +86,6 @@ const OrderSchema = new mongoose.Schema({
   tableLabel: { type: String, default: null },
   paymentMode: {
     type: String,
-    enum: ['pay_now', 'pay_later'],
     default: 'pay_later',
   },
   isClosed: {

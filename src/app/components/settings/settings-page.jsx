@@ -2,69 +2,24 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
-import { Trash2 } from "lucide-react";
 import { AppAlert } from "@/components/app-alert";
 import { AppSkeleton } from "@/components/app-skeleton";
-import { AppSpinner } from "@/components/app-spinner";
 import { SettingsEditorDialog } from "@/components/settings/settings-editor-dialog";
 import { SettingsTable } from "@/components/settings/settings-table";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getTenantHeaders } from "../../../store/tenantHeaders";
-import { DEFAULT_PAYMENT_STRATEGY, normalizePaymentStrategy } from "@/lib/tenant/paymentStrategySettings";
-import { DEFAULT_ORDER_TYPES, normalizeOrderTypes } from "@/lib/tenant/orderTypeSettings";
 
 const cloneData = (value) => JSON.parse(JSON.stringify(value));
-
-const PRICING_STRATEGY_OPTIONS = [
-  { value: "HIGHEST", labelKey: "chargeHighestPrice" },
-  { value: "AVERAGE", labelKey: "chargeAveragePrice" },
-  { value: "BASE_PLUS", labelKey: "chargeHighestPlusFee" },
-];
-
-const DEFAULT_HALF_AND_HALF_PRICING = {
-  strategy: "HIGHEST",
-  extraAmount: 0,
-};
-const PAYMENT_STRATEGY_OPTIONS = [
-  { value: "pay_now", labelKey: "paymentStrategyPayNow", descriptionKey: "paymentStrategyPayNowHelp" },
-  { value: "pay_after_meal", labelKey: "paymentStrategyPayAfterMeal", descriptionKey: "paymentStrategyPayAfterMealHelp" },
-  { value: "cashier_choice", labelKey: "paymentStrategyCashierChoice", descriptionKey: "paymentStrategyCashierChoiceHelp" },
-];
-
-const normalizePricingForm = (value) => {
-  const strategy = PRICING_STRATEGY_OPTIONS.some((option) => option.value === value?.strategy)
-    ? value.strategy
-    : DEFAULT_HALF_AND_HALF_PRICING.strategy;
-
-  const numericExtraAmount = Number(value?.extraAmount);
-  const extraAmount = Number.isFinite(numericExtraAmount) && numericExtraAmount >= 0 ? numericExtraAmount : 0;
-
-  return {
-    strategy,
-    extraAmount,
-  };
-};
 
 export function SettingsPage() {
   const t = useTranslations("Settings");
   const [settings, setSettings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [pricingSaving, setPricingSaving] = useState(false);
   const [error, setError] = useState(null);
   const [dialogAlert, setDialogAlert] = useState(null);
   const [globalAlert, setGlobalAlert] = useState(null);
   const [selectedSetting, setSelectedSetting] = useState(null);
   const [editorData, setEditorData] = useState(null);
-  const [halfAndHalfPricing, setHalfAndHalfPricing] = useState(DEFAULT_HALF_AND_HALF_PRICING);
-  const [paymentStrategy, setPaymentStrategy] = useState(DEFAULT_PAYMENT_STRATEGY);
-  const [orderTypes, setOrderTypes] = useState(DEFAULT_ORDER_TYPES);
-  const [newOrderTypeId, setNewOrderTypeId] = useState("");
-  const [newOrderTypeLabel, setNewOrderTypeLabel] = useState("");
 
   const fetchSettings = useCallback(async () => {
     setLoading(true);
@@ -93,17 +48,6 @@ export function SettingsPage() {
   useEffect(() => {
     fetchSettings();
   }, [fetchSettings]);
-
-  const baseSettings = useMemo(
-    () => settings.find((setting) => setting?.description === "Settings") ?? null,
-    [settings]
-  );
-
-  useEffect(() => {
-    setHalfAndHalfPricing(normalizePricingForm(baseSettings?.data?.halfAndHalfPricing));
-    setPaymentStrategy(normalizePaymentStrategy(baseSettings?.data?.paymentStrategy));
-    setOrderTypes(normalizeOrderTypes(baseSettings?.data?.orderTypes));
-  }, [baseSettings]);
 
   const handleOpenEdit = (setting) => {
     setDialogAlert(null);
@@ -153,169 +97,6 @@ export function SettingsPage() {
     }
   };
 
-  const handleHalfAndHalfSave = async () => {
-    if (!baseSettings?._id) {
-      setGlobalAlert({ type: "error", message: t("settingsUnavailable") });
-      return;
-    }
-
-    const normalizedHalfAndHalfPricing = normalizePricingForm(halfAndHalfPricing);
-
-    const data = {
-      ...(baseSettings?.data && typeof baseSettings.data === "object" && !Array.isArray(baseSettings.data)
-        ? baseSettings.data
-        : {}),
-      halfAndHalfPricing: normalizedHalfAndHalfPricing,
-    };
-
-    setPricingSaving(true);
-    try {
-      const response = await fetch(`/api/settings/${baseSettings._id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          ...getTenantHeaders(),
-        },
-        body: JSON.stringify({ data }),
-      });
-
-      const body = await response.json();
-      if (!response.ok) {
-        throw new Error(body?.error || t("halfAndHalfSaveError"));
-      }
-
-      setGlobalAlert({ type: "success", message: t("halfAndHalfSaved") });
-      await fetchSettings();
-    } catch (saveError) {
-      setGlobalAlert({
-        type: "error",
-        message: saveError?.message || t("halfAndHalfSaveError"),
-      });
-    } finally {
-      setPricingSaving(false);
-    }
-  };
-
-  const handlePaymentStrategySave = async () => {
-    if (!baseSettings?._id) {
-      setGlobalAlert({ type: "error", message: t("settingsUnavailable") });
-      return;
-    }
-
-    const normalizedPaymentStrategy = normalizePaymentStrategy(paymentStrategy);
-
-    const data = {
-      ...(baseSettings?.data && typeof baseSettings.data === "object" && !Array.isArray(baseSettings.data)
-        ? baseSettings.data
-        : {}),
-      paymentStrategy: normalizedPaymentStrategy,
-    };
-
-    setPricingSaving(true);
-    try {
-      const response = await fetch(`/api/settings/${baseSettings._id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          ...getTenantHeaders(),
-        },
-        body: JSON.stringify({ data }),
-      });
-
-      const body = await response.json();
-      if (!response.ok) {
-        throw new Error(body?.error || t("paymentStrategySaveError"));
-      }
-
-      setGlobalAlert({ type: "success", message: t("paymentStrategySaved") });
-      await fetchSettings();
-    } catch (saveError) {
-      setGlobalAlert({
-        type: "error",
-        message: saveError?.message || t("paymentStrategySaveError"),
-      });
-    } finally {
-      setPricingSaving(false);
-    }
-  };
-
-  const handleAddOrderType = () => {
-    const nextId = newOrderTypeId.trim();
-    const nextLabel = newOrderTypeLabel.trim();
-    if (!nextId || !nextLabel) {
-      return;
-    }
-
-    const alreadyExists = orderTypes.some((type) => type.id === nextId);
-    if (alreadyExists) {
-      setGlobalAlert({ type: "error", message: t("orderTypeDuplicated") });
-      return;
-    }
-
-    setOrderTypes((current) => [...current, { id: nextId, label: nextLabel, isDefault: false }]);
-    setNewOrderTypeId("");
-    setNewOrderTypeLabel("");
-  };
-
-  const handleRemoveOrderType = (id) => {
-    setOrderTypes((current) => current.filter((type) => type.id !== id || type.isDefault));
-  };
-
-  const handleOrderTypeLabelChange = (id, label) => {
-    setOrderTypes((current) =>
-      current.map((type) => (type.id === id ? { ...type, label } : type))
-    );
-  };
-
-  const handleOrderTypesSave = async () => {
-    if (!baseSettings?._id) {
-      setGlobalAlert({ type: "error", message: t("settingsUnavailable") });
-      return;
-    }
-
-    const normalizedOrderTypes = normalizeOrderTypes(orderTypes);
-    const hasInvalidLabel = normalizedOrderTypes.some((type) => !String(type.label || "").trim());
-
-    if (hasInvalidLabel) {
-      setGlobalAlert({ type: "error", message: t("orderTypeLabelRequired") });
-      return;
-    }
-
-    const data = {
-      ...(baseSettings?.data && typeof baseSettings.data === "object" && !Array.isArray(baseSettings.data)
-        ? baseSettings.data
-        : {}),
-      orderTypes: normalizedOrderTypes,
-    };
-
-    setPricingSaving(true);
-    try {
-      const response = await fetch(`/api/settings/${baseSettings._id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          ...getTenantHeaders(),
-        },
-        body: JSON.stringify({ data }),
-      });
-
-      const body = await response.json();
-      if (!response.ok) {
-        throw new Error(body?.error || t("orderTypesSaveError"));
-      }
-
-      setGlobalAlert({ type: "success", message: t("orderTypesSaved") });
-      await fetchSettings();
-    } catch (saveError) {
-      setGlobalAlert({
-        type: "error",
-        message: saveError?.message || t("orderTypesSaveError"),
-      });
-    } finally {
-      setPricingSaving(false);
-    }
-  };
-
   return (
     <div className="flex flex-1 flex-col">
       <div className="@container/main flex flex-1 flex-col gap-4 px-4 py-6 lg:px-6">
@@ -336,169 +117,6 @@ export function SettingsPage() {
           <AppAlert type="info" message={t("empty")} />
         ) : (
           <>
-            <Card>
-              <CardHeader>
-                <CardTitle>{t("pricingTitle")}</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="half-and-half-pricing-strategy">{t("pricingStrategy")}</Label>
-                  <Select
-                    value={halfAndHalfPricing.strategy}
-                    onValueChange={(value) =>
-                      setHalfAndHalfPricing((prev) => ({
-                        ...prev,
-                        strategy: value,
-                      }))
-                    }
-                  >
-                    <SelectTrigger id="half-and-half-pricing-strategy" className="max-w-md">
-                      <SelectValue placeholder={t("selectPricingStrategy")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {PRICING_STRATEGY_OPTIONS.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {t(option.labelKey)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {halfAndHalfPricing.strategy === "BASE_PLUS" ? (
-                  <div className="space-y-2 max-w-md">
-                    <Label htmlFor="half-and-half-pricing-extra-amount">{t("extraAmount")}</Label>
-                    <Input
-                      id="half-and-half-pricing-extra-amount"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={halfAndHalfPricing.extraAmount}
-                      onChange={(event) =>
-                        setHalfAndHalfPricing((prev) => ({
-                          ...prev,
-                          extraAmount: event.target.value,
-                        }))
-                      }
-                    />
-                  </div>
-                ) : null}
-
-                <Button onClick={handleHalfAndHalfSave} disabled={pricingSaving}>
-                  {pricingSaving ? (
-                    <span className="inline-flex items-center gap-2">
-                      <AppSpinner inline size={16} />
-                      {t("saving")}
-                    </span>
-                  ) : (
-                    t("save")
-                  )}
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>{t("paymentStrategyTitle")}</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="payment-strategy">{t("paymentStrategyLabel")}</Label>
-                  <Select value={paymentStrategy} onValueChange={setPaymentStrategy}>
-                    <SelectTrigger id="payment-strategy" className="max-w-md">
-                      <SelectValue placeholder={t("paymentStrategyPlaceholder")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {PAYMENT_STRATEGY_OPTIONS.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {t(option.labelKey)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2 text-sm text-muted-foreground">
-                  {PAYMENT_STRATEGY_OPTIONS.map((option) => (
-                    <p key={option.value}>
-                      <span className="font-medium text-foreground">{t(option.labelKey)}:</span>{" "}
-                      {t(option.descriptionKey)}
-                    </p>
-                  ))}
-                </div>
-
-                <Button onClick={handlePaymentStrategySave} disabled={pricingSaving}>
-                  {pricingSaving ? (
-                    <span className="inline-flex items-center gap-2">
-                      <AppSpinner inline size={16} />
-                      {t("saving")}
-                    </span>
-                  ) : (
-                    t("save")
-                  )}
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>{t("orderTypesTitle")}</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-sm text-muted-foreground">{t("orderTypesHelp")}</p>
-
-                <div className="space-y-2">
-                  {orderTypes.map((type) => (
-                    <div key={type.id} className="grid gap-2 rounded-md border p-3 md:grid-cols-[200px_1fr_auto]">
-                      <Input value={type.id} disabled />
-                      <Input
-                        value={type.label}
-                        onChange={(event) => handleOrderTypeLabelChange(type.id, event.target.value)}
-                        placeholder={t("orderTypeLabelPlaceholder")}
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        disabled={type.isDefault}
-                        onClick={() => handleRemoveOrderType(type.id)}
-                        aria-label={t("deleteRow")}
-                      >
-                        <Trash2 className="size-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="grid gap-2 rounded-md border border-dashed p-3 md:grid-cols-[200px_1fr_auto]">
-                  <Input
-                    value={newOrderTypeId}
-                    onChange={(event) => setNewOrderTypeId(event.target.value)}
-                    placeholder={t("orderTypeIdPlaceholder")}
-                  />
-                  <Input
-                    value={newOrderTypeLabel}
-                    onChange={(event) => setNewOrderTypeLabel(event.target.value)}
-                    placeholder={t("orderTypeLabelPlaceholder")}
-                  />
-                  <Button type="button" variant="secondary" onClick={handleAddOrderType}>
-                    {t("addRow")}
-                  </Button>
-                </div>
-
-                <Button onClick={handleOrderTypesSave} disabled={pricingSaving}>
-                  {pricingSaving ? (
-                    <span className="inline-flex items-center gap-2">
-                      <AppSpinner inline size={16} />
-                      {t("saving")}
-                    </span>
-                  ) : (
-                    t("save")
-                  )}
-                </Button>
-              </CardContent>
-            </Card>
-
             <SettingsTable settings={settings} onEdit={handleOpenEdit} />
           </>
         )}

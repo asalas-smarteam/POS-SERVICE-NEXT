@@ -23,7 +23,7 @@ export async function POST(req) {
     const incomingTableId = normalizeText(body?.tableId);
     const incomingTableLabel = normalizeText(body?.tableLabel);
     const incomingPaymentMode = normalizeText(body?.paymentMode);
-    const { orderTypes, paymentModeDefault } = await getTenantOrderConfig(conn);
+    const { orderTypes, paymentModeDefault, paymentModeOptions } = await getTenantOrderConfig(conn);
 
     const selectedOrderType =
       orderTypes.find((type) => type.id === incomingOrderType) ||
@@ -57,7 +57,7 @@ export async function POST(req) {
       orderType: selectedOrderType.id,
       tableId,
       tableLabel,
-      paymentMode: normalizePaymentMode(incomingPaymentMode, paymentModeDefault),
+      paymentMode: normalizePaymentMode(incomingPaymentMode, paymentModeDefault, paymentModeOptions),
       isClosed: false,
       closedAt: null,
     });

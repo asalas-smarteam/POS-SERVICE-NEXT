@@ -1,3 +1,5 @@
+export const HALF_AND_HALF_PRICING_DEFAULT_DESCRIPTION = 'Half And Half Pricing Default';
+
 export const HALF_AND_HALF_PRICING_STRATEGIES = ['HIGHEST', 'AVERAGE', 'BASE_PLUS'];
 
 export const DEFAULT_HALF_AND_HALF_PRICING = {
@@ -13,10 +15,23 @@ const normalizeNumber = (value, fallback = 0) => {
   return numericValue;
 };
 
-export function normalizeHalfAndHalfPricing(value) {
-  const strategy = HALF_AND_HALF_PRICING_STRATEGIES.includes(value?.strategy)
+const resolveAllowedStrategies = (allowedStrategies = HALF_AND_HALF_PRICING_STRATEGIES) => {
+  const normalized = Array.isArray(allowedStrategies)
+    ? allowedStrategies.filter((value) => typeof value === 'string' && value.trim())
+    : [];
+
+  return normalized.length ? normalized : HALF_AND_HALF_PRICING_STRATEGIES;
+};
+
+export function normalizeHalfAndHalfPricing(value, allowedStrategies = HALF_AND_HALF_PRICING_STRATEGIES) {
+  const strategies = resolveAllowedStrategies(allowedStrategies);
+  const fallbackStrategy = strategies.includes(DEFAULT_HALF_AND_HALF_PRICING.strategy)
+    ? DEFAULT_HALF_AND_HALF_PRICING.strategy
+    : strategies[0];
+
+  const strategy = strategies.includes(value?.strategy)
     ? value.strategy
-    : DEFAULT_HALF_AND_HALF_PRICING.strategy;
+    : fallbackStrategy;
 
   const extraAmount = Math.max(0, normalizeNumber(value?.extraAmount, DEFAULT_HALF_AND_HALF_PRICING.extraAmount));
 
@@ -26,13 +41,14 @@ export function normalizeHalfAndHalfPricing(value) {
   };
 }
 
-export function validateHalfAndHalfPricing(value) {
+export function validateHalfAndHalfPricing(value, allowedStrategies = HALF_AND_HALF_PRICING_STRATEGIES) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     return 'halfAndHalfPricing must be an object';
   }
 
-  if (!HALF_AND_HALF_PRICING_STRATEGIES.includes(value.strategy)) {
-    return 'strategy must be one of HIGHEST, AVERAGE, BASE_PLUS';
+  const strategies = resolveAllowedStrategies(allowedStrategies);
+  if (!strategies.includes(value.strategy)) {
+    return `strategy must be one of ${strategies.join(', ')}`;
   }
 
   const extraAmount = Number(value.extraAmount);

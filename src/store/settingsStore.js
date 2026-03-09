@@ -1,8 +1,19 @@
 import { create } from "./zustand";
 import { getTenantHeaders } from "./tenantHeaders";
 import { DEFAULT_HALF_AND_HALF_PRICING, normalizeHalfAndHalfPricing } from "@/lib/tenant/halfAndHalfPricingSettings";
-import { DEFAULT_PAYMENT_STRATEGY, normalizePaymentStrategy } from "@/lib/tenant/paymentStrategySettings";
+import {
+  DEFAULT_PAYMENT_STRATEGY,
+  DEFAULT_PAYMENT_STRATEGY_OPTIONS,
+  PAYMENT_STRATEGY_OPTIONS_DESCRIPTION,
+  normalizePaymentStrategy,
+  normalizePaymentStrategyOptions,
+} from "@/lib/tenant/paymentStrategySettings";
 import { DEFAULT_ORDER_TYPES, normalizeOrderTypes } from "@/lib/tenant/orderTypeSettings";
+import {
+  DEFAULT_PRICING_STRATEGY_OPTIONS,
+  PRICING_STRATEGY_OPTIONS_DESCRIPTION,
+  normalizePricingStrategyOptions,
+} from "@/lib/tenant/pricingStrategySettings";
 
 const findCategorySetting = (settings = []) => {
   const normalized = Array.isArray(settings) ? settings : [];
@@ -60,13 +71,21 @@ const buildUnitLookup = (units = []) =>
 const buildHalfAndHalfPricing = (settings = []) => {
   const normalized = Array.isArray(settings) ? settings : [];
   const baseSetting = normalized.find((setting) => setting?.description === "Settings");
-  return normalizeHalfAndHalfPricing(baseSetting?.data?.halfAndHalfPricing || DEFAULT_HALF_AND_HALF_PRICING);
+  const pricingOptionsSetting = normalized.find(
+    (setting) => setting?.description === PRICING_STRATEGY_OPTIONS_DESCRIPTION
+  );
+  const strategies = normalizePricingStrategyOptions(pricingOptionsSetting?.data).map((option) => option.value);
+  return normalizeHalfAndHalfPricing(baseSetting?.data?.halfAndHalfPricing || DEFAULT_HALF_AND_HALF_PRICING, strategies);
 };
 
 const buildPaymentStrategy = (settings = []) => {
   const normalized = Array.isArray(settings) ? settings : [];
   const baseSetting = normalized.find((setting) => setting?.description === "Settings");
-  return normalizePaymentStrategy(baseSetting?.data?.paymentStrategy || DEFAULT_PAYMENT_STRATEGY);
+  const optionsSetting = normalized.find(
+    (setting) => setting?.description === PAYMENT_STRATEGY_OPTIONS_DESCRIPTION
+  );
+  const options = normalizePaymentStrategyOptions(optionsSetting?.data);
+  return normalizePaymentStrategy(baseSetting?.data?.paymentStrategy || DEFAULT_PAYMENT_STRATEGY, options);
 };
 
 const buildOrderTypes = (settings = []) => {
@@ -96,6 +115,8 @@ export const useSettingsStore = create((set) => ({
   ingredientUnitLookup: buildUnitLookup(DEFAULT_INGREDIENT_UNITS),
   halfAndHalfPricing: DEFAULT_HALF_AND_HALF_PRICING,
   paymentStrategy: DEFAULT_PAYMENT_STRATEGY,
+  pricingStrategyOptions: DEFAULT_PRICING_STRATEGY_OPTIONS,
+  paymentStrategyOptions: DEFAULT_PAYMENT_STRATEGY_OPTIONS,
   orderTypes: DEFAULT_ORDER_TYPES,
   loading: false,
   error: null,
@@ -117,6 +138,14 @@ export const useSettingsStore = create((set) => ({
       const unitData = buildUnitData(settings);
       const halfAndHalfPricing = buildHalfAndHalfPricing(settings);
       const paymentStrategy = buildPaymentStrategy(settings);
+      const pricingOptionsSetting = settings.find(
+        (setting) => setting?.description === PRICING_STRATEGY_OPTIONS_DESCRIPTION
+      );
+      const paymentOptionsSetting = settings.find(
+        (setting) => setting?.description === PAYMENT_STRATEGY_OPTIONS_DESCRIPTION
+      );
+      const pricingStrategyOptions = normalizePricingStrategyOptions(pricingOptionsSetting?.data);
+      const paymentStrategyOptions = normalizePaymentStrategyOptions(paymentOptionsSetting?.data);
       const orderTypes = buildOrderTypes(settings);
       set({
         settings,
@@ -126,6 +155,8 @@ export const useSettingsStore = create((set) => ({
         ingredientUnitLookup: unitData.ingredientUnitLookup,
         halfAndHalfPricing,
         paymentStrategy,
+        pricingStrategyOptions,
+        paymentStrategyOptions,
         orderTypes,
         loading: false,
         error: null,
