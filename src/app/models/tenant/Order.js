@@ -81,6 +81,22 @@ const OrderSchema = new mongoose.Schema({
   items: [OrderItemSchema],
   total: { type: Number, default: 0 },
   customerName: { type: String, default: '' },
+  orderType: { type: String, default: 'takeaway' },
+  tableId: { type: String, default: null },
+  tableLabel: { type: String, default: null },
+  paymentMode: {
+    type: String,
+    enum: ['pay_now', 'pay_later'],
+    default: 'pay_later',
+  },
+  isClosed: {
+    type: Boolean,
+    default: false,
+  },
+  closedAt: {
+    type: Date,
+    default: null,
+  },
 
 }, { timestamps: true });
 

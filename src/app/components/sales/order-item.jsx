@@ -20,8 +20,6 @@ export function OrderItem({
   onDecrease,
   onRemove,
   onUpdateNotes,
-  customerName,
-  onCustomerNameChange,
   className,
 }) {
   const t = useTranslations("Orders");
@@ -103,8 +101,6 @@ export function OrderItem({
         onOpenChange={setNotesOpen}
         item={item}
         onSave={onUpdateNotes}
-        customerName={customerName}
-        onCustomerNameChange={onCustomerNameChange}
       />
     </div>
   );

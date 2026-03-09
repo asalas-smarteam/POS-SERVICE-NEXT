@@ -115,7 +115,7 @@ function KitchenTicketCard({ ticket, columnMeta, elapsedLabel, onContinue, onCan
       <div className="mb-3 flex items-start justify-between gap-2">
         <div>
           <p className="text-2xl font-bold text-sky-400">#{normalizeOrderNumber(ticket._id)}</p>
-          <h4 className="text-sm font-black text-slate-100">{t("table")} {ticket.tableName || ticket.tableNumber || "-"}</h4>
+          <h4 className="text-sm font-black text-slate-100">{t("table")} {ticket.tableLabel || ticket.tableName || ticket.tableNumber || "-"}</h4>
         </div>
         <div className="flex flex-col items-end text-xs">
           <span className={`flex items-center gap-1 font-bold ${isInOven ? "text-orange-400" : "text-red-400"}`}>
@@ -283,6 +283,7 @@ export default function KitchenPage() {
       const items = Array.isArray(ticket.items) ? ticket.items : [];
       const haystack = [
         normalizeOrderNumber(ticket._id),
+        ticket.tableLabel,
         ticket.tableName,
         ticket.tableNumber,
         ticket.waiterName,

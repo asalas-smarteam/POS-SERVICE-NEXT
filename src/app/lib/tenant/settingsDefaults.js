@@ -7,6 +7,10 @@ import {
   DEFAULT_PAYMENT_STRATEGY,
   normalizePaymentStrategy,
 } from '@/lib/tenant/paymentStrategySettings';
+import {
+  DEFAULT_ORDER_TYPES,
+  normalizeOrderTypes,
+} from '@/lib/tenant/orderTypeSettings';
 
 export const TENANT_SETTINGS_DEFAULTS = [
   {
@@ -19,6 +23,7 @@ export const TENANT_SETTINGS_DEFAULTS = [
       },
       halfAndHalfPricing: DEFAULT_HALF_AND_HALF_PRICING,
       paymentStrategy: DEFAULT_PAYMENT_STRATEGY,
+      orderTypes: DEFAULT_ORDER_TYPES,
     },
   },
   {
@@ -92,6 +97,7 @@ function enforceSettingsDefaults(setting) {
     ...currentData,
     halfAndHalfPricing: normalizeHalfAndHalfPricing(currentData.halfAndHalfPricing),
     paymentStrategy: normalizePaymentStrategy(currentData.paymentStrategy),
+    orderTypes: normalizeOrderTypes(currentData.orderTypes),
   };
 
   setting.data = nextData;

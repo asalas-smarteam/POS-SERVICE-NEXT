@@ -27,6 +27,8 @@ export async function POST(req, { params }) {
 
     order.status = "READY";
     order.total = total;
+    order.isClosed = true;
+    order.closedAt = new Date();
     await order.save();
 
     return NextResponse.json({

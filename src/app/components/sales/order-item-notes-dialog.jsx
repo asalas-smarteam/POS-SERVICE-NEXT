@@ -59,7 +59,7 @@ const buildNotes = (modifiers = []) =>
     return [];
   });
 
-export function OrderItemNotesDialog({ open, onOpenChange, item, onSave, customerName = "", onCustomerNameChange }) {
+export function OrderItemNotesDialog({ open, onOpenChange, item, onSave }) {
   const t = useTranslations("Orders");
   const { ingredients, loading, fetchIngredients } = useIngredientsStore((state) => ({
     ingredients: state.ingredients,
@@ -304,19 +304,6 @@ export function OrderItemNotesDialog({ open, onOpenChange, item, onSave, custome
         </DialogHeader>
 
         <div className="space-y-4">
-
-        <div className="space-y-2">
-          <Label htmlFor={`customer-name-${item?.id}`}>{t("customer")}</Label>
-          <Input
-            id={`customer-name-${item?.id}`}
-            value={customerName}
-            onChange={(event) => onCustomerNameChange?.(event.target.value)}
-            placeholder={t("customerName")}
-          />
-          <p className="text-xs text-muted-foreground">
-            {t("customerNameHelp")}
-          </p>
-        </div>
 
           {!hasBaseIngredients ? (
             <div className="space-y-3">

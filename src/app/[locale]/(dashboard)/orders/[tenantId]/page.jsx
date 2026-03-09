@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CategoryTabs } from "@/components/sales/category-tabs";
 import { HalfAndHalfQuickSelectorDialog } from "@/components/sales/half-and-half-quick-selector-dialog";
+import { OrderCheckoutDialog } from "@/components/sales/order-checkout-dialog";
 import { OrderSidebar } from "@/components/sales/order-sidebar";
 import { ProductGrid } from "@/components/sales/product-grid";
 import { SalesHeader } from "@/components/sales/sales-header";
@@ -25,6 +26,8 @@ const normalizeOrderNumber = (orderId) => {
   return trimmed.padStart(3, "0");
 };
 
+const resolvePaymentMode = (paymentStrategy) =>
+  paymentStrategy === "pay_now" ? "pay_now" : "pay_later";
 
 export default function OrdersPage() {
   const t = useTranslations("Orders");
@@ -37,9 +40,11 @@ export default function OrdersPage() {
     })
   );
 
-  const { categories, halfAndHalfPricing, fetchSettings } = useSettingsStore((state) => ({
+  const { categories, halfAndHalfPricing, paymentStrategy, orderTypes, fetchSettings } = useSettingsStore((state) => ({
     categories: state.categories,
     halfAndHalfPricing: state.halfAndHalfPricing,
+    paymentStrategy: state.paymentStrategy,
+    orderTypes: state.orderTypes,
     fetchSettings: state.fetchSettings,
   }));
 
@@ -72,8 +77,12 @@ export default function OrdersPage() {
   const [checkoutError, setCheckoutError] = useState("");
   const [ticketDialogOpen, setTicketDialogOpen] = useState(false);
   const [ticketPreview, setTicketPreview] = useState(null);
+  const [checkoutDialogOpen, setCheckoutDialogOpen] = useState(false);
+  const [tables, setTables] = useState([]);
   const [halfSelectorOpen, setHalfSelectorOpen] = useState(false);
   const [selectedHalfBaseProduct, setSelectedHalfBaseProduct] = useState(null);
+  const [selectedOrderType, setSelectedOrderType] = useState("takeaway");
+  const [selectedTableId, setSelectedTableId] = useState("");
   const isSubmittingRef = useRef(false);
 
   useEffect(() => {
@@ -83,6 +92,28 @@ export default function OrdersPage() {
   useEffect(() => {
     fetchSettings();
   }, [fetchSettings]);
+
+  useEffect(() => {
+    const fetchTables = async () => {
+      try {
+        const response = await fetch("/api/tables", {
+          headers: {
+            ...getTenantHeaders(),
+          },
+        });
+        if (!response.ok) {
+          setTables([]);
+          return;
+        }
+        const body = await response.json();
+        setTables(Array.isArray(body) ? body : []);
+      } catch {
+        setTables([]);
+      }
+    };
+
+    fetchTables();
+  }, []);
 
   useEffect(() => {
     setIsFiltering(true);
@@ -106,7 +137,6 @@ export default function OrdersPage() {
       return product?.categoryId === activeCategory;
     });
   }, [products, searchTerm, activeCategory]);
-
 
   const resolveItemUnitPrice = useCallback((item) => {
     const basePrice = Number(item?.basePrice ?? item?.price ?? 0);
@@ -169,7 +199,7 @@ export default function OrdersPage() {
     };
   }, []);
 
-  const handleCheckout = useCallback(async () => {
+  const handleCheckout = useCallback(async (checkoutValues) => {
     if (!items.length || isSubmittingRef.current) {
       return;
     }
@@ -178,13 +208,25 @@ export default function OrdersPage() {
     setCheckoutError("");
 
     try {
+      const customerNameValue = checkoutValues?.customerName ?? customerName;
+      const orderTypeValue = checkoutValues?.orderType ?? selectedOrderType;
+      const tableIdValue = checkoutValues?.tableId ?? null;
+      const tableLabelValue = checkoutValues?.tableLabel ?? null;
+      const paymentMode = resolvePaymentMode(paymentStrategy);
+
       const orderResponse = await fetch("/api/orders", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           ...getTenantHeaders(),
         },
-        body: JSON.stringify({ customerName }),
+        body: JSON.stringify({
+          customerName: customerNameValue,
+          orderType: orderTypeValue,
+          tableId: tableIdValue,
+          tableLabel: tableLabelValue,
+          paymentMode,
+        }),
       });
       if (!orderResponse.ok) {
         throw new Error(t("orderCreateError"));
@@ -213,16 +255,28 @@ export default function OrdersPage() {
           "Content-Type": "application/json",
           ...getTenantHeaders(),
         },
-        body: JSON.stringify({ customerName }),
+        body: JSON.stringify({
+          customerName: customerNameValue,
+          orderType: orderTypeValue,
+          tableId: tableIdValue,
+          tableLabel: tableLabelValue,
+          paymentMode,
+        }),
       });
       if (!sendResponse.ok) {
         throw new Error(t("sendKitchenError"));
       }
 
+      const orderTypeLabel =
+        orderTypes.find((type) => type.id === orderTypeValue)?.label || t("orderType");
+      const tableValue = orderTypeValue === "onTable"
+        ? tableLabelValue || t("notAssigned")
+        : customerNameValue || t("walkInCustomer");
+
       const ticketData = {
         orderNumber: normalizeOrderNumber(orderId),
-        tableLabel: `${t("table")} / ${t("customer")}`,
-        tableValue: customerName || t("walkInCustomer"),
+        tableLabel: orderTypeLabel,
+        tableValue,
         datetimeLabel: t("dateAndTime"),
         datetimeValue: new Date(order?.createdAt ?? Date.now()).toLocaleString(),
         items: items.map((item) => ({
@@ -235,7 +289,7 @@ export default function OrdersPage() {
           isHalfAndHalf: Boolean(item.isHalfAndHalf),
           halves: Array.isArray(item.halves) ? item.halves : [],
         })),
-        customerName,
+        customerName: customerNameValue,
         orderNotes: [],
         terminalLabel: t("terminal"),
         terminalValue: t("register"),
@@ -250,16 +304,32 @@ export default function OrdersPage() {
 
       setTicketPreview(ticketData);
       setTicketDialogOpen(true);
+      setCheckoutDialogOpen(false);
       clearOrder();
+      setSelectedOrderType("takeaway");
+      setSelectedTableId("");
     } catch (error) {
       setCheckoutError(error?.message || t("checkoutError"));
     } finally {
       isSubmittingRef.current = false;
       setIsSubmitting(false);
     }
-  }, [items, buildItemPayload, clearOrder, customerName]);
+  }, [items, buildItemPayload, clearOrder, customerName, selectedOrderType, paymentStrategy, orderTypes, t]);
 
+  const handleCheckoutRequest = useCallback(() => {
+    if (!items.length || isSubmittingRef.current) {
+      return;
+    }
+    setCheckoutError("");
+    setCheckoutDialogOpen(true);
+  }, [items]);
 
+  const handleCheckoutConfirm = useCallback((checkoutValues) => {
+    setCustomerName(checkoutValues?.customerName || "");
+    setSelectedOrderType(checkoutValues?.orderType || "takeaway");
+    setSelectedTableId(checkoutValues?.tableId || "");
+    handleCheckout(checkoutValues);
+  }, [handleCheckout, setCustomerName]);
 
   const compatibleHalfProducts = useMemo(
     () =>
@@ -290,7 +360,7 @@ export default function OrdersPage() {
       setSelectedHalfBaseProduct(product);
       setHalfSelectorOpen(true);
     },
-    [addItem, products]
+    [addItem, products, t]
   );
 
   const handleHalfAndHalfConfirm = useCallback(
@@ -323,17 +393,18 @@ export default function OrdersPage() {
     },
     [addItem, selectedHalfBaseProduct, updateNotes, halfAndHalfPricing]
   );
+
   useEffect(() => {
     const handleKeyDown = (event) => {
       if (event.key === "F2") {
         event.preventDefault();
-        handleCheckout();
+        handleCheckoutRequest();
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [handleCheckout]);
+  }, [handleCheckoutRequest]);
 
   return (
     <div className="flex flex-1 flex-col">
@@ -368,10 +439,8 @@ export default function OrdersPage() {
             onDecrease={decreaseQty}
             onRemove={removeItem}
             onUpdateNotes={updateNotes}
-            customerName={customerName}
-            onCustomerNameChange={setCustomerName}
             onClear={clearOrder}
-            onCheckout={handleCheckout}
+            onCheckout={handleCheckoutRequest}
             isSubmitting={isSubmitting}
             checkoutError={checkoutError}
           />
@@ -383,6 +452,18 @@ export default function OrdersPage() {
         onOpenChange={setTicketDialogOpen}
         ticket={ticketPreview}
         onPrint={() => window.print()}
+      />
+
+      <OrderCheckoutDialog
+        open={checkoutDialogOpen}
+        onOpenChange={setCheckoutDialogOpen}
+        orderTypes={orderTypes}
+        tables={tables}
+        isSubmitting={isSubmitting}
+        defaultCustomerName={customerName}
+        defaultOrderType={selectedOrderType || orderTypes[0]?.id || "takeaway"}
+        defaultTableId={selectedTableId}
+        onConfirm={handleCheckoutConfirm}
       />
 
       <HalfAndHalfQuickSelectorDialog

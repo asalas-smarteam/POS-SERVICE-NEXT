@@ -2,6 +2,7 @@ import { create } from "./zustand";
 import { getTenantHeaders } from "./tenantHeaders";
 import { DEFAULT_HALF_AND_HALF_PRICING, normalizeHalfAndHalfPricing } from "@/lib/tenant/halfAndHalfPricingSettings";
 import { DEFAULT_PAYMENT_STRATEGY, normalizePaymentStrategy } from "@/lib/tenant/paymentStrategySettings";
+import { DEFAULT_ORDER_TYPES, normalizeOrderTypes } from "@/lib/tenant/orderTypeSettings";
 
 const findCategorySetting = (settings = []) => {
   const normalized = Array.isArray(settings) ? settings : [];
@@ -68,6 +69,12 @@ const buildPaymentStrategy = (settings = []) => {
   return normalizePaymentStrategy(baseSetting?.data?.paymentStrategy || DEFAULT_PAYMENT_STRATEGY);
 };
 
+const buildOrderTypes = (settings = []) => {
+  const normalized = Array.isArray(settings) ? settings : [];
+  const baseSetting = normalized.find((setting) => setting?.description === "Settings");
+  return normalizeOrderTypes(baseSetting?.data?.orderTypes || DEFAULT_ORDER_TYPES);
+};
+
 const buildUnitData = (settings = []) => {
   const setting = findUnitsSetting(settings);
   const configuredUnits = Array.isArray(setting?.data?.ingredients)
@@ -89,6 +96,7 @@ export const useSettingsStore = create((set) => ({
   ingredientUnitLookup: buildUnitLookup(DEFAULT_INGREDIENT_UNITS),
   halfAndHalfPricing: DEFAULT_HALF_AND_HALF_PRICING,
   paymentStrategy: DEFAULT_PAYMENT_STRATEGY,
+  orderTypes: DEFAULT_ORDER_TYPES,
   loading: false,
   error: null,
   hasFetched: false,
@@ -109,6 +117,7 @@ export const useSettingsStore = create((set) => ({
       const unitData = buildUnitData(settings);
       const halfAndHalfPricing = buildHalfAndHalfPricing(settings);
       const paymentStrategy = buildPaymentStrategy(settings);
+      const orderTypes = buildOrderTypes(settings);
       set({
         settings,
         categories: categoryData.activeCategories,
@@ -117,6 +126,7 @@ export const useSettingsStore = create((set) => ({
         ingredientUnitLookup: unitData.ingredientUnitLookup,
         halfAndHalfPricing,
         paymentStrategy,
+        orderTypes,
         loading: false,
         error: null,
         hasFetched: true,

@@ -11,6 +11,10 @@ import {
   validatePaymentStrategy,
   normalizePaymentStrategy,
 } from '@/lib/tenant/paymentStrategySettings';
+import {
+  validateOrderTypes,
+  normalizeOrderTypes,
+} from '@/lib/tenant/orderTypeSettings';
 
 const isPlainObject = (value) =>
   Object.prototype.toString.call(value) === '[object Object]';
@@ -68,6 +72,9 @@ export async function PUT(req, { params }) {
       const hasPaymentStrategy =
         isPlainObject(nextData) &&
         Object.prototype.hasOwnProperty.call(nextData, 'paymentStrategy');
+      const hasOrderTypes =
+        isPlainObject(nextData) &&
+        Object.prototype.hasOwnProperty.call(nextData, 'orderTypes');
 
       if (hasHalfAndHalfPricing) {
         const validationError = validateHalfAndHalfPricing(nextData.halfAndHalfPricing);
@@ -83,6 +90,13 @@ export async function PUT(req, { params }) {
         }
       }
 
+      if (hasOrderTypes) {
+        const validationError = validateOrderTypes(nextData.orderTypes);
+        if (validationError) {
+          return NextResponse.json({ error: validationError }, { status: 400 });
+        }
+      }
+
       if (isPlainObject(nextData)) {
         nextData.halfAndHalfPricing = normalizeHalfAndHalfPricing(
           hasHalfAndHalfPricing
@@ -93,6 +107,11 @@ export async function PUT(req, { params }) {
           hasPaymentStrategy
             ? nextData.paymentStrategy
             : currentSettingsData.paymentStrategy
+        );
+        nextData.orderTypes = normalizeOrderTypes(
+          hasOrderTypes
+            ? nextData.orderTypes
+            : currentSettingsData.orderTypes
         );
       }
     }

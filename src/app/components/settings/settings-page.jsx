@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
+import { Trash2 } from "lucide-react";
 import { AppAlert } from "@/components/app-alert";
 import { AppSkeleton } from "@/components/app-skeleton";
 import { AppSpinner } from "@/components/app-spinner";
@@ -14,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getTenantHeaders } from "../../../store/tenantHeaders";
 import { DEFAULT_PAYMENT_STRATEGY, normalizePaymentStrategy } from "@/lib/tenant/paymentStrategySettings";
+import { DEFAULT_ORDER_TYPES, normalizeOrderTypes } from "@/lib/tenant/orderTypeSettings";
 
 const cloneData = (value) => JSON.parse(JSON.stringify(value));
 
@@ -60,6 +62,9 @@ export function SettingsPage() {
   const [editorData, setEditorData] = useState(null);
   const [halfAndHalfPricing, setHalfAndHalfPricing] = useState(DEFAULT_HALF_AND_HALF_PRICING);
   const [paymentStrategy, setPaymentStrategy] = useState(DEFAULT_PAYMENT_STRATEGY);
+  const [orderTypes, setOrderTypes] = useState(DEFAULT_ORDER_TYPES);
+  const [newOrderTypeId, setNewOrderTypeId] = useState("");
+  const [newOrderTypeLabel, setNewOrderTypeLabel] = useState("");
 
   const fetchSettings = useCallback(async () => {
     setLoading(true);
@@ -97,6 +102,7 @@ export function SettingsPage() {
   useEffect(() => {
     setHalfAndHalfPricing(normalizePricingForm(baseSettings?.data?.halfAndHalfPricing));
     setPaymentStrategy(normalizePaymentStrategy(baseSettings?.data?.paymentStrategy));
+    setOrderTypes(normalizeOrderTypes(baseSettings?.data?.orderTypes));
   }, [baseSettings]);
 
   const handleOpenEdit = (setting) => {
@@ -233,6 +239,83 @@ export function SettingsPage() {
     }
   };
 
+  const handleAddOrderType = () => {
+    const nextId = newOrderTypeId.trim();
+    const nextLabel = newOrderTypeLabel.trim();
+    if (!nextId || !nextLabel) {
+      return;
+    }
+
+    const alreadyExists = orderTypes.some((type) => type.id === nextId);
+    if (alreadyExists) {
+      setGlobalAlert({ type: "error", message: t("orderTypeDuplicated") });
+      return;
+    }
+
+    setOrderTypes((current) => [...current, { id: nextId, label: nextLabel, isDefault: false }]);
+    setNewOrderTypeId("");
+    setNewOrderTypeLabel("");
+  };
+
+  const handleRemoveOrderType = (id) => {
+    setOrderTypes((current) => current.filter((type) => type.id !== id || type.isDefault));
+  };
+
+  const handleOrderTypeLabelChange = (id, label) => {
+    setOrderTypes((current) =>
+      current.map((type) => (type.id === id ? { ...type, label } : type))
+    );
+  };
+
+  const handleOrderTypesSave = async () => {
+    if (!baseSettings?._id) {
+      setGlobalAlert({ type: "error", message: t("settingsUnavailable") });
+      return;
+    }
+
+    const normalizedOrderTypes = normalizeOrderTypes(orderTypes);
+    const hasInvalidLabel = normalizedOrderTypes.some((type) => !String(type.label || "").trim());
+
+    if (hasInvalidLabel) {
+      setGlobalAlert({ type: "error", message: t("orderTypeLabelRequired") });
+      return;
+    }
+
+    const data = {
+      ...(baseSettings?.data && typeof baseSettings.data === "object" && !Array.isArray(baseSettings.data)
+        ? baseSettings.data
+        : {}),
+      orderTypes: normalizedOrderTypes,
+    };
+
+    setPricingSaving(true);
+    try {
+      const response = await fetch(`/api/settings/${baseSettings._id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          ...getTenantHeaders(),
+        },
+        body: JSON.stringify({ data }),
+      });
+
+      const body = await response.json();
+      if (!response.ok) {
+        throw new Error(body?.error || t("orderTypesSaveError"));
+      }
+
+      setGlobalAlert({ type: "success", message: t("orderTypesSaved") });
+      await fetchSettings();
+    } catch (saveError) {
+      setGlobalAlert({
+        type: "error",
+        message: saveError?.message || t("orderTypesSaveError"),
+      });
+    } finally {
+      setPricingSaving(false);
+    }
+  };
+
   return (
     <div className="flex flex-1 flex-col">
       <div className="@container/main flex flex-1 flex-col gap-4 px-4 py-6 lg:px-6">
@@ -345,6 +428,65 @@ export function SettingsPage() {
                 </div>
 
                 <Button onClick={handlePaymentStrategySave} disabled={pricingSaving}>
+                  {pricingSaving ? (
+                    <span className="inline-flex items-center gap-2">
+                      <AppSpinner inline size={16} />
+                      {t("saving")}
+                    </span>
+                  ) : (
+                    t("save")
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>{t("orderTypesTitle")}</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-muted-foreground">{t("orderTypesHelp")}</p>
+
+                <div className="space-y-2">
+                  {orderTypes.map((type) => (
+                    <div key={type.id} className="grid gap-2 rounded-md border p-3 md:grid-cols-[200px_1fr_auto]">
+                      <Input value={type.id} disabled />
+                      <Input
+                        value={type.label}
+                        onChange={(event) => handleOrderTypeLabelChange(type.id, event.target.value)}
+                        placeholder={t("orderTypeLabelPlaceholder")}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        disabled={type.isDefault}
+                        onClick={() => handleRemoveOrderType(type.id)}
+                        aria-label={t("deleteRow")}
+                      >
+                        <Trash2 className="size-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="grid gap-2 rounded-md border border-dashed p-3 md:grid-cols-[200px_1fr_auto]">
+                  <Input
+                    value={newOrderTypeId}
+                    onChange={(event) => setNewOrderTypeId(event.target.value)}
+                    placeholder={t("orderTypeIdPlaceholder")}
+                  />
+                  <Input
+                    value={newOrderTypeLabel}
+                    onChange={(event) => setNewOrderTypeLabel(event.target.value)}
+                    placeholder={t("orderTypeLabelPlaceholder")}
+                  />
+                  <Button type="button" variant="secondary" onClick={handleAddOrderType}>
+                    {t("addRow")}
+                  </Button>
+                </div>
+
+                <Button onClick={handleOrderTypesSave} disabled={pricingSaving}>
                   {pricingSaving ? (
                     <span className="inline-flex items-center gap-2">
                       <AppSpinner inline size={16} />
