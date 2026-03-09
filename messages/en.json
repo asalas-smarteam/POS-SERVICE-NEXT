@@ -448,7 +448,18 @@
     "chargeHighestPrice": "Charge highest price",
     "chargeAveragePrice": "Charge average price",
     "chargeHighestPlusFee": "Charge highest price + extra fee",
-    "updateTenantValues": "Update values for this tenant setting."
+    "updateTenantValues": "Update values for this tenant setting.",
+    "paymentStrategyTitle": "Table Payment Strategy",
+    "paymentStrategyLabel": "When to charge in floor/table flow",
+    "paymentStrategyPlaceholder": "Select a payment strategy",
+    "paymentStrategyPayNow": "Charge when creating order",
+    "paymentStrategyPayAfterMeal": "Charge after meal",
+    "paymentStrategyCashierChoice": "Cashier decides per order",
+    "paymentStrategyPayNowHelp": "Each table order is charged immediately when it is created.",
+    "paymentStrategyPayAfterMealHelp": "Table orders stay open and payment happens at the end of service.",
+    "paymentStrategyCashierChoiceHelp": "For each order, cashier decides whether to charge now or later.",
+    "paymentStrategySaveError": "Unable to save payment strategy.",
+    "paymentStrategySaved": "Payment strategy saved."
   },
   "Floor": {
     "table": "Table",

@@ -8,6 +8,7 @@ const AUTH_ROUTES = [
   "products",
   "ingredients",
   "settings",
+  "floor",
 ];
 
 const normalizePath = (path = "") => {

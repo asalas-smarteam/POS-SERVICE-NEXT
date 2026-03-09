@@ -448,7 +448,18 @@
     "chargeHighestPrice": "Cobrar el precio más alto",
     "chargeAveragePrice": "Cobrar el precio promedio",
     "chargeHighestPlusFee": "Cobrar el precio más alto + cargo extra",
-    "updateTenantValues": "Actualiza los valores de esta configuración del tenant."
+    "updateTenantValues": "Actualiza los valores de esta configuración del tenant.",
+    "paymentStrategyTitle": "Estrategia de cobro en mesas",
+    "paymentStrategyLabel": "Cuándo cobrar en el flujo de floor/mesa",
+    "paymentStrategyPlaceholder": "Selecciona una estrategia de cobro",
+    "paymentStrategyPayNow": "Cobrar al crear la orden",
+    "paymentStrategyPayAfterMeal": "Cobrar después de comer",
+    "paymentStrategyCashierChoice": "Decisión del cajero por orden",
+    "paymentStrategyPayNowHelp": "Cada orden de mesa se cobra inmediatamente al momento de crearla.",
+    "paymentStrategyPayAfterMealHelp": "Las órdenes de mesa quedan abiertas y se cobran al finalizar el servicio.",
+    "paymentStrategyCashierChoiceHelp": "En cada orden, la caja elige si cobrar ahora o dejar pago pendiente.",
+    "paymentStrategySaveError": "No se pudo guardar la estrategia de cobro.",
+    "paymentStrategySaved": "Estrategia de cobro guardada."
   },
   "Floor": {
     "table": "Mesa",

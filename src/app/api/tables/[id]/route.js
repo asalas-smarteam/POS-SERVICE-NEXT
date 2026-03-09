@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { resolveTenant } from '@/lib/tenant/resolveTenant';
+import { authorizeRequest } from '@/lib/security/authorizeRequest';
 import { getTenantConnection } from '@/lib/db/connections';
 import { TableModel } from '@/models/tenant/Table';
 
@@ -52,6 +53,7 @@ function buildUpdatePayload(body = {}) {
 
 export async function PATCH(req, { params }) {
   try {
+    await authorizeRequest(req, 'floor');
     const { id } = await params;
 
     if (!id) {

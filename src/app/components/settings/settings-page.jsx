@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getTenantHeaders } from "../../../store/tenantHeaders";
+import { DEFAULT_PAYMENT_STRATEGY, normalizePaymentStrategy } from "@/lib/tenant/paymentStrategySettings";
 
 const cloneData = (value) => JSON.parse(JSON.stringify(value));
 
@@ -26,6 +27,11 @@ const DEFAULT_HALF_AND_HALF_PRICING = {
   strategy: "HIGHEST",
   extraAmount: 0,
 };
+const PAYMENT_STRATEGY_OPTIONS = [
+  { value: "pay_now", labelKey: "paymentStrategyPayNow", descriptionKey: "paymentStrategyPayNowHelp" },
+  { value: "pay_after_meal", labelKey: "paymentStrategyPayAfterMeal", descriptionKey: "paymentStrategyPayAfterMealHelp" },
+  { value: "cashier_choice", labelKey: "paymentStrategyCashierChoice", descriptionKey: "paymentStrategyCashierChoiceHelp" },
+];
 
 const normalizePricingForm = (value) => {
   const strategy = PRICING_STRATEGY_OPTIONS.some((option) => option.value === value?.strategy)
@@ -53,6 +59,7 @@ export function SettingsPage() {
   const [selectedSetting, setSelectedSetting] = useState(null);
   const [editorData, setEditorData] = useState(null);
   const [halfAndHalfPricing, setHalfAndHalfPricing] = useState(DEFAULT_HALF_AND_HALF_PRICING);
+  const [paymentStrategy, setPaymentStrategy] = useState(DEFAULT_PAYMENT_STRATEGY);
 
   const fetchSettings = useCallback(async () => {
     setLoading(true);
@@ -76,7 +83,7 @@ export function SettingsPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     fetchSettings();
@@ -89,6 +96,7 @@ export function SettingsPage() {
 
   useEffect(() => {
     setHalfAndHalfPricing(normalizePricingForm(baseSettings?.data?.halfAndHalfPricing));
+    setPaymentStrategy(normalizePaymentStrategy(baseSettings?.data?.paymentStrategy));
   }, [baseSettings]);
 
   const handleOpenEdit = (setting) => {
@@ -182,6 +190,49 @@ export function SettingsPage() {
     }
   };
 
+  const handlePaymentStrategySave = async () => {
+    if (!baseSettings?._id) {
+      setGlobalAlert({ type: "error", message: t("settingsUnavailable") });
+      return;
+    }
+
+    const normalizedPaymentStrategy = normalizePaymentStrategy(paymentStrategy);
+
+    const data = {
+      ...(baseSettings?.data && typeof baseSettings.data === "object" && !Array.isArray(baseSettings.data)
+        ? baseSettings.data
+        : {}),
+      paymentStrategy: normalizedPaymentStrategy,
+    };
+
+    setPricingSaving(true);
+    try {
+      const response = await fetch(`/api/settings/${baseSettings._id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          ...getTenantHeaders(),
+        },
+        body: JSON.stringify({ data }),
+      });
+
+      const body = await response.json();
+      if (!response.ok) {
+        throw new Error(body?.error || t("paymentStrategySaveError"));
+      }
+
+      setGlobalAlert({ type: "success", message: t("paymentStrategySaved") });
+      await fetchSettings();
+    } catch (saveError) {
+      setGlobalAlert({
+        type: "error",
+        message: saveError?.message || t("paymentStrategySaveError"),
+      });
+    } finally {
+      setPricingSaving(false);
+    }
+  };
+
   return (
     <div className="flex flex-1 flex-col">
       <div className="@container/main flex flex-1 flex-col gap-4 px-4 py-6 lg:px-6">
@@ -251,6 +302,49 @@ export function SettingsPage() {
                 ) : null}
 
                 <Button onClick={handleHalfAndHalfSave} disabled={pricingSaving}>
+                  {pricingSaving ? (
+                    <span className="inline-flex items-center gap-2">
+                      <AppSpinner inline size={16} />
+                      {t("saving")}
+                    </span>
+                  ) : (
+                    t("save")
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>{t("paymentStrategyTitle")}</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="payment-strategy">{t("paymentStrategyLabel")}</Label>
+                  <Select value={paymentStrategy} onValueChange={setPaymentStrategy}>
+                    <SelectTrigger id="payment-strategy" className="max-w-md">
+                      <SelectValue placeholder={t("paymentStrategyPlaceholder")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PAYMENT_STRATEGY_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {t(option.labelKey)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2 text-sm text-muted-foreground">
+                  {PAYMENT_STRATEGY_OPTIONS.map((option) => (
+                    <p key={option.value}>
+                      <span className="font-medium text-foreground">{t(option.labelKey)}:</span>{" "}
+                      {t(option.descriptionKey)}
+                    </p>
+                  ))}
+                </div>
+
+                <Button onClick={handlePaymentStrategySave} disabled={pricingSaving}>
                   {pricingSaving ? (
                     <span className="inline-flex items-center gap-2">
                       <AppSpinner inline size={16} />

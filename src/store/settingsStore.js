@@ -1,6 +1,7 @@
 import { create } from "./zustand";
 import { getTenantHeaders } from "./tenantHeaders";
 import { DEFAULT_HALF_AND_HALF_PRICING, normalizeHalfAndHalfPricing } from "@/lib/tenant/halfAndHalfPricingSettings";
+import { DEFAULT_PAYMENT_STRATEGY, normalizePaymentStrategy } from "@/lib/tenant/paymentStrategySettings";
 
 const findCategorySetting = (settings = []) => {
   const normalized = Array.isArray(settings) ? settings : [];
@@ -61,6 +62,12 @@ const buildHalfAndHalfPricing = (settings = []) => {
   return normalizeHalfAndHalfPricing(baseSetting?.data?.halfAndHalfPricing || DEFAULT_HALF_AND_HALF_PRICING);
 };
 
+const buildPaymentStrategy = (settings = []) => {
+  const normalized = Array.isArray(settings) ? settings : [];
+  const baseSetting = normalized.find((setting) => setting?.description === "Settings");
+  return normalizePaymentStrategy(baseSetting?.data?.paymentStrategy || DEFAULT_PAYMENT_STRATEGY);
+};
+
 const buildUnitData = (settings = []) => {
   const setting = findUnitsSetting(settings);
   const configuredUnits = Array.isArray(setting?.data?.ingredients)
@@ -81,6 +88,7 @@ export const useSettingsStore = create((set) => ({
   ingredientUnits: DEFAULT_INGREDIENT_UNITS,
   ingredientUnitLookup: buildUnitLookup(DEFAULT_INGREDIENT_UNITS),
   halfAndHalfPricing: DEFAULT_HALF_AND_HALF_PRICING,
+  paymentStrategy: DEFAULT_PAYMENT_STRATEGY,
   loading: false,
   error: null,
   hasFetched: false,
@@ -100,6 +108,7 @@ export const useSettingsStore = create((set) => ({
       const categoryData = buildCategoryData(settings);
       const unitData = buildUnitData(settings);
       const halfAndHalfPricing = buildHalfAndHalfPricing(settings);
+      const paymentStrategy = buildPaymentStrategy(settings);
       set({
         settings,
         categories: categoryData.activeCategories,
@@ -107,6 +116,7 @@ export const useSettingsStore = create((set) => ({
         ingredientUnits: unitData.ingredientUnits,
         ingredientUnitLookup: unitData.ingredientUnitLookup,
         halfAndHalfPricing,
+        paymentStrategy,
         loading: false,
         error: null,
         hasFetched: true,

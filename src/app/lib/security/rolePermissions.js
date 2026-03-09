@@ -7,8 +7,9 @@ export const ROLE_PERMISSIONS = {
     "ingredients",
     "users",
     "settings",
+    "floor",
   ],
-  cashier: ["dashboard", "orders"],
+  cashier: ["dashboard", "orders", "floor"],
   kitchen: ["dashboard", "kitchen"],
 };
 

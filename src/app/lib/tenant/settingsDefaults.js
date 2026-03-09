@@ -3,6 +3,10 @@ import {
   DEFAULT_HALF_AND_HALF_PRICING,
   normalizeHalfAndHalfPricing,
 } from '@/lib/tenant/halfAndHalfPricingSettings';
+import {
+  DEFAULT_PAYMENT_STRATEGY,
+  normalizePaymentStrategy,
+} from '@/lib/tenant/paymentStrategySettings';
 
 export const TENANT_SETTINGS_DEFAULTS = [
   {
@@ -14,6 +18,7 @@ export const TENANT_SETTINGS_DEFAULTS = [
         decimals: 0,
       },
       halfAndHalfPricing: DEFAULT_HALF_AND_HALF_PRICING,
+      paymentStrategy: DEFAULT_PAYMENT_STRATEGY,
     },
   },
   {
@@ -86,6 +91,7 @@ function enforceSettingsDefaults(setting) {
   const nextData = {
     ...currentData,
     halfAndHalfPricing: normalizeHalfAndHalfPricing(currentData.halfAndHalfPricing),
+    paymentStrategy: normalizePaymentStrategy(currentData.paymentStrategy),
   };
 
   setting.data = nextData;

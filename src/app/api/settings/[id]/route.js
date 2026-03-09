@@ -7,6 +7,10 @@ import {
   validateHalfAndHalfPricing,
   normalizeHalfAndHalfPricing,
 } from '@/lib/tenant/halfAndHalfPricingSettings';
+import {
+  validatePaymentStrategy,
+  normalizePaymentStrategy,
+} from '@/lib/tenant/paymentStrategySettings';
 
 const isPlainObject = (value) =>
   Object.prototype.toString.call(value) === '[object Object]';
@@ -61,9 +65,19 @@ export async function PUT(req, { params }) {
       const hasHalfAndHalfPricing =
         isPlainObject(nextData) &&
         Object.prototype.hasOwnProperty.call(nextData, 'halfAndHalfPricing');
+      const hasPaymentStrategy =
+        isPlainObject(nextData) &&
+        Object.prototype.hasOwnProperty.call(nextData, 'paymentStrategy');
 
       if (hasHalfAndHalfPricing) {
         const validationError = validateHalfAndHalfPricing(nextData.halfAndHalfPricing);
+        if (validationError) {
+          return NextResponse.json({ error: validationError }, { status: 400 });
+        }
+      }
+
+      if (hasPaymentStrategy) {
+        const validationError = validatePaymentStrategy(nextData.paymentStrategy);
         if (validationError) {
           return NextResponse.json({ error: validationError }, { status: 400 });
         }
@@ -74,6 +88,11 @@ export async function PUT(req, { params }) {
           hasHalfAndHalfPricing
             ? nextData.halfAndHalfPricing
             : currentSettingsData.halfAndHalfPricing
+        );
+        nextData.paymentStrategy = normalizePaymentStrategy(
+          hasPaymentStrategy
+            ? nextData.paymentStrategy
+            : currentSettingsData.paymentStrategy
         );
       }
     }

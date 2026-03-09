@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { resolveTenant } from '@/lib/tenant/resolveTenant';
+import { authorizeRequest } from '@/lib/security/authorizeRequest';
 import { getTenantConnection } from '@/lib/db/connections';
 import { TableModel } from '@/models/tenant/Table';
 
@@ -35,6 +36,7 @@ function validateTablePayload(payload = {}) {
 
 export async function GET(req) {
   try {
+    await authorizeRequest(req, 'floor');
     const tenant = await resolveTenant(req);
     const conn = await getTenantConnection(tenant.dbName);
     const Table = TableModel(conn);
@@ -49,6 +51,7 @@ export async function GET(req) {
 
 export async function POST(req) {
   try {
+    await authorizeRequest(req, 'floor');
     const tenant = await resolveTenant(req);
     const conn = await getTenantConnection(tenant.dbName);
     const Table = TableModel(conn);
