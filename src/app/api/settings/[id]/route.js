@@ -4,26 +4,18 @@ import { authorizeRequest } from '@/lib/security/authorizeRequest';
 import { getTenantConnection } from '@/lib/db/connections';
 import { TenantSettingModel } from '@/models/tenant/TenantSetting';
 import {
-  HALF_AND_HALF_PRICING_DEFAULT_DESCRIPTION,
+  HALF_AND_HALF_PRICING_STRATEGIES,
   validateHalfAndHalfPricing,
   normalizeHalfAndHalfPricing,
 } from '@/lib/tenant/halfAndHalfPricingSettings';
 import {
-  PAYMENT_STRATEGY_OPTIONS_DESCRIPTION,
   validatePaymentStrategy,
   normalizePaymentStrategy,
-  normalizePaymentStrategyOptions,
-  validatePaymentStrategyOptions,
 } from '@/lib/tenant/paymentStrategySettings';
 import {
   validateOrderTypes,
   normalizeOrderTypes,
 } from '@/lib/tenant/orderTypeSettings';
-import {
-  PRICING_STRATEGY_OPTIONS_DESCRIPTION,
-  validatePricingStrategyOptions,
-  normalizePricingStrategyOptions,
-} from '@/lib/tenant/pricingStrategySettings';
 
 const isPlainObject = (value) =>
   Object.prototype.toString.call(value) === '[object Object]';
@@ -73,14 +65,7 @@ export async function PUT(req, { params }) {
       );
     }
 
-    const [pricingStrategyOptionsSetting, paymentStrategyOptionsSetting] = await Promise.all([
-      TenantSetting.findOne({ description: PRICING_STRATEGY_OPTIONS_DESCRIPTION }).lean(),
-      TenantSetting.findOne({ description: PAYMENT_STRATEGY_OPTIONS_DESCRIPTION }).lean(),
-    ]);
-    const pricingStrategies = normalizePricingStrategyOptions(pricingStrategyOptionsSetting?.data).map(
-      (option) => option.value
-    );
-    const paymentStrategyOptions = normalizePaymentStrategyOptions(paymentStrategyOptionsSetting?.data);
+    const pricingStrategies = HALF_AND_HALF_PRICING_STRATEGIES;
 
     if (existing.description === 'Settings') {
       const currentSettingsData = isPlainObject(existing.data) ? existing.data : {};
@@ -102,7 +87,7 @@ export async function PUT(req, { params }) {
       }
 
       if (hasPaymentStrategy) {
-        const validationError = validatePaymentStrategy(nextData.paymentStrategy, paymentStrategyOptions);
+        const validationError = validatePaymentStrategy(nextData.paymentStrategy);
         if (validationError) {
           return NextResponse.json({ error: validationError }, { status: 400 });
         }
@@ -125,8 +110,7 @@ export async function PUT(req, { params }) {
         nextData.paymentStrategy = normalizePaymentStrategy(
           hasPaymentStrategy
             ? nextData.paymentStrategy
-            : currentSettingsData.paymentStrategy,
-          paymentStrategyOptions
+            : currentSettingsData.paymentStrategy
         );
         nextData.orderTypes = normalizeOrderTypes(
           hasOrderTypes
@@ -134,36 +118,6 @@ export async function PUT(req, { params }) {
             : currentSettingsData.orderTypes
         );
       }
-    }
-
-    if (existing.description === HALF_AND_HALF_PRICING_DEFAULT_DESCRIPTION) {
-      const validationError = validateHalfAndHalfPricing(nextData, pricingStrategies);
-      if (validationError) {
-        return NextResponse.json({ error: validationError }, { status: 400 });
-      }
-      existing.data = normalizeHalfAndHalfPricing(nextData, pricingStrategies);
-      await existing.save();
-      return NextResponse.json(existing);
-    }
-
-    if (existing.description === PRICING_STRATEGY_OPTIONS_DESCRIPTION) {
-      const validationError = validatePricingStrategyOptions(nextData);
-      if (validationError) {
-        return NextResponse.json({ error: validationError }, { status: 400 });
-      }
-      existing.data = normalizePricingStrategyOptions(nextData);
-      await existing.save();
-      return NextResponse.json(existing);
-    }
-
-    if (existing.description === PAYMENT_STRATEGY_OPTIONS_DESCRIPTION) {
-      const validationError = validatePaymentStrategyOptions(nextData);
-      if (validationError) {
-        return NextResponse.json({ error: validationError }, { status: 400 });
-      }
-      existing.data = normalizePaymentStrategyOptions(nextData);
-      await existing.save();
-      return NextResponse.json(existing);
     }
 
     existing.data = nextData;

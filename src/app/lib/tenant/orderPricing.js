@@ -1,10 +1,10 @@
 import { ProductModel } from '@/models/tenant/Product';
-import { TenantSettingModel } from '@/models/tenant/TenantSetting';
 import { calculateOrderItemUnitPrice } from '@/lib/pricing/halfAndHalfPricing';
 import {
   DEFAULT_HALF_AND_HALF_PRICING,
   normalizeHalfAndHalfPricing,
 } from '@/lib/tenant/halfAndHalfPricingSettings';
+import { getSystemSettings } from '@/lib/tenant/systemSettings';
 
 function toObjectIdString(value) {
   if (!value) return '';
@@ -31,12 +31,10 @@ function normalizeStringArray(value) {
 }
 
 export async function getTenantHalfAndHalfPricing(conn) {
-  const TenantSetting = TenantSettingModel(conn);
-
-  const settings = await TenantSetting.findOne({ description: 'Settings' }).lean();
+  const settings = await getSystemSettings(conn);
 
   return normalizeHalfAndHalfPricing(
-    settings?.data?.halfAndHalfPricing || DEFAULT_HALF_AND_HALF_PRICING,
+    settings?.halfAndHalfPricing || DEFAULT_HALF_AND_HALF_PRICING,
   );
 }
 

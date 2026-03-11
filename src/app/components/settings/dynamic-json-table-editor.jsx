@@ -7,6 +7,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -33,7 +40,39 @@ const parseInputValue = (input, previous) => {
   return input;
 };
 
-function PrimitiveObjectEditor({ data, onChange, t }) {
+const PAYMENT_STRATEGY_SELECT_OPTIONS = [
+  { value: "pay_now", labelKey: "paymentStrategyPayNow" },
+  { value: "pay_after_meal", labelKey: "paymentStrategyPayAfterMeal" },
+  { value: "cashier_choice", labelKey: "paymentStrategyCashierChoice" },
+];
+
+const PRICING_STRATEGY_SELECT_OPTIONS = [
+  { value: "HIGHEST", labelKey: "chargeHighestPrice" },
+  { value: "AVERAGE", labelKey: "chargeAveragePrice" },
+  { value: "BASE_PLUS", labelKey: "chargeHighestPlusFee" },
+];
+
+const renderSelectInput = ({ value, placeholder, options, onValueChange, t }) => {
+  const normalizedValue = toInputValue(value);
+  const hasValue = options.some((option) => option.value === normalizedValue);
+
+  return (
+    <Select value={hasValue ? normalizedValue : undefined} onValueChange={onValueChange}>
+      <SelectTrigger className="w-full">
+        <SelectValue placeholder={placeholder} />
+      </SelectTrigger>
+      <SelectContent>
+        {options.map((option) => (
+          <SelectItem key={option.value} value={option.value}>
+            {t(option.labelKey)}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+};
+
+function PrimitiveObjectEditor({ data, onChange, t, parentKey = "" }) {
   const entries = Object.entries(data ?? {});
 
   return (
@@ -55,6 +94,18 @@ function PrimitiveObjectEditor({ data, onChange, t }) {
                     checked={value}
                     onCheckedChange={(checked) => onChange({ ...data, [key]: Boolean(checked) })}
                   />
+                ) : parentKey === "halfAndHalfPricing" && key === "strategy" ? (
+                  renderSelectInput({
+                    value,
+                    placeholder: t("selectPricingStrategy"),
+                    options: PRICING_STRATEGY_SELECT_OPTIONS,
+                    onValueChange: (nextValue) =>
+                      onChange({
+                        ...data,
+                        [key]: nextValue,
+                      }),
+                    t,
+                  })
                 ) : (
                   <Input
                     value={toInputValue(value)}
@@ -218,7 +269,20 @@ export function DynamicJsonTableEditor({ data, onChange }) {
                   data={sectionValue}
                   onChange={(nextSection) => onChange({ ...data, [sectionKey]: nextSection })}
                   t={t}
+                  parentKey={sectionKey}
                 />
+            ) : sectionKey === "paymentStrategy" ? (
+              renderSelectInput({
+                value: sectionValue,
+                placeholder: t("paymentStrategyPlaceholder"),
+                options: PAYMENT_STRATEGY_SELECT_OPTIONS,
+                onValueChange: (nextValue) =>
+                  onChange({
+                    ...data,
+                    [sectionKey]: nextValue,
+                  }),
+                t,
+              })
             ) : (
               <Input
                 value={toInputValue(sectionValue)}

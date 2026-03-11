@@ -2,38 +2,17 @@ import { TenantSettingModel } from '@/models/tenant/TenantSetting';
 import {
   DEFAULT_HALF_AND_HALF_PRICING,
   normalizeHalfAndHalfPricing,
-  HALF_AND_HALF_PRICING_DEFAULT_DESCRIPTION,
 } from '@/lib/tenant/halfAndHalfPricingSettings';
 import {
   DEFAULT_PAYMENT_STRATEGY,
   normalizePaymentStrategy,
-  DEFAULT_PAYMENT_STRATEGY_OPTIONS,
-  PAYMENT_STRATEGY_OPTIONS_DESCRIPTION,
-  normalizePaymentStrategyOptions,
 } from '@/lib/tenant/paymentStrategySettings';
 import {
   DEFAULT_ORDER_TYPES,
   normalizeOrderTypes,
 } from '@/lib/tenant/orderTypeSettings';
-import {
-  DEFAULT_PRICING_STRATEGY_OPTIONS,
-  normalizePricingStrategyOptions,
-  PRICING_STRATEGY_OPTIONS_DESCRIPTION,
-} from '@/lib/tenant/pricingStrategySettings';
 
 export const TENANT_SETTINGS_DEFAULTS = [
-  {
-    description: PRICING_STRATEGY_OPTIONS_DESCRIPTION,
-    data: DEFAULT_PRICING_STRATEGY_OPTIONS,
-  },
-  {
-    description: HALF_AND_HALF_PRICING_DEFAULT_DESCRIPTION,
-    data: DEFAULT_HALF_AND_HALF_PRICING,
-  },
-  {
-    description: PAYMENT_STRATEGY_OPTIONS_DESCRIPTION,
-    data: DEFAULT_PAYMENT_STRATEGY_OPTIONS,
-  },
   {
     description: 'Settings',
     data: {
@@ -90,24 +69,9 @@ export async function ensureDefaultSettings(conn) {
 
   const settings = await TenantSetting.find().sort({ createdAt: 1 });
 
-  const pricingStrategySetting = settings.find(
-    (setting) => setting?.description === PRICING_STRATEGY_OPTIONS_DESCRIPTION
-  );
-  const paymentStrategyOptionsSetting = settings.find(
-    (setting) => setting?.description === PAYMENT_STRATEGY_OPTIONS_DESCRIPTION
-  );
-
-  const pricingStrategyValues = normalizePricingStrategyOptions(pricingStrategySetting?.data).map(
-    (option) => option.value
-  );
-  const paymentStrategyOptions = normalizePaymentStrategyOptions(paymentStrategyOptionsSetting?.data);
-
   const normalizedSettings = await Promise.all(
     settings.map(async (setting) => {
-      const normalized = enforceSettingsDefaults(setting, {
-        pricingStrategyValues,
-        paymentStrategyOptions,
-      });
+      const normalized = enforceSettingsDefaults(setting);
       if (normalized?.isModified?.()) {
         await normalized.save();
       }
@@ -119,30 +83,8 @@ export async function ensureDefaultSettings(conn) {
 }
 
 
-function enforceSettingsDefaults(setting, context = {}) {
+function enforceSettingsDefaults(setting) {
   if (!setting) {
-    return setting;
-  }
-
-  const pricingStrategyValues = Array.isArray(context.pricingStrategyValues)
-    ? context.pricingStrategyValues
-    : undefined;
-  const paymentStrategyOptions = Array.isArray(context.paymentStrategyOptions)
-    ? context.paymentStrategyOptions
-    : undefined;
-
-  if (setting.description === PRICING_STRATEGY_OPTIONS_DESCRIPTION) {
-    setting.data = normalizePricingStrategyOptions(setting.data);
-    return setting;
-  }
-
-  if (setting.description === HALF_AND_HALF_PRICING_DEFAULT_DESCRIPTION) {
-    setting.data = normalizeHalfAndHalfPricing(setting.data, pricingStrategyValues);
-    return setting;
-  }
-
-  if (setting.description === PAYMENT_STRATEGY_OPTIONS_DESCRIPTION) {
-    setting.data = normalizePaymentStrategyOptions(setting.data);
     return setting;
   }
 
@@ -157,8 +99,8 @@ function enforceSettingsDefaults(setting, context = {}) {
 
   const nextData = {
     ...currentData,
-    halfAndHalfPricing: normalizeHalfAndHalfPricing(currentData.halfAndHalfPricing, pricingStrategyValues),
-    paymentStrategy: normalizePaymentStrategy(currentData.paymentStrategy, paymentStrategyOptions),
+    halfAndHalfPricing: normalizeHalfAndHalfPricing(currentData.halfAndHalfPricing),
+    paymentStrategy: normalizePaymentStrategy(currentData.paymentStrategy),
     orderTypes: normalizeOrderTypes(currentData.orderTypes),
   };
 

@@ -1,5 +1,3 @@
-export const PRICING_STRATEGY_OPTIONS_DESCRIPTION = 'Pricing Strategy Options';
-
 export const DEFAULT_PRICING_STRATEGY_OPTIONS = [
   { value: 'HIGHEST', labelKey: 'chargeHighestPrice' },
   { value: 'AVERAGE', labelKey: 'chargeAveragePrice' },
@@ -43,17 +41,4 @@ export function normalizePricingStrategyOptions(value) {
 
 export function getPricingStrategyValues(value) {
   return normalizePricingStrategyOptions(value).map((option) => option.value);
-}
-
-export function validatePricingStrategyOptions(value) {
-  if (!Array.isArray(value)) {
-    return 'pricingStrategyOptions must be an array';
-  }
-
-  const normalized = normalizePricingStrategyOptions(value);
-  if (!normalized.length) {
-    return 'pricingStrategyOptions must contain at least one option';
-  }
-
-  return null;
 }

@@ -1,5 +1,3 @@
-export const HALF_AND_HALF_PRICING_DEFAULT_DESCRIPTION = 'Half And Half Pricing Default';
-
 export const HALF_AND_HALF_PRICING_STRATEGIES = ['HIGHEST', 'AVERAGE', 'BASE_PLUS'];
 
 export const DEFAULT_HALF_AND_HALF_PRICING = {

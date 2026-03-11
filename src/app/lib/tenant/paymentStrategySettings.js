@@ -1,5 +1,3 @@
-export const PAYMENT_STRATEGY_OPTIONS_DESCRIPTION = 'Payment Strategy Options';
-
 export const DEFAULT_PAYMENT_STRATEGY_OPTIONS = [
   {
     value: 'pay_now',
@@ -117,19 +115,6 @@ export function validatePaymentStrategy(value, options = DEFAULT_PAYMENT_STRATEG
   const allowedValues = getPaymentStrategies(options);
   if (!allowedValues.includes(value)) {
     return `paymentStrategy must be one of ${allowedValues.join(', ')}`;
-  }
-
-  return null;
-}
-
-export function validatePaymentStrategyOptions(value) {
-  if (!Array.isArray(value)) {
-    return 'paymentStrategyOptions must be an array';
-  }
-
-  const normalized = normalizePaymentStrategyOptions(value);
-  if (!normalized.length) {
-    return 'paymentStrategyOptions must contain at least one option';
   }
 
   return null;
