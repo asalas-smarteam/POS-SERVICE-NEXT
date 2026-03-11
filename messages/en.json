@@ -481,6 +481,27 @@
     "table": "Table",
     "editMode": "Edit Mode",
     "operationMode": "Operation Mode",
-    "addTable": "Add Table"
+    "addTable": "Add Table",
+    "tableActions": "Table actions",
+    "tableActionsDescription": "Select what you want to do with this table.",
+    "selectedTable": "Selected table",
+    "activeOrderSummary": "Active order summary",
+    "orderStatus": "Order status",
+    "products": "Products",
+    "loading": "Loading...",
+    "noActiveOrder": "There is no active order linked to this table.",
+    "unnamedProduct": "Unnamed product",
+    "actions": {
+      "createOrder": "Create new order",
+      "reserveTable": "Reserve table",
+      "removeReservation": "Remove reservation",
+      "managePayment": "Manage payment",
+      "closeOrder": "Close order"
+    },
+    "status": {
+      "available": "Available",
+      "reserved": "Reserved",
+      "occupied": "Occupied"
+    }
   }
 }

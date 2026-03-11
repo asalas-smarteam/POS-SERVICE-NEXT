@@ -1,34 +1,29 @@
 "use client";
 
 import React, { useEffect, useRef } from "react";
-import { Group, Image, Text} from "react-konva";
+import { Group, Image, Text } from "react-konva";
 import useImage from "use-image";
 import Konva from "konva";
-
 
 function getStatusColor(status) {
   switch (status) {
     case "available":
-      return "#22c55e"; // green
+      return "#22c55e";
     case "reserved":
-      return "#eab308"; // yellow
+      return "#eab308";
     case "occupied":
-      return "#ef4444"; // red
+      return "#ef4444";
     default:
-      return "#94a3b8"; // slate
+      return "#94a3b8";
   }
 }
 
-export default function TableItem({ table, onMove, onToggleStatus, theme, mode }) {
+export default function TableItem({ table, onMove, onSelectTable, theme, mode }) {
   const [image] = useImage("/dinner.svg");
   const imageRef = useRef();
 
   const statusColor = getStatusColor(table.status);
-
-  const labelColor =
-    theme === "dark"
-      ? "rgba(255,255,255,0.9)"
-      : "rgba(0,0,0,0.9)";
+  const labelColor = theme === "dark" ? "rgba(255,255,255,0.9)" : "rgba(0,0,0,0.9)";
 
   useEffect(() => {
     if (imageRef.current) {
@@ -50,12 +45,12 @@ export default function TableItem({ table, onMove, onToggleStatus, theme, mode }
       }
       onClick={() => {
         if (mode === "operate") {
-          onToggleStatus(table.id);
+          onSelectTable?.(table);
         }
       }}
       onTap={() => {
         if (mode === "operate") {
-          onToggleStatus(table.id);
+          onSelectTable?.(table);
         }
       }}
     >
