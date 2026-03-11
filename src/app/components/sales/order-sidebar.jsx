@@ -47,7 +47,7 @@ export function OrderSidebar({
         <div>
           <h3 className="text-lg font-semibold">{t("currentOrder")}</h3>
           <p className="text-xs text-muted-foreground">
-            #2405 · {t("table")} 12 · {t("walkInCustomer")}
+            #2405 {t("walkInCustomer")}
           </p>
         </div>
         <span className="rounded-full bg-muted px-3 py-1 text-xs font-semibold text-muted-foreground">
