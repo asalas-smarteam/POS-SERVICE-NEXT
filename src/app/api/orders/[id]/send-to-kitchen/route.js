@@ -89,6 +89,14 @@ export async function POST(req, context) {
     order.closedAt = null;
     await order.save();
 
+    if (isOnTableOrder && tableId) {
+      await Table.findOneAndUpdate(
+        { id: tableId },
+        { status: "occupied" },
+        { new: false }
+      );
+    }
+
     return NextResponse.json({ ok: true });
   } catch (e) {
     return NextResponse.json({ error: e.message }, { status: 500 });

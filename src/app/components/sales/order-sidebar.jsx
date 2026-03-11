@@ -18,6 +18,8 @@ const formatCurrency = (value, locale) =>
 
 export function OrderSidebar({
   items = [],
+  orderNumber = "",
+  orderContextLabel = "",
   subtotal = 0,
   taxRate = 0.08,
   discount = 0,
@@ -35,6 +37,11 @@ export function OrderSidebar({
   const locale = useLocale();
   const tax = subtotal * taxRate;
   const total = subtotal + tax - discount;
+  const normalizedOrderNumber = orderNumber?.trim() ? orderNumber.trim() : "";
+  const hasOrderNumber = Boolean(normalizedOrderNumber);
+  const normalizedContextLabel = orderContextLabel?.trim()
+    ? orderContextLabel.trim()
+    : t("walkInCustomer");
 
   return (
     <aside
@@ -47,11 +54,11 @@ export function OrderSidebar({
         <div>
           <h3 className="text-lg font-semibold">{t("currentOrder")}</h3>
           <p className="text-xs text-muted-foreground">
-            #2405 {t("walkInCustomer")}
+            {hasOrderNumber ? `#${normalizedOrderNumber}` : t("loading")} {normalizedContextLabel}
           </p>
         </div>
         <span className="rounded-full bg-muted px-3 py-1 text-xs font-semibold text-muted-foreground">
-          #2405
+          {hasOrderNumber ? `#${normalizedOrderNumber}` : t("loading")}
         </span>
       </div>
 

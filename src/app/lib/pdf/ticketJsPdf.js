@@ -59,12 +59,15 @@ export async function generateKitchenTicketPdf(ticket) {
   doc.setFontSize(16);
   doc.text(`#${ticket.orderNumber}`, center, y, { align: "center" });
 
-  y += 6;
-  doc.setFontSize(9);
-  doc.text(ticket.tableLabel || "Mesa / Cliente", 6, y);
-  doc.text(ticket.tableValue || "Sin asignar", 6, y + 4);
+  y += 5;
+  if (ticket.serviceTypeValue) {
+    doc.setFontSize(10);
+    doc.text(`${ticket.serviceTypeValue}`, center, y + 5, { align: "center" });
+    y += 7;
+  }
 
-  y += 10;
+  y += 4;
+  doc.setFontSize(9);
   doc.text(ticket.datetimeLabel || "Fecha y hora", 6, y);
   doc.text(ticket.datetimeValue || "-", 6, y + 4);
 

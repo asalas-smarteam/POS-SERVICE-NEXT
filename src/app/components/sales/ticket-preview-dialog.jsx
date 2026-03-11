@@ -61,6 +61,7 @@ export function TicketPreviewDialog({
           <ScrollArea className="ticket-scroll-area h-[520px] w-full rounded-lg border bg-muted/30 p-6">
             <KitchenTicketContent
               orderNumber={ticket.orderNumber}
+              serviceTypeValue={ticket.serviceTypeValue}
               datetimeValue={ticket.datetimeValue}
               customerName={ticket.customerName}
               items={ticket.items}

@@ -3,6 +3,7 @@ import { resolveTenant } from "@/lib/tenant/resolveTenant";
 import { authorizeRequest } from "@/lib/security/authorizeRequest";
 import { getTenantConnection } from "@/lib/db/connections";
 import { OrderModel } from "@/models/tenant/Order";
+import { TableModel } from "@/models/tenant/Table";
 import { calculateOrderTotal } from "@/lib/tenant/billingService";
 
 export async function POST(req, { params }) {
@@ -13,6 +14,7 @@ export async function POST(req, { params }) {
     await authorizeRequest(req, "orders");
     const conn = await getTenantConnection(tenant.dbName);
     const Order = OrderModel(conn);
+    const Table = TableModel(conn);
 
     const order = await Order.findById(orderId);
 
@@ -30,6 +32,14 @@ export async function POST(req, { params }) {
     order.isClosed = true;
     order.closedAt = new Date();
     await order.save();
+
+    if (order.orderType === "onTable" && order.tableId) {
+      await Table.findOneAndUpdate(
+        { id: order.tableId },
+        { status: "available" },
+        { new: false }
+      );
+    }
 
     return NextResponse.json({
       ok: true,

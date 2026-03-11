@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 
 export function KitchenTicketContent({
   orderNumber,
+  serviceTypeValue = "",
   datetimeValue,
   customerName = "",
   items = [],
@@ -20,6 +21,9 @@ export function KitchenTicketContent({
       <div className="space-y-1 text-center">
         <p className="text-sm font-semibold uppercase">{t("kitchenOrder")}</p>
         <p className="text-2xl font-bold">#{orderNumber}</p>
+        {serviceTypeValue ? (
+          <p className="text-[11px] font-semibold uppercase text-muted-foreground">{serviceTypeValue}</p>
+        ) : null}
       </div>
 
       <Separator className="my-3" />

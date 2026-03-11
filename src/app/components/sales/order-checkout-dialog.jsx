@@ -17,6 +17,7 @@ export function OrderCheckoutDialog({
   defaultCustomerName = "",
   defaultOrderType = "",
   defaultTableId = "",
+  lockOrderTypeAndTable = false,
   onConfirm,
 }) {
   const t = useTranslations("Orders");
@@ -30,6 +31,10 @@ export function OrderCheckoutDialog({
     [orderTypes, orderType]
   );
   const requiresTable = selectedOrderType?.id === "onTable";
+  const selectedTable = useMemo(
+    () => tables.find((table) => table.id === tableId) || null,
+    [tables, tableId]
+  );
 
   const handleOpenChange = (nextOpen) => {
     if (!nextOpen) {
@@ -47,21 +52,20 @@ export function OrderCheckoutDialog({
       setFormError(t("customerRequired"));
       return;
     }
-    if (!orderType) {
+    if (!orderType && !lockOrderTypeAndTable) {
       setFormError(t("orderTypeRequired"));
       return;
     }
-    if (requiresTable && !tableId) {
+    if ((requiresTable || lockOrderTypeAndTable) && !tableId) {
       setFormError(t("tableRequired"));
       return;
     }
 
-    const selectedTable = tables.find((table) => table.id === tableId);
     onConfirm?.({
       customerName: normalizedCustomerName,
-      orderType,
-      tableId: requiresTable ? tableId : null,
-      tableLabel: requiresTable ? selectedTable?.name || null : null,
+      orderType: lockOrderTypeAndTable ? "onTable" : orderType,
+      tableId: (requiresTable || lockOrderTypeAndTable) ? tableId : null,
+      tableLabel: (requiresTable || lockOrderTypeAndTable) ? selectedTable?.name || null : null,
     });
   };
 
@@ -83,39 +87,53 @@ export function OrderCheckoutDialog({
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="checkout-order-type">{t("orderType")}</Label>
-            <Select value={orderType} onValueChange={setOrderType}>
-              <SelectTrigger id="checkout-order-type">
-                <SelectValue placeholder={t("orderTypePlaceholder")} />
-              </SelectTrigger>
-              <SelectContent>
-                {orderTypes.map((type) => (
-                  <SelectItem key={type.id} value={type.id}>
-                    {type.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {requiresTable ? (
+          {lockOrderTypeAndTable ? (
             <div className="space-y-2">
-              <Label htmlFor="checkout-table">{t("table")}</Label>
-              <Select value={tableId} onValueChange={setTableId}>
-                <SelectTrigger id="checkout-table">
-                  <SelectValue placeholder={t("tablePlaceholder")} />
-                </SelectTrigger>
-                <SelectContent>
-                  {tables.map((table) => (
-                    <SelectItem key={table.id} value={table.id}>
-                      {table.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label htmlFor="checkout-table-readonly">{t("table")}</Label>
+              <Input
+                id="checkout-table-readonly"
+                value={selectedTable?.name || tableId || t("notAssigned")}
+                readOnly
+                disabled
+              />
             </div>
-          ) : null}
+          ) : (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="checkout-order-type">{t("orderType")}</Label>
+                <Select value={orderType} onValueChange={setOrderType}>
+                  <SelectTrigger id="checkout-order-type">
+                    <SelectValue placeholder={t("orderTypePlaceholder")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {orderTypes.map((type) => (
+                      <SelectItem key={type.id} value={type.id}>
+                        {type.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {requiresTable ? (
+                <div className="space-y-2">
+                  <Label htmlFor="checkout-table">{t("table")}</Label>
+                  <Select value={tableId} onValueChange={setTableId}>
+                    <SelectTrigger id="checkout-table">
+                      <SelectValue placeholder={t("tablePlaceholder")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {tables.map((table) => (
+                        <SelectItem key={table.id} value={table.id}>
+                          {table.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : null}
+            </>
+          )}
 
           {formError ? <p className="text-sm text-destructive">{formError}</p> : null}
         </div>
