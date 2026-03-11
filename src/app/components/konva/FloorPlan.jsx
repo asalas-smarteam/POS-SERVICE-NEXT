@@ -1,23 +1,22 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Group, Text, Layer, Stage, Rect } from "react-konva";
+import { useRouter, useParams } from "next/navigation";
 import Grid from "./Grid";
 import TableItem from "./TableItem";
+import { TableActionsPopup } from "./TableActionsPopup";
 import { useTranslations } from "next-intl";
 import { useThemeStore } from "../../../store/themeStore";
 
-const STATUS_ORDER = ["available", "reserved", "occupied"];
-
-function nextStatus(current) {
-  const idx = STATUS_ORDER.indexOf(current);
-  const nextIdx = (idx + 1) % STATUS_ORDER.length;
-  return STATUS_ORDER[nextIdx];
-}
-
 export function FloorPlan({ tables, setTables, onCreateTable, onUpdateTable }) {
   const t = useTranslations("Floor");
+  const router = useRouter();
+  const params = useParams();
   const [mode, setMode] = useState("edit");
+  const [selectedTable, setSelectedTable] = useState(null);
+  const [activeOrder, setActiveOrder] = useState(null);
+  const [loadingActiveOrder, setLoadingActiveOrder] = useState(false);
   const { theme } = useThemeStore();
 
   const [stageSize, setStageSize] = useState({ width: 1000, height: 700 });
@@ -48,23 +47,6 @@ export function FloorPlan({ tables, setTables, onCreateTable, onUpdateTable }) {
     }
   };
 
-  const onToggleStatus = async (id) => {
-    const previous = tables;
-    const current = tables.find((table) => table.id === id);
-    const next = nextStatus(current?.status);
-
-    setTables((prev) =>
-      prev.map((table) => (table.id === id ? { ...table, status: next } : table))
-    );
-
-    try {
-      await onUpdateTable?.(id, { status: next });
-    } catch (error) {
-      console.error(error?.message || "No se pudo actualizar el estado de la mesa.");
-      setTables(previous);
-    }
-  };
-
   const addTable = async () => {
     const newId = `t-${Date.now()}`;
     const newTable = {
@@ -85,6 +67,84 @@ export function FloorPlan({ tables, setTables, onCreateTable, onUpdateTable }) {
       setTables((prev) => prev.filter((table) => table.id !== newId));
     }
   };
+
+  const handleTableClick = useCallback(async (table) => {
+    if (mode !== "operate") {
+      return;
+    }
+
+    setSelectedTable(table);
+
+    if (table?.status !== "occupied") {
+      setActiveOrder(null);
+      return;
+    }
+
+    setLoadingActiveOrder(true);
+    try {
+      const response = await fetch(`/api/orders?tableId=${encodeURIComponent(table.id)}&active=true`);
+      if (!response.ok) {
+        setActiveOrder(null);
+        return;
+      }
+      const body = await response.json();
+      setActiveOrder(body || null);
+    } catch {
+      setActiveOrder(null);
+    } finally {
+      setLoadingActiveOrder(false);
+    }
+  }, [mode]);
+
+  const updateTableStatus = useCallback(async (tableId, status) => {
+    const previous = tables;
+    setTables((prev) => prev.map((table) => (table.id === tableId ? { ...table, status } : table)));
+
+    try {
+      await onUpdateTable?.(tableId, { status });
+      setSelectedTable((prev) => (prev?.id === tableId ? { ...prev, status } : prev));
+    } catch (error) {
+      console.error(error?.message || "No se pudo actualizar el estado de la mesa.");
+      setTables(previous);
+    }
+  }, [onUpdateTable, setTables, tables]);
+
+  const handleCreateOrder = useCallback(() => {
+    if (!selectedTable?.id) {
+      return;
+    }
+    const locale = params?.locale;
+    const tenantId = params?.tenantId;
+    router.push(`/${locale}/orders/${tenantId}?tableId=${encodeURIComponent(selectedTable.id)}&orderType=onTable`);
+  }, [params?.locale, params?.tenantId, router, selectedTable?.id]);
+
+  const handleManagePayment = useCallback(() => {
+    if (!selectedTable?.id) {
+      return;
+    }
+    const locale = params?.locale;
+    const tenantId = params?.tenantId;
+    router.push(`/${locale}/orders/${tenantId}?tableId=${encodeURIComponent(selectedTable.id)}&orderType=onTable`);
+  }, [params?.locale, params?.tenantId, router, selectedTable?.id]);
+
+  const handleCloseOrder = useCallback(async () => {
+    if (!activeOrder?._id || !selectedTable?.id) {
+      return;
+    }
+
+    const response = await fetch(`/api/orders/${activeOrder._id}/checkout`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    });
+
+    if (!response.ok) {
+      return;
+    }
+
+    await updateTableStatus(selectedTable.id, "available");
+    setSelectedTable(null);
+    setActiveOrder(null);
+  }, [activeOrder?._id, selectedTable?.id, updateTableStatus]);
 
   return (
     <div style={{ width: "100vw", height: "100vh", background }}>
@@ -149,13 +209,38 @@ export function FloorPlan({ tables, setTables, onCreateTable, onUpdateTable }) {
               key={table.id}
               table={table}
               onMove={onMove}
-              onToggleStatus={onToggleStatus}
+              onSelectTable={handleTableClick}
               theme={theme}
               mode={mode}
             />
           ))}
         </Layer>
       </Stage>
+
+      <TableActionsPopup
+        table={selectedTable}
+        activeOrder={activeOrder}
+        loadingActiveOrder={loadingActiveOrder}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedTable(null);
+            setActiveOrder(null);
+          }
+        }}
+        onCreateOrder={handleCreateOrder}
+        onReserveTable={() => {
+          if (selectedTable?.id) {
+            updateTableStatus(selectedTable.id, "reserved");
+          }
+        }}
+        onRemoveReservation={() => {
+          if (selectedTable?.id) {
+            updateTableStatus(selectedTable.id, "available");
+          }
+        }}
+        onManagePayment={handleManagePayment}
+        onCloseOrder={handleCloseOrder}
+      />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { CategoryTabs } from "@/components/sales/category-tabs";
 import { HalfAndHalfQuickSelectorDialog } from "@/components/sales/half-and-half-quick-selector-dialog";
 import { OrderCheckoutDialog } from "@/components/sales/order-checkout-dialog";
@@ -29,6 +30,7 @@ const normalizeOrderNumber = (orderId) => {
 
 export default function OrdersPage() {
   const t = useTranslations("Orders");
+  const searchParams = useSearchParams();
   const { products, loading, error, fetchProducts } = useProductsStore(
     (state) => ({
       products: state.products,
@@ -120,6 +122,19 @@ export default function OrdersPage() {
 
     fetchTables();
   }, []);
+
+  useEffect(() => {
+    const queryTableId = searchParams.get("tableId");
+    const queryOrderType = searchParams.get("orderType");
+
+    if (queryTableId) {
+      setSelectedTableId(queryTableId);
+    }
+
+    if (queryOrderType) {
+      setSelectedOrderType(queryOrderType);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     setIsFiltering(true);

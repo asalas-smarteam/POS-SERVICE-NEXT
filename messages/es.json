@@ -481,6 +481,27 @@
     "table": "Mesa",
     "editMode": "Modo Edición",
     "operationMode": "Modo Operativo",
-    "addTable": "Agregar Mesa"
+    "addTable": "Agregar Mesa",
+    "tableActions": "Acciones de mesa",
+    "tableActionsDescription": "Selecciona qué deseas hacer con esta mesa.",
+    "selectedTable": "Mesa seleccionada",
+    "activeOrderSummary": "Resumen de orden activa",
+    "orderStatus": "Estado de la orden",
+    "products": "Productos",
+    "loading": "Cargando...",
+    "noActiveOrder": "No hay una orden activa vinculada a esta mesa.",
+    "unnamedProduct": "Producto sin nombre",
+    "actions": {
+      "createOrder": "Crear nueva orden",
+      "reserveTable": "Reservar mesa",
+      "removeReservation": "Eliminar reserva",
+      "managePayment": "Gestionar pago",
+      "closeOrder": "Cerrar orden"
+    },
+    "status": {
+      "available": "Disponible",
+      "reserved": "Reservada",
+      "occupied": "Ocupada"
+    }
   }
 }
