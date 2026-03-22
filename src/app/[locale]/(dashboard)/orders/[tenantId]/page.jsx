@@ -22,9 +22,10 @@ import { useSettingsStore } from "../../../../../store/settingsStore";
 
 const normalizeOrderNumber = (orderId) => {
   if (!orderId) {
-    return "-----";
+    return "000";
   }
-  return String(orderId).slice(-5).toLowerCase();
+  const trimmed = String(orderId).slice(-5);
+  return trimmed.padStart(3, "0");
 };
 
 export default function OrdersPage() {
@@ -90,9 +91,7 @@ export default function OrdersPage() {
   const [selectedHalfBaseProduct, setSelectedHalfBaseProduct] = useState(null);
   const [selectedOrderType, setSelectedOrderType] = useState("takeaway");
   const [selectedTableId, setSelectedTableId] = useState("");
-  const [currentOrderId, setCurrentOrderId] = useState("");
   const isSubmittingRef = useRef(false);
-  const isCreatingDraftRef = useRef(false);
 
   useEffect(() => {
     fetchProducts();
@@ -137,95 +136,11 @@ export default function OrdersPage() {
     }
   }, [searchParams]);
 
-  const isFloorFlow = Boolean(searchParams.get("tableId"));
-  const selectedTable = useMemo(
-    () => tables.find((table) => table.id === selectedTableId) || null,
-    [tables, selectedTableId]
-  );
-  const selectedTableName = selectedTable?.name || selectedTableId || t("notAssigned");
-  const sidebarContextLabel = isFloorFlow
-    ? `${t("table")} ${selectedTableName}`
-    : t("walkInCustomer");
-  const flowOrderType = isFloorFlow ? "onTable" : "takeaway";
-  const flowTableId = isFloorFlow ? selectedTableId || searchParams.get("tableId") || "" : "";
-
-  const createDraftOrder = useCallback(async ({
-    orderType = "takeaway",
-    tableId = "",
-    tableLabel = null,
-  } = {}) => {
-    if (isCreatingDraftRef.current) {
-      return null;
-    }
-
-    isCreatingDraftRef.current = true;
-    try {
-      const paymentMode = resolvePaymentModeFromStrategy(paymentStrategy, paymentStrategyOptions);
-      const response = await fetch("/api/orders", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...getTenantHeaders(),
-        },
-        body: JSON.stringify({
-          customerName: "",
-          orderType,
-          tableId: tableId || null,
-          tableLabel: tableLabel || null,
-          paymentMode,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(t("orderCreateError"));
-      }
-
-      const order = await response.json();
-      const orderId = order?._id ?? order?.id ?? null;
-      if (orderId) {
-        setCurrentOrderId(String(orderId));
-      }
-
-      return order;
-    } finally {
-      isCreatingDraftRef.current = false;
-    }
-  }, [paymentStrategy, paymentStrategyOptions, t]);
-
   useEffect(() => {
     setIsFiltering(true);
     const timeout = setTimeout(() => setIsFiltering(false), 300);
     return () => clearTimeout(timeout);
   }, [searchTerm, activeCategory]);
-
-  useEffect(() => {
-    if (currentOrderId) {
-      return;
-    }
-
-    if (!flowOrderType) {
-      return;
-    }
-
-    if (flowOrderType === "onTable" && !flowTableId) {
-      return;
-    }
-
-    createDraftOrder({
-      orderType: flowOrderType,
-      tableId: flowTableId,
-      tableLabel: selectedTable?.name || null,
-    }).catch((error) => {
-      setCheckoutError(error?.message || t("orderCreateError"));
-    });
-  }, [
-    createDraftOrder,
-    currentOrderId,
-    flowOrderType,
-    flowTableId,
-    selectedTable?.name,
-    t,
-  ]);
 
   const filteredProducts = useMemo(() => {
     const list = Array.isArray(products) ? products : [];
@@ -320,20 +235,25 @@ export default function OrdersPage() {
       const tableLabelValue = checkoutValues?.tableLabel ?? null;
       const paymentMode = resolvePaymentModeFromStrategy(paymentStrategy, paymentStrategyOptions);
 
-      let orderId = currentOrderId;
-      let orderCreatedAt = Date.now();
-      if (!orderId) {
-        const order = await createDraftOrder({
+      const orderResponse = await fetch("/api/orders", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...getTenantHeaders(),
+        },
+        body: JSON.stringify({
+          customerName: customerNameValue,
           orderType: orderTypeValue,
-          tableId: tableIdValue || "",
+          tableId: tableIdValue,
           tableLabel: tableLabelValue,
-        });
-        orderId = order?._id ?? order?.id;
-        orderCreatedAt = order?.createdAt ? new Date(order.createdAt).getTime() : Date.now();
-      }
-      if (!orderId) {
+          paymentMode,
+        }),
+      });
+      if (!orderResponse.ok) {
         throw new Error(t("orderCreateError"));
       }
+      const order = await orderResponse.json();
+      const orderId = order?._id ?? order?.id;
 
       for (const item of items) {
         const itemPayload = buildItemPayload(item);
@@ -370,18 +290,16 @@ export default function OrdersPage() {
 
       const orderTypeLabel =
         orderTypes.find((type) => type.id === orderTypeValue)?.label || t("orderType");
-      const resolvedTableLabel = tableLabelValue || selectedTable?.name || t("notAssigned");
-      const serviceTypeValue = orderTypeValue === "onTable"
-        ? `${t("table")} ${resolvedTableLabel}`
-        : orderTypeLabel;
+      const tableValue = orderTypeValue === "onTable"
+        ? tableLabelValue || t("notAssigned")
+        : customerNameValue || t("walkInCustomer");
 
       const ticketData = {
         orderNumber: normalizeOrderNumber(orderId),
-        serviceTypeValue,
         tableLabel: orderTypeLabel,
-        tableValue: resolvedTableLabel,
+        tableValue,
         datetimeLabel: t("dateAndTime"),
-        datetimeValue: new Date(orderCreatedAt).toLocaleString(),
+        datetimeValue: new Date(order?.createdAt ?? Date.now()).toLocaleString(),
         items: items.map((item) => ({
           productName: item.name,
           quantity: item.quantity,
@@ -409,14 +327,8 @@ export default function OrdersPage() {
       setTicketDialogOpen(true);
       setCheckoutDialogOpen(false);
       clearOrder();
-      setCurrentOrderId("");
-      setSelectedOrderType(flowOrderType);
-      setSelectedTableId(flowTableId);
-      await createDraftOrder({
-        orderType: flowOrderType,
-        tableId: flowTableId,
-        tableLabel: selectedTable?.name || null,
-      });
+      setSelectedOrderType("takeaway");
+      setSelectedTableId("");
     } catch (error) {
       setCheckoutError(error?.message || t("checkoutError"));
     } finally {
@@ -426,36 +338,13 @@ export default function OrdersPage() {
   }, [
     items,
     buildItemPayload,
-    createDraftOrder,
     clearOrder,
-    currentOrderId,
     customerName,
     selectedOrderType,
     paymentStrategy,
     paymentStrategyOptions,
-    flowOrderType,
-    flowTableId,
     orderTypes,
-    selectedTable?.name,
     t,
-  ]);
-
-  const handleClearOrder = useCallback(async () => {
-    clearOrder();
-    if (!currentOrderId) {
-      await createDraftOrder({
-        orderType: flowOrderType,
-        tableId: flowTableId,
-        tableLabel: selectedTable?.name || null,
-      }).catch(() => null);
-    }
-  }, [
-    clearOrder,
-    currentOrderId,
-    createDraftOrder,
-    flowOrderType,
-    flowTableId,
-    selectedTable?.name,
   ]);
 
   const handleCheckoutRequest = useCallback(() => {
@@ -576,14 +465,12 @@ export default function OrdersPage() {
           <OrderSidebar
             className="lg:sticky lg:top-6 lg:self-start"
             items={items}
-            orderNumber={normalizeOrderNumber(currentOrderId)}
-            orderContextLabel={sidebarContextLabel}
             subtotal={subtotal}
             onIncrease={increaseQty}
             onDecrease={decreaseQty}
             onRemove={removeItem}
             onUpdateNotes={updateNotes}
-            onClear={handleClearOrder}
+            onClear={clearOrder}
             onCheckout={handleCheckoutRequest}
             isSubmitting={isSubmitting}
             checkoutError={checkoutError}
@@ -605,9 +492,8 @@ export default function OrdersPage() {
         tables={tables}
         isSubmitting={isSubmitting}
         defaultCustomerName={customerName}
-        defaultOrderType={isFloorFlow ? "onTable" : (selectedOrderType || orderTypes[0]?.id || "takeaway")}
-        defaultTableId={isFloorFlow ? flowTableId : selectedTableId}
-        lockOrderTypeAndTable={isFloorFlow}
+        defaultOrderType={selectedOrderType || orderTypes[0]?.id || "takeaway"}
+        defaultTableId={selectedTableId}
         onConfirm={handleCheckoutConfirm}
       />
 

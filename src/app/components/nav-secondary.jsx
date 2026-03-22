@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/sidebar"
 
 
-const DASHBOARD_SECTIONS = ["dashboard", "orders", "kitchen", "users", "products", "ingredients", "settings"];
+const DASHBOARD_SECTIONS = ["dashboard", "orders", "active-orders", "kitchen", "users", "products", "ingredients", "settings"];
 
 const normalizePath = (value = "") => {
   if (!value) return "/";
@@ -43,6 +43,7 @@ const toDashboardHref = (href, locale, tenantId) => {
 const TITLE_TO_KEY = {
   dashboard: "dashboard",
   orders: "orders",
+  "active orders": "activeOrders",
   products: "products",
   ingredients: "ingredients",
   kitchen: "kitchen",

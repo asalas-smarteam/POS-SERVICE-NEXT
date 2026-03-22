@@ -27,10 +27,11 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 
-const MODULE_ROUTES = ["dashboard", "orders", "kitchen", "users", "products", "ingredients", "settings", "floor"];
+const MODULE_ROUTES = ["dashboard", "orders", "active-orders", "kitchen", "users", "products", "ingredients", "settings", "floor"];
 const NAV_TRANSLATION_KEYS = {
   dashboard: "dashboard",
   orders: "orders",
+  "active-orders": "activeOrders",
   products: "products",
   ingredients: "ingredients",
   kitchen: "kitchen",

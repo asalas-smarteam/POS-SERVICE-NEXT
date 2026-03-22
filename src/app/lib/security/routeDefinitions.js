@@ -1,6 +1,7 @@
 export const PROTECTED_MODULES = [
   "dashboard",
   "orders",
+  "active-orders",
   "kitchen",
   "products",
   "ingredients",

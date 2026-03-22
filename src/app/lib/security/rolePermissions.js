@@ -2,6 +2,7 @@ export const ROLE_PERMISSIONS = {
   admin: [
     "dashboard",
     "orders",
+    "active-orders",
     "kitchen",
     "products",
     "ingredients",
@@ -9,7 +10,7 @@ export const ROLE_PERMISSIONS = {
     "settings",
     "floor",
   ],
-  cashier: ["dashboard", "orders", "floor"],
+  cashier: ["dashboard", "orders", "active-orders", "floor"],
   kitchen: ["dashboard", "kitchen"],
 };
 

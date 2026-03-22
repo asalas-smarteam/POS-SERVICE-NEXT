@@ -3,6 +3,7 @@ import { create, createJSONStorage, persist } from "./zustand";
 const AUTH_ROUTES = [
   "dashboard",
   "orders",
+  "active-orders",
   "kitchen",
   "users",
   "products",

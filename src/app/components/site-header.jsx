@@ -9,6 +9,7 @@ import { LanguageSwitcher } from "@/components/language-switcher";
 const TITLE_TO_KEY = {
   dashboard: "dashboard",
   orders: "orders",
+  "active orders": "activeOrders",
   products: "products",
   ingredients: "ingredients",
   kitchen: "kitchen",

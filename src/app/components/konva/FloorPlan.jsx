@@ -9,17 +9,23 @@ import { TableActionsPopup } from "./TableActionsPopup";
 import { useTranslations } from "next-intl";
 import { useThemeStore } from "../../../store/themeStore";
 
-export function FloorPlan({ tables, setTables, onCreateTable, onUpdateTable }) {
+export function FloorPlan({ tables, setTables, onCreateTable, onUpdateTable, canEditLayout = false }) {
   const t = useTranslations("Floor");
   const router = useRouter();
   const params = useParams();
-  const [mode, setMode] = useState("edit");
+  const [mode, setMode] = useState("operate");
   const [selectedTable, setSelectedTable] = useState(null);
   const [activeOrder, setActiveOrder] = useState(null);
   const [loadingActiveOrder, setLoadingActiveOrder] = useState(false);
   const { theme } = useThemeStore();
 
   const [stageSize, setStageSize] = useState({ width: 1000, height: 700 });
+
+  useEffect(() => {
+    if (!canEditLayout && mode !== "operate") {
+      setMode("operate");
+    }
+  }, [canEditLayout, mode]);
 
   useEffect(() => {
     const apply = () => setStageSize({ width: window.innerWidth, height: window.innerHeight });
@@ -177,32 +183,34 @@ export function FloorPlan({ tables, setTables, onCreateTable, onUpdateTable }) {
             </Group>
           )}
 
-          <Group
-            x={20}
-            y={20}
-            onClick={() => setMode((prev) => (prev === "edit" ? "operate" : "edit"))}
-            onTap={() => setMode((prev) => (prev === "edit" ? "operate" : "edit"))}
-            cursor="pointer"
-          >
-            <Rect
-              width={160}
-              height={40}
-              cornerRadius={8}
-              fill={mode === "edit" ? "#f59e0b" : "#10b981"}
-              shadowBlur={4}
-            />
+          {canEditLayout ? (
+            <Group
+              x={20}
+              y={20}
+              onClick={() => setMode((prev) => (prev === "edit" ? "operate" : "edit"))}
+              onTap={() => setMode((prev) => (prev === "edit" ? "operate" : "edit"))}
+              cursor="pointer"
+            >
+              <Rect
+                width={160}
+                height={40}
+                cornerRadius={8}
+                fill={mode === "edit" ? "#f59e0b" : "#10b981"}
+                shadowBlur={4}
+              />
 
-            <Text
-              text={mode === "edit" ? t("editMode") : t("operationMode")}
-              width={160}
-              height={40}
-              align="center"
-              verticalAlign="middle"
-              fontSize={14}
-              fill="white"
-              listening={false}
-            />
-          </Group>
+              <Text
+                text={mode === "edit" ? t("editMode") : t("operationMode")}
+                width={160}
+                height={40}
+                align="center"
+                verticalAlign="middle"
+                fontSize={14}
+                fill="white"
+                listening={false}
+              />
+            </Group>
+          ) : null}
 
           {tables.map((table) => (
             <TableItem

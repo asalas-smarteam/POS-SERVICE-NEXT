@@ -31,7 +31,7 @@ const withTenantPath = (path, tenantId, locale) => {
   const section = parts[sectionIndex] || "";
   const normalizedSection = section === "home" ? DASHBOARD_SECTION : section;
 
-  if (![DASHBOARD_SECTION, "orders", "kitchen", "users", "products", "ingredients", "settings", "floor"].includes(normalizedSection)) {
+  if (![DASHBOARD_SECTION, "orders", "active-orders", "kitchen", "users", "products", "ingredients", "settings", "floor"].includes(normalizedSection)) {
     return normalized;
   }
 

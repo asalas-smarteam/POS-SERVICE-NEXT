@@ -3,9 +3,12 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { FloorPlan } from "@/components/konva/FloorPlan";
 import { getTenantHeaders } from "../../../../../store/tenantHeaders";
+import { useAuthStore } from "../../../../../store/authStore";
 
 export default function FloorGridPage() {
   const [tables, setTables] = useState([]);
+  const userRole = useAuthStore((state) => state.user?.role);
+  const canEditLayout = String(userRole || "").toUpperCase() === "ADMIN";
 
   const fetchTables = useCallback(async () => {
     try {
@@ -71,6 +74,7 @@ export default function FloorGridPage() {
       setTables={setTables}
       onCreateTable={createTable}
       onUpdateTable={updateTable}
+      canEditLayout={canEditLayout}
     />
   );
 }

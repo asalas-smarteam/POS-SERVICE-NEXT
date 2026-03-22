@@ -1,4 +1,4 @@
-const TENANT_ROUTE_MATCHER = /^\/(dashboard|orders|kitchen|users|products|ingredients|settings)\/([^/?#]+)/i;
+const TENANT_ROUTE_MATCHER = /^\/(dashboard|orders|active-orders|kitchen|users|products|ingredients|settings)\/([^/?#]+)/i;
 
 const decodeJwtPayload = (token) => {
   if (!token || typeof token !== "string") {
