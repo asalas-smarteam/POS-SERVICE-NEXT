@@ -25,6 +25,20 @@ export function OrderCheckoutDialog({
   const [orderType, setOrderType] = useState(defaultOrderType);
   const [tableId, setTableId] = useState(defaultTableId);
   const [formError, setFormError] = useState("");
+  const [wasOpen, setWasOpen] = useState(open);
+
+  // Sync the form with the current defaults each time the dialog opens, so a
+  // table flow (e.g. ?orderType=onTable&tableId=...) preselects the order type
+  // and table even though the parent sets them after the first render.
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) {
+      setCustomerName(defaultCustomerName || "");
+      setOrderType(defaultOrderType || orderTypes[0]?.id || "");
+      setTableId(defaultTableId || "");
+      setFormError("");
+    }
+  }
 
   const selectedOrderType = useMemo(
     () => orderTypes.find((type) => type.id === orderType) || null,
@@ -48,24 +62,31 @@ export function OrderCheckoutDialog({
 
   const handleSubmit = () => {
     const normalizedCustomerName = customerName.trim();
-    if (!normalizedCustomerName) {
-      setFormError(t("customerRequired"));
-      return;
+
+    // When finalizing an existing order the fields are prefilled and read-only,
+    // so we skip the create-time validations and only keep the table rule for
+    // orders that are actually served on a table.
+    if (!lockOrderTypeAndTable) {
+      if (!normalizedCustomerName) {
+        setFormError(t("customerRequired"));
+        return;
+      }
+      if (!orderType) {
+        setFormError(t("orderTypeRequired"));
+        return;
+      }
     }
-    if (!orderType && !lockOrderTypeAndTable) {
-      setFormError(t("orderTypeRequired"));
-      return;
-    }
-    if ((requiresTable || lockOrderTypeAndTable) && !tableId) {
+
+    if (requiresTable && !tableId) {
       setFormError(t("tableRequired"));
       return;
     }
 
     onConfirm?.({
       customerName: normalizedCustomerName,
-      orderType: lockOrderTypeAndTable ? "onTable" : orderType,
-      tableId: (requiresTable || lockOrderTypeAndTable) ? tableId : null,
-      tableLabel: (requiresTable || lockOrderTypeAndTable) ? selectedTable?.name || null : null,
+      orderType,
+      tableId: requiresTable ? tableId : null,
+      tableLabel: requiresTable ? selectedTable?.name || null : null,
     });
   };
 
@@ -84,19 +105,35 @@ export function OrderCheckoutDialog({
               value={customerName}
               onChange={(event) => setCustomerName(event.target.value)}
               placeholder={t("customerName")}
+              readOnly={lockOrderTypeAndTable}
+              disabled={lockOrderTypeAndTable}
             />
           </div>
 
           {lockOrderTypeAndTable ? (
-            <div className="space-y-2">
-              <Label htmlFor="checkout-table-readonly">{t("table")}</Label>
-              <Input
-                id="checkout-table-readonly"
-                value={selectedTable?.name || tableId || t("notAssigned")}
-                readOnly
-                disabled
-              />
-            </div>
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="checkout-order-type-readonly">{t("orderType")}</Label>
+                <Input
+                  id="checkout-order-type-readonly"
+                  value={selectedOrderType?.label || orderType || "-"}
+                  readOnly
+                  disabled
+                />
+              </div>
+
+              {requiresTable ? (
+                <div className="space-y-2">
+                  <Label htmlFor="checkout-table-readonly">{t("table")}</Label>
+                  <Input
+                    id="checkout-table-readonly"
+                    value={selectedTable?.name || tableId || t("notAssigned")}
+                    readOnly
+                    disabled
+                  />
+                </div>
+              ) : null}
+            </>
           ) : (
             <>
               <div className="space-y-2">
@@ -138,7 +175,7 @@ export function OrderCheckoutDialog({
           {formError ? <p className="text-sm text-destructive">{formError}</p> : null}
         </div>
 
-        <DialogFooter className="gap-2 sm:gap-0">
+        <DialogFooter className="gap-2">
           <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
             {t("cancel")}
           </Button>

@@ -1,6 +1,4 @@
 "use client";
-
-import { useMemo } from "react";
 import { useTranslations } from "next-intl";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -45,12 +43,7 @@ export function TableActionsPopup({
   const isMobile = useIsMobile();
   const open = Boolean(table?.id);
 
-  const summaryItems = useMemo(() => {
-    if (!Array.isArray(activeOrder?.items)) {
-      return [];
-    }
-    return activeOrder.items.slice(0, 6);
-  }, [activeOrder?.items]);
+  const summaryItems = Array.isArray(activeOrder?.items) ? activeOrder.items.slice(0, 6) : [];
 
   const content = (
     <div className="space-y-4">
@@ -100,7 +93,9 @@ export function TableActionsPopup({
           )}
 
           <div className="grid gap-2">
-            <Button onClick={onManagePayment}>{t("actions.managePayment")}</Button>
+            <Button onClick={onManagePayment} disabled={!activeOrder?._id || loadingActiveOrder}>
+              {t("actions.managePayment")}
+            </Button>
             <Button variant="outline" onClick={onCloseOrder} disabled={!activeOrder?._id || loadingActiveOrder}>
               {t("actions.closeOrder")}
             </Button>

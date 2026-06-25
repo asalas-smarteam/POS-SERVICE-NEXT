@@ -70,7 +70,7 @@ export function TicketPreviewDialog({
           </ScrollArea>
         </div>
 
-        <DialogFooter className="no-print gap-2 sm:gap-0">
+        <DialogFooter className="no-print gap-2">
           <Button className="no-print" variant="outline" type="button" onClick={() => onOpenChange?.(false)}>
             {t("close")}
           </Button>

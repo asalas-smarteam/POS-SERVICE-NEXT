@@ -1,21 +1,25 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
 import { LayoutGrid, List, Search, Table as TableIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { ActiveOrderCard } from "@/components/active-orders/active-order-card";
 import { ActiveOrdersTable } from "@/components/active-orders/active-orders-table";
 import { AppAlert } from "@/components/app-alert";
 import { AppSkeleton } from "@/components/app-skeleton";
+import { KitchenTicketContent } from "@/components/sales/kitchen-ticket-content";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -25,6 +29,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { useOrderStore } from "../../../../../store/orderStore";
 import { useSettingsStore } from "../../../../../store/settingsStore";
 import { getTenantHeaders } from "../../../../../store/tenantHeaders";
 
@@ -35,9 +40,23 @@ const ORDER_TYPE_BADGE_STYLES = {
   default: "border border-slate-300 bg-slate-100 text-slate-700",
 };
 
+const KITCHEN_STATUS_BADGE_STYLES = {
+  IN_PREPARATION: "border border-amber-300 bg-amber-100 text-amber-800",
+  IN_OVEN: "border border-orange-300 bg-orange-100 text-orange-800",
+  READY: "border border-emerald-300 bg-emerald-100 text-emerald-800",
+};
+
 const parseNumber = (value) => {
   const numeric = Number(value);
   return Number.isFinite(numeric) ? numeric : 0;
+};
+
+const normalizeOrderNumber = (orderId) => {
+  if (!orderId) {
+    return "000";
+  }
+  const trimmed = String(orderId).slice(-5);
+  return trimmed.padStart(3, "0");
 };
 
 const resolveProductsCount = (items = []) => {
@@ -68,6 +87,9 @@ const resolveAmount = (order) => {
 
 export default function ActiveOrdersPage() {
   const t = useTranslations("ActiveOrders");
+  const params = useParams();
+  const router = useRouter();
+  const hydrateOrder = useOrderStore((state) => state.hydrateOrder);
   const { orderTypes, fetchSettings } = useSettingsStore((state) => ({
     orderTypes: state.orderTypes,
     fetchSettings: state.fetchSettings,
@@ -83,6 +105,7 @@ export default function ActiveOrdersPage() {
   const [pageSize] = useState(9);
   const [actionDialogOpen, setActionDialogOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   const loadOrders = useCallback(async () => {
     setLoading(true);
@@ -129,9 +152,19 @@ export default function ActiveOrdersPage() {
     }, {});
   }, [orderTypes]);
 
+  const kitchenStatusLabels = useMemo(
+    () => ({
+      IN_PREPARATION: t("kitchenInPreparation"),
+      IN_OVEN: t("kitchenInOven"),
+      READY: t("kitchenReady"),
+    }),
+    [t]
+  );
+
   const normalizedOrders = useMemo(() => {
     return (Array.isArray(orders) ? orders : []).map((order) => {
       const orderTypeId = String(order?.orderType || "takeaway");
+      const kitchenStatusId = order?.kitchenStatus || null;
       const tableLabel = String(order?.tableLabel ?? order?.tableId ?? "").trim();
       const orderTypeLabel =
         orderTypeId === "onTable"
@@ -153,9 +186,14 @@ export default function ActiveOrdersPage() {
         customerTitle: String(order?.customerName ?? "").trim() || t("withoutCustomerName"),
         productsCount: resolveProductsCount(order?.items),
         amount: resolveAmount(order),
+        kitchenStatusId,
+        kitchenStatusLabel: kitchenStatusId ? kitchenStatusLabels[kitchenStatusId] ?? null : null,
+        kitchenStatusBadgeClass: kitchenStatusId
+          ? KITCHEN_STATUS_BADGE_STYLES[kitchenStatusId] ?? ORDER_TYPE_BADGE_STYLES.default
+          : null,
       };
     });
-  }, [orders, orderTypeLookup, t]);
+  }, [orders, orderTypeLookup, kitchenStatusLabels, t]);
 
   const filteredOrders = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
@@ -231,6 +269,82 @@ export default function ActiveOrdersPage() {
     setActionDialogOpen(true);
   };
 
+  const selectedOrderTicket = useMemo(() => {
+    if (!selectedOrder) {
+      return null;
+    }
+
+    return {
+      orderNumber: normalizeOrderNumber(selectedOrder?._id ?? selectedOrder?.id),
+      serviceTypeValue: selectedOrder?.orderTypeLabel || selectedOrder?.orderType || "-",
+      datetimeValue: new Date(selectedOrder?.createdAt ?? Date.now()).toLocaleString(),
+      customerName: selectedOrder?.customerName || "",
+      items: Array.isArray(selectedOrder?.items) ? selectedOrder.items : [],
+      orderNotes: [],
+    };
+  }, [selectedOrder]);
+
+  const handleManageOrder = useCallback(() => {
+    if (!selectedOrder) {
+      return;
+    }
+
+    hydrateOrder(selectedOrder);
+
+    const locale = params?.locale;
+    const tenantId = params?.tenantId;
+    const orderId = selectedOrder?._id ?? selectedOrder?.id;
+    const tableId = selectedOrder?.tableId;
+    const orderType = selectedOrder?.orderType || "takeaway";
+
+    const query = new URLSearchParams();
+    if (orderId) {
+      query.set("orderId", String(orderId));
+    }
+    if (orderType) {
+      query.set("orderType", String(orderType));
+    }
+    if (tableId) {
+      query.set("tableId", String(tableId));
+    }
+
+    setActionDialogOpen(false);
+    router.push(`/${locale}/orders/${tenantId}?${query.toString()}`);
+  }, [hydrateOrder, params?.locale, params?.tenantId, router, selectedOrder]);
+
+  const handleCancelOrder = useCallback(async () => {
+    const orderId = selectedOrder?._id ?? selectedOrder?.id;
+    if (!orderId || isCancelling) {
+      return;
+    }
+
+    setIsCancelling(true);
+    try {
+      const response = await fetch(`/api/orders/${orderId}/kitchen-status`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          ...getTenantHeaders(),
+        },
+        body: JSON.stringify({
+          status: "CANCELLED",
+        }),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(body?.error || t("cancelOrderError"));
+      }
+
+      setActionDialogOpen(false);
+      setSelectedOrder(null);
+      await loadOrders();
+    } catch (err) {
+      setError(err?.message || t("cancelOrderError"));
+    } finally {
+      setIsCancelling(false);
+    }
+  }, [isCancelling, loadOrders, selectedOrder, t]);
+
   const renderContent = () => {
     if (loading) {
       return <AppSkeleton variant={viewMode === "table" ? "table" : viewMode} />;
@@ -263,9 +377,16 @@ export default function ActiveOrdersPage() {
                   <p className="text-sm font-semibold">{order.customerTitle}</p>
                   <p className="text-xs text-muted-foreground">{order.orderTypeLabel}</p>
                 </div>
-                <Badge className={order.orderTypeBadgeClass}>
-                  {t("productsCount", { count: order.productsCount })}
-                </Badge>
+                <div className="flex flex-wrap items-center gap-2">
+                  {order.kitchenStatusLabel ? (
+                    <Badge className={order.kitchenStatusBadgeClass}>
+                      {order.kitchenStatusLabel}
+                    </Badge>
+                  ) : null}
+                  <Badge className={order.orderTypeBadgeClass}>
+                    {t("productsCount", { count: order.productsCount })}
+                  </Badge>
+                </div>
                 <div className="flex items-center gap-3">
                   <span className="text-sm font-medium">
                     {Number(order.amount || 0).toLocaleString("es-CR", {
@@ -409,11 +530,39 @@ export default function ActiveOrdersPage() {
           }
         }}
       >
-        <DialogContent>
+        <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>{t("actionDialogTitle", { customer: selectedOrder?.customerTitle ?? "" })}</DialogTitle>
           </DialogHeader>
-          <div className="min-h-24 rounded-md border border-dashed" />
+
+          {selectedOrderTicket ? (
+            <div className="space-y-4">
+              <ScrollArea className="h-[420px] w-full rounded-lg border bg-muted/30 p-4">
+                <KitchenTicketContent
+                  orderNumber={selectedOrderTicket.orderNumber}
+                  serviceTypeValue={selectedOrderTicket.serviceTypeValue}
+                  datetimeValue={selectedOrderTicket.datetimeValue}
+                  customerName={selectedOrderTicket.customerName}
+                  items={selectedOrderTicket.items}
+                  orderNotes={selectedOrderTicket.orderNotes}
+                />
+              </ScrollArea>
+
+              <DialogFooter className="gap-2">
+                <Button type="button" variant="outline" onClick={() => setActionDialogOpen(false)}>
+                  {t("close")}
+                </Button>
+                <Button type="button" variant="destructive" onClick={handleCancelOrder} disabled={isCancelling}>
+                  {isCancelling ? t("cancelling") : t("cancelOrder")}
+                </Button>
+                <Button type="button" onClick={handleManageOrder}>
+                  {t("managePayment")}
+                </Button>
+              </DialogFooter>
+            </div>
+          ) : (
+            <div className="min-h-24 rounded-md border border-dashed" />
+          )}
         </DialogContent>
       </Dialog>
     </div>

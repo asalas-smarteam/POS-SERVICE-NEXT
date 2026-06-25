@@ -32,8 +32,9 @@ export async function POST(req, context) {
     };
 
     if (nextStatus === "READY") {
+      // Kitchen progress only. The order stays active (open) until it is paid;
+      // the lifecycle status (order.status) is owned by the checkout flow.
       updates.kitchenCompletedAt = new Date();
-      updates.status = "READY";
     }
 
     if (nextStatus === "CANCELLED") {

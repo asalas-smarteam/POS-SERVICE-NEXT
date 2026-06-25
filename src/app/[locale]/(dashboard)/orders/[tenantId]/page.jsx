@@ -16,7 +16,7 @@ import { resolvePaymentModeFromStrategy } from "@/lib/tenant/paymentStrategySett
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
 import { getTenantHeaders } from "../../../../../store/tenantHeaders";
-import { useOrderStore } from "../../../../../store/orderStore";
+import { useOrderStore, buildOrderItemsSignature } from "../../../../../store/orderStore";
 import { useProductsStore } from "../../../../../store/productsStore";
 import { useSettingsStore } from "../../../../../store/settingsStore";
 
@@ -59,6 +59,7 @@ export default function OrdersPage() {
   const {
     items,
     addItem,
+    addHalfAndHalfItem,
     increaseQty,
     decreaseQty,
     removeItem,
@@ -66,9 +67,12 @@ export default function OrdersPage() {
     clearOrder,
     customerName,
     setCustomerName,
+    editingOrder,
+    hydrateOrder,
   } = useOrderStore((state) => ({
     items: state.items,
     addItem: state.addItem,
+    addHalfAndHalfItem: state.addHalfAndHalfItem,
     increaseQty: state.increaseQty,
     decreaseQty: state.decreaseQty,
     removeItem: state.removeItem,
@@ -76,6 +80,8 @@ export default function OrdersPage() {
     clearOrder: state.clearOrder,
     customerName: state.customerName,
     setCustomerName: state.setCustomerName,
+    editingOrder: state.editingOrder,
+    hydrateOrder: state.hydrateOrder,
   }));
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -91,7 +97,11 @@ export default function OrdersPage() {
   const [selectedHalfBaseProduct, setSelectedHalfBaseProduct] = useState(null);
   const [selectedOrderType, setSelectedOrderType] = useState("takeaway");
   const [selectedTableId, setSelectedTableId] = useState("");
+  const [hydratingOrder, setHydratingOrder] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const isSubmittingRef = useRef(false);
+  const editingOrderId = editingOrder?.orderId ? String(editingOrder.orderId) : "";
+  const isEditingExistingOrder = Boolean(editingOrderId);
 
   useEffect(() => {
     fetchProducts();
@@ -135,6 +145,56 @@ export default function OrdersPage() {
       setSelectedOrderType(queryOrderType);
     }
   }, [searchParams]);
+
+  useEffect(() => {
+    const queryOrderId = searchParams.get("orderId");
+    if (!queryOrderId) {
+      return;
+    }
+
+    if (editingOrder?.orderId && String(editingOrder.orderId) === String(queryOrderId)) {
+      setSelectedOrderType(editingOrder?.orderType || "takeaway");
+      setSelectedTableId(editingOrder?.tableId || "");
+      return;
+    }
+
+    let ignore = false;
+
+    const hydrateFromApi = async () => {
+      setHydratingOrder(true);
+      try {
+        const response = await fetch("/api/orders?active=true", {
+          headers: {
+            ...getTenantHeaders(),
+          },
+        });
+        const body = await response.json().catch(() => []);
+        if (!response.ok || !Array.isArray(body)) {
+          return;
+        }
+        const matchedOrder = body.find(
+          (order) => String(order?._id ?? order?.id) === String(queryOrderId)
+        );
+        if (!matchedOrder || ignore) {
+          return;
+        }
+
+        hydrateOrder(matchedOrder);
+        setSelectedOrderType(matchedOrder?.orderType || "takeaway");
+        setSelectedTableId(matchedOrder?.tableId || "");
+      } finally {
+        if (!ignore) {
+          setHydratingOrder(false);
+        }
+      }
+    };
+
+    hydrateFromApi();
+
+    return () => {
+      ignore = true;
+    };
+  }, [editingOrder?.orderId, editingOrder?.orderType, editingOrder?.tableId, hydrateOrder, searchParams]);
 
   useEffect(() => {
     setIsFiltering(true);
@@ -207,7 +267,7 @@ export default function OrdersPage() {
       }));
 
     return {
-      productId: item.id,
+      productId: item.productId ?? item.id,
       productName: item.name,
       quantity: item.quantity,
       modifierNotes,
@@ -219,6 +279,66 @@ export default function OrdersPage() {
       halves: Array.isArray(item?.halves) ? item.halves : [],
     };
   }, []);
+
+  // Unsaved changes = the current cart differs from the persisted order
+  // snapshot captured at hydration (covers adds, removals, quantity and notes).
+  const currentItemsSignature = useMemo(() => buildOrderItemsSignature(items), [items]);
+  const hasUnsavedChanges =
+    isEditingExistingOrder && currentItemsSignature !== (editingOrder?.itemsSignature ?? "");
+  const hasUnsavedChangesRef = useRef(false);
+  useEffect(() => {
+    hasUnsavedChangesRef.current = hasUnsavedChanges;
+  }, [hasUnsavedChanges]);
+
+  // Reset the cart whenever /orders is opened without a specific order, so a
+  // previously edited/created order never lingers in the view.
+  const queryOrderId = searchParams.get("orderId");
+  useEffect(() => {
+    if (!queryOrderId) {
+      clearOrder();
+    }
+  }, [queryOrderId, clearOrder]);
+
+  // Warn before leaving (refresh / close tab / external links) with unsaved edits.
+  useEffect(() => {
+    const handleBeforeUnload = (event) => {
+      if (!hasUnsavedChangesRef.current) {
+        return;
+      }
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, []);
+
+  // Guard in-app navigation (sidebar links, etc.) while there are unsaved edits.
+  useEffect(() => {
+    const handleDocumentClick = (event) => {
+      if (!hasUnsavedChangesRef.current || event.defaultPrevented) {
+        return;
+      }
+      if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+        return;
+      }
+      const anchor = event.target?.closest?.("a[href]");
+      if (!anchor) {
+        return;
+      }
+      const targetUrl = new URL(anchor.href, window.location.href);
+      if (targetUrl.origin !== window.location.origin || targetUrl.pathname === window.location.pathname) {
+        return;
+      }
+      if (window.confirm(t("unsavedChangesPrompt"))) {
+        clearOrder();
+      } else {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    };
+    document.addEventListener("click", handleDocumentClick, true);
+    return () => document.removeEventListener("click", handleDocumentClick, true);
+  }, [clearOrder, t]);
 
   const handleCheckout = useCallback(async (checkoutValues) => {
     if (!items.length || isSubmittingRef.current) {
@@ -234,6 +354,75 @@ export default function OrdersPage() {
       const tableIdValue = checkoutValues?.tableId ?? null;
       const tableLabelValue = checkoutValues?.tableLabel ?? null;
       const paymentMode = resolvePaymentModeFromStrategy(paymentStrategy, paymentStrategyOptions);
+
+      if (isEditingExistingOrder) {
+        const orderId = editingOrderId;
+
+        // Persist the exact current cart (adds, removals, quantity changes)
+        // before closing the order.
+        const itemsResponse = await fetch(`/api/orders/${orderId}/items`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            ...getTenantHeaders(),
+          },
+          body: JSON.stringify({ items: items.map((item) => buildItemPayload(item)) }),
+        });
+        if (!itemsResponse.ok) {
+          const itemsBody = await itemsResponse.json().catch(() => ({}));
+          throw new Error(itemsBody?.error || t("orderItemsError"));
+        }
+
+        // Finalizing an existing order means the customer paid: close it so it
+        // leaves the active orders list and moves to a completed state.
+        const checkoutResponse = await fetch(`/api/orders/${orderId}/checkout`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...getTenantHeaders(),
+          },
+        });
+        if (!checkoutResponse.ok) {
+          const checkoutBody = await checkoutResponse.json().catch(() => ({}));
+          throw new Error(checkoutBody?.error || t("checkoutError"));
+        }
+
+        const orderTypeLabel =
+          orderTypes.find((type) => type.id === (editingOrder?.orderType || orderTypeValue))?.label || t("orderType");
+        const tableValue = (editingOrder?.orderType || orderTypeValue) === "onTable"
+          ? editingOrder?.tableLabel || tableLabelValue || t("notAssigned")
+          : customerNameValue || t("walkInCustomer");
+
+        const ticketData = {
+          orderNumber: normalizeOrderNumber(orderId),
+          tableLabel: orderTypeLabel,
+          tableValue,
+          datetimeLabel: t("dateAndTime"),
+          datetimeValue: new Date().toLocaleString(),
+          items: items.map((item) => ({
+            productName: item.name,
+            quantity: item.quantity,
+            modifierNotes: Array.isArray(item.modifierNotes) ? item.modifierNotes : [],
+            note: typeof item.note === "string" ? item.note : "",
+            type: item.type,
+            modifiers: Array.isArray(item.modifiers) ? item.modifiers : [],
+            isHalfAndHalf: Boolean(item.isHalfAndHalf),
+            halves: Array.isArray(item.halves) ? item.halves : [],
+          })),
+          customerName: customerNameValue,
+          orderNotes: [],
+          terminalLabel: t("terminal"),
+          terminalValue: t("register"),
+        };
+
+        setTicketPreview(ticketData);
+        setTicketDialogOpen(true);
+        setCheckoutDialogOpen(false);
+        clearOrder();
+        setSelectedOrderType("takeaway");
+        setSelectedTableId("");
+        return;
+      }
 
       const orderResponse = await fetch("/api/orders", {
         method: "POST",
@@ -344,6 +533,59 @@ export default function OrdersPage() {
     paymentStrategy,
     paymentStrategyOptions,
     orderTypes,
+    editingOrder?.orderType,
+    editingOrder?.tableLabel,
+    editingOrderId,
+    isEditingExistingOrder,
+    t,
+  ]);
+
+  // Persist edits to an existing order without closing it (the order stays
+  // active). Re-hydrates from the saved order so deltas reset to zero.
+  const handleSaveOrder = useCallback(async () => {
+    if (!isEditingExistingOrder || !hasUnsavedChanges || isSubmittingRef.current) {
+      return;
+    }
+    isSubmittingRef.current = true;
+    setIsSaving(true);
+    setCheckoutError("");
+
+    try {
+      const orderId = editingOrderId;
+      const response = await fetch(`/api/orders/${orderId}/items`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          ...getTenantHeaders(),
+        },
+        body: JSON.stringify({ items: items.map((item) => buildItemPayload(item)) }),
+      });
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => ({}));
+        throw new Error(errorBody?.error || t("orderItemsError"));
+      }
+
+      const latestOrder = await response.json().catch(() => null);
+      if (latestOrder) {
+        hydrateOrder(latestOrder);
+        setSelectedOrderType(latestOrder?.orderType || "takeaway");
+        setSelectedTableId(latestOrder?.tableId || "");
+      }
+
+      toast.success(t("orderSaved"));
+    } catch (error) {
+      setCheckoutError(error?.message || t("checkoutError"));
+    } finally {
+      isSubmittingRef.current = false;
+      setIsSaving(false);
+    }
+  }, [
+    isEditingExistingOrder,
+    hasUnsavedChanges,
+    items,
+    buildItemPayload,
+    editingOrderId,
+    hydrateOrder,
     t,
   ]);
 
@@ -369,6 +611,11 @@ export default function OrdersPage() {
         currentProduct: selectedHalfBaseProduct,
       }),
     [products, selectedHalfBaseProduct]
+  );
+
+  const selectedTable = useMemo(
+    () => tables.find((table) => table.id === selectedTableId) || null,
+    [tables, selectedTableId]
   );
 
   const handleProductLongPress = useCallback(
@@ -401,9 +648,6 @@ export default function OrdersPage() {
         return;
       }
 
-      const baseProductId = baseProduct?._id ?? baseProduct?.id;
-      const secondHalfProductId = secondHalfProduct?._id ?? secondHalfProduct?.id;
-
       const halfUnitPrice = calculateOrderItemUnitPrice({
         isHalfAndHalf: true,
         priceA: Number(baseProduct?.price ?? 0),
@@ -412,17 +656,16 @@ export default function OrdersPage() {
         pricingSettings: halfAndHalfPricing,
       });
 
-      addItem(baseProduct);
-      updateNotes(baseProductId, {
-        isHalfAndHalf: true,
-        halves: [{ productId: secondHalfProductId, name: secondHalfProduct?.name ?? "Product" }],
-        price: halfUnitPrice,
+      addHalfAndHalfItem({
+        baseProduct,
+        secondHalfProduct,
+        unitPrice: halfUnitPrice,
       });
 
       setHalfSelectorOpen(false);
       setSelectedHalfBaseProduct(null);
     },
-    [addItem, selectedHalfBaseProduct, updateNotes, halfAndHalfPricing]
+    [addHalfAndHalfItem, selectedHalfBaseProduct, halfAndHalfPricing]
   );
 
   useEffect(() => {
@@ -465,6 +708,12 @@ export default function OrdersPage() {
           <OrderSidebar
             className="lg:sticky lg:top-6 lg:self-start"
             items={items}
+            orderNumber={isEditingExistingOrder ? normalizeOrderNumber(editingOrderId) : ""}
+            orderContextLabel={
+              selectedOrderType === "onTable"
+                ? selectedTable?.name || selectedTableId || t("notAssigned")
+                : customerName || t("walkInCustomer")
+            }
             subtotal={subtotal}
             onIncrease={increaseQty}
             onDecrease={decreaseQty}
@@ -472,7 +721,12 @@ export default function OrdersPage() {
             onUpdateNotes={updateNotes}
             onClear={clearOrder}
             onCheckout={handleCheckoutRequest}
-            isSubmitting={isSubmitting}
+            onSave={handleSaveOrder}
+            isEditing={isEditingExistingOrder}
+            canSave={hasUnsavedChanges}
+            isSaving={isSaving}
+            isSubmitting={isSubmitting || hydratingOrder}
+            isLoading={hydratingOrder}
             checkoutError={checkoutError}
           />
         </div>
@@ -494,6 +748,7 @@ export default function OrdersPage() {
         defaultCustomerName={customerName}
         defaultOrderType={selectedOrderType || orderTypes[0]?.id || "takeaway"}
         defaultTableId={selectedTableId}
+        lockOrderTypeAndTable={isEditingExistingOrder}
         onConfirm={handleCheckoutConfirm}
       />
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { Pause, Trash2, Wallet } from "lucide-react";
+import { Pause, Save, Trash2, Wallet } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { AppAlert } from "@/components/app-alert";
 import { AppSpinner } from "@/components/app-spinner";
@@ -29,7 +29,12 @@ export function OrderSidebar({
   onUpdateNotes,
   onClear,
   onCheckout,
+  onSave,
+  isEditing = false,
+  canSave = false,
+  isSaving = false,
   isSubmitting = false,
+  isLoading = false,
   checkoutError,
   className,
 }) {
@@ -39,6 +44,11 @@ export function OrderSidebar({
   const total = subtotal + tax - discount;
   const normalizedOrderNumber = orderNumber?.trim() ? orderNumber.trim() : "";
   const hasOrderNumber = Boolean(normalizedOrderNumber);
+  const orderNumberLabel = hasOrderNumber
+    ? `#${normalizedOrderNumber}`
+    : isLoading
+      ? t("loading")
+      : t("newOrder");
   const normalizedContextLabel = orderContextLabel?.trim()
     ? orderContextLabel.trim()
     : t("walkInCustomer");
@@ -54,11 +64,11 @@ export function OrderSidebar({
         <div>
           <h3 className="text-lg font-semibold">{t("currentOrder")}</h3>
           <p className="text-xs text-muted-foreground">
-            {hasOrderNumber ? `#${normalizedOrderNumber}` : t("loading")} {normalizedContextLabel}
+            {orderNumberLabel} {normalizedContextLabel}
           </p>
         </div>
         <span className="rounded-full bg-muted px-3 py-1 text-xs font-semibold text-muted-foreground">
-          {hasOrderNumber ? `#${normalizedOrderNumber}` : t("loading")}
+          {orderNumberLabel}
         </span>
       </div>
 
@@ -106,10 +116,31 @@ export function OrderSidebar({
       </div>
 
       <div className="grid gap-2 md:grid-cols-2">
-        <Button variant="outline" className="w-full justify-center gap-2">
-          <Pause className="size-4" />
-          {t("holdOrder")}
-        </Button>
+        {isEditing ? (
+          <Button
+            variant="outline"
+            className="w-full justify-center gap-2"
+            onClick={onSave}
+            disabled={!canSave || isSaving || isSubmitting}
+          >
+            {isSaving ? (
+              <span className="flex items-center gap-2">
+                <AppSpinner size={16} inline />
+                {t("saving")}
+              </span>
+            ) : (
+              <>
+                <Save className="size-4" />
+                {t("saveOrder")}
+              </>
+            )}
+          </Button>
+        ) : (
+          <Button variant="outline" className="w-full justify-center gap-2">
+            <Pause className="size-4" />
+            {t("holdOrder")}
+          </Button>
+        )}
         <Button
           variant="outline"
           className="w-full justify-center gap-2"
@@ -129,7 +160,7 @@ export function OrderSidebar({
         className="w-full justify-center gap-2"
         size="lg"
         onClick={onCheckout}
-        disabled={!items.length || isSubmitting}
+        disabled={!items.length || isSubmitting || isSaving}
       >
         <Wallet className="size-4" />
         {isSubmitting ? (

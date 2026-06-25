@@ -32,6 +32,9 @@ export function ActiveOrderCard({ order, onAction }) {
         </CardTitle>
         <CardDescription className="flex flex-wrap items-center gap-2">
           <Badge className={order?.orderTypeBadgeClass}>{order?.orderTypeLabel}</Badge>
+          {order?.kitchenStatusLabel ? (
+            <Badge className={order?.kitchenStatusBadgeClass}>{order.kitchenStatusLabel}</Badge>
+          ) : null}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-2 text-sm">

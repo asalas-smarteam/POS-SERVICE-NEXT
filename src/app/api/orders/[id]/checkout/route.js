@@ -18,7 +18,10 @@ export async function POST(req, { params }) {
 
     const order = await Order.findById(orderId);
 
-    if (!order || !["PENDING", "IN_PROGRESS", "KITCHEN"].includes(order.status)) {
+    // Any open order can be paid regardless of its kitchen progress; only
+    // already closed/terminal orders are rejected.
+    const TERMINAL_STATUSES = ["COMPLETED", "CANCELLED", "DELETED"];
+    if (!order || order.isClosed || TERMINAL_STATUSES.includes(order.status)) {
       return NextResponse.json(
         { error: "Order not ready for checkout" },
         { status: 400 },
@@ -27,7 +30,7 @@ export async function POST(req, { params }) {
 
     const total = await calculateOrderTotal(conn, order);
 
-    order.status = "READY";
+    order.status = "COMPLETED";
     order.total = total;
     order.isClosed = true;
     order.closedAt = new Date();

@@ -14,7 +14,7 @@ export async function GET(req, { params }) {
 
   const order = await Order.findById(orderId);
 
-  if (!order || order.status !== "READY") {
+  if (!order || (!order.isClosed && order.status !== "COMPLETED")) {
     return new Response("Ticket not available", { status: 400 });
   }
 

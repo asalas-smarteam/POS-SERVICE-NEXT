@@ -1,5 +1,6 @@
 "use client"
 
+import { useMemo } from "react";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -78,6 +79,22 @@ export function NavMain({ items }) {
   const locale = String(params?.locale ?? "");
   const tenantId = String(params?.tenantId ?? "");
 
+  // Persisted/seeded nav config (DB + localStorage) may contain stale duplicate
+  // entries (e.g. two items pointing to /dashboard). Dedupe by destination so a
+  // legacy config never renders duplicate React keys.
+  const uniqueItems = useMemo(() => {
+    const seen = new Set();
+    return (Array.isArray(items) ? items : []).filter((item, index) => {
+      const identity =
+        item?.href ?? item?.url ?? item?.title ?? item?.label ?? `nav-item-${index}`;
+      if (seen.has(identity)) {
+        return false;
+      }
+      seen.add(identity);
+      return true;
+    });
+  }, [items]);
+
   const iconMap = {
     home: IconHome,
     "cash-register": IconCashRegister,
@@ -112,7 +129,7 @@ export function NavMain({ items }) {
           </SidebarMenuItem>
         </SidebarMenu>
         <SidebarMenu>
-          {items.map((item, index) => {
+          {uniqueItems.map((item, index) => {
             const ResolvedIcon =
               typeof item.icon === "function"
                 ? item.icon

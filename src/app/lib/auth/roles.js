@@ -34,7 +34,6 @@ export const NAV_BY_ROLE = Object.freeze({
     buildNavItem("Settings", "/settings", "settings"),
     buildNavItem("Kitchen", "/kitchen", "kitchen"),
     buildNavItem("Users", "/users", "users"),
-    buildNavItem("Dashboard", "/dashboard", "users"),
     buildNavItem("Floor", "/floor", "floor"),
   ],
   [USER_ROLES.KITCHEN]: [buildNavItem("Kitchen", "/kitchen", "kitchen")],

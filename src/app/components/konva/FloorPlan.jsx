@@ -8,6 +8,8 @@ import TableItem from "./TableItem";
 import { TableActionsPopup } from "./TableActionsPopup";
 import { useTranslations } from "next-intl";
 import { useThemeStore } from "../../../store/themeStore";
+import { useOrderStore } from "../../../store/orderStore";
+import { getTenantHeaders } from "../../../store/tenantHeaders";
 
 export function FloorPlan({ tables, setTables, onCreateTable, onUpdateTable, canEditLayout = false }) {
   const t = useTranslations("Floor");
@@ -18,6 +20,7 @@ export function FloorPlan({ tables, setTables, onCreateTable, onUpdateTable, can
   const [activeOrder, setActiveOrder] = useState(null);
   const [loadingActiveOrder, setLoadingActiveOrder] = useState(false);
   const { theme } = useThemeStore();
+  const hydrateOrder = useOrderStore((state) => state.hydrateOrder);
 
   const [stageSize, setStageSize] = useState({ width: 1000, height: 700 });
 
@@ -88,7 +91,11 @@ export function FloorPlan({ tables, setTables, onCreateTable, onUpdateTable, can
 
     setLoadingActiveOrder(true);
     try {
-      const response = await fetch(`/api/orders?tableId=${encodeURIComponent(table.id)}&active=true`);
+      const response = await fetch(`/api/orders?tableId=${encodeURIComponent(table.id)}&active=true`, {
+        headers: {
+          ...getTenantHeaders(),
+        },
+      });
       if (!response.ok) {
         setActiveOrder(null);
         return;
@@ -125,13 +132,16 @@ export function FloorPlan({ tables, setTables, onCreateTable, onUpdateTable, can
   }, [params?.locale, params?.tenantId, router, selectedTable?.id]);
 
   const handleManagePayment = useCallback(() => {
-    if (!selectedTable?.id) {
+    if (!selectedTable?.id || !activeOrder?._id) {
       return;
     }
+    hydrateOrder(activeOrder);
     const locale = params?.locale;
     const tenantId = params?.tenantId;
-    router.push(`/${locale}/orders/${tenantId}?tableId=${encodeURIComponent(selectedTable.id)}&orderType=onTable`);
-  }, [params?.locale, params?.tenantId, router, selectedTable?.id]);
+    router.push(
+      `/${locale}/orders/${tenantId}?orderId=${encodeURIComponent(activeOrder._id)}&orderType=${encodeURIComponent(activeOrder?.orderType || "onTable")}&tableId=${encodeURIComponent(selectedTable.id)}`
+    );
+  }, [activeOrder, hydrateOrder, params?.locale, params?.tenantId, router, selectedTable?.id]);
 
   const handleCloseOrder = useCallback(async () => {
     if (!activeOrder?._id || !selectedTable?.id) {
@@ -140,7 +150,7 @@ export function FloorPlan({ tables, setTables, onCreateTable, onUpdateTable, can
 
     const response = await fetch(`/api/orders/${activeOrder._id}/checkout`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...getTenantHeaders() },
     });
 
     if (!response.ok) {

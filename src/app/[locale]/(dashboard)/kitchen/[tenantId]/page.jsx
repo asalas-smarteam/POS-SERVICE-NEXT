@@ -25,8 +25,8 @@ const STATUS_COLUMNS = [
     labelKey: "inPreparation",
     buttonLabelKey: "moveToOven",
     icon: Clock3,
-    iconClass: "text-amber-400",
-    columnClass: "border-sky-950/70 bg-sky-950/35",
+    iconClass: "text-amber-500 dark:text-amber-400",
+    columnClass: "border-sky-200 bg-sky-50 dark:border-sky-950/70 dark:bg-sky-950/35",
     cardAccentClass: "border-l-red-500",
   },
   {
@@ -35,7 +35,7 @@ const STATUS_COLUMNS = [
     buttonLabelKey: "markAsReady",
     icon: Flame,
     iconClass: "text-orange-500",
-    columnClass: "border-orange-900/40 bg-orange-950/10",
+    columnClass: "border-orange-200 bg-orange-50 dark:border-orange-900/40 dark:bg-orange-950/10",
     cardAccentClass: "border-l-orange-500",
   },
   {
@@ -44,7 +44,7 @@ const STATUS_COLUMNS = [
     buttonLabelKey: "dispatchOrder",
     icon: CheckCheck,
     iconClass: "text-green-500",
-    columnClass: "border-emerald-900/50 bg-emerald-950/10",
+    columnClass: "border-emerald-200 bg-emerald-50 dark:border-emerald-900/50 dark:bg-emerald-950/10",
     cardAccentClass: "border-l-emerald-500",
   },
 ];
@@ -110,33 +110,33 @@ function KitchenTicketCard({ ticket, columnMeta, elapsedLabel, onContinue, onCan
 
   return (
     <article
-      className={`rounded-xl border border-slate-700/80 bg-slate-800/80 p-4 shadow-sm ${columnMeta.cardAccentClass} border-l-4`}
+      className={`rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700/80 dark:bg-slate-800/80 ${columnMeta.cardAccentClass} border-l-4`}
     >
       <div className="mb-3 flex items-start justify-between gap-2">
         <div>
-          <p className="text-2xl font-bold text-sky-400">#{normalizeOrderNumber(ticket._id)}</p>
-          <h4 className="text-sm font-black text-slate-100">{t("table")} {ticket.tableLabel || ticket.tableName || ticket.tableNumber || "-"}</h4>
+          <p className="text-2xl font-bold text-sky-600 dark:text-sky-400">#{normalizeOrderNumber(ticket._id)}</p>
+          <h4 className="text-sm font-black text-slate-900 dark:text-slate-100">{t("table")} {ticket.tableLabel || ticket.tableName || ticket.tableNumber || "-"}</h4>
         </div>
         <div className="flex flex-col items-end text-xs">
-          <span className={`flex items-center gap-1 font-bold ${isInOven ? "text-orange-400" : "text-red-400"}`}>
+          <span className={`flex items-center gap-1 font-bold ${isInOven ? "text-orange-500 dark:text-orange-400" : "text-red-500 dark:text-red-400"}`}>
             <Clock3 className="size-3.5" />
             {elapsedLabel}
           </span>
-          <span className="text-[10px] uppercase tracking-wide text-slate-400">{t("waitTime")}</span>
+          <span className="text-[10px] uppercase tracking-wide text-slate-500 dark:text-slate-400">{t("waitTime")}</span>
         </div>
       </div>
 
-      <div className="mb-4 space-y-2 border-b border-slate-700 pb-3 text-slate-300">
+      <div className="mb-4 space-y-2 border-b border-slate-200 pb-3 text-slate-600 dark:border-slate-700 dark:text-slate-300">
         <p className="flex items-center gap-2 text-lg">
           <CircleUserRound className="size-4" />
           {t("waiter")}: {ticket.waiterName || t("notAvailable")}
         </p>
         {ticket.customerName ? (
-          <p className="text-sm text-slate-300">{t("customer")}: {ticket.customerName}</p>
+          <p className="text-sm text-slate-600 dark:text-slate-300">{t("customer")}: {ticket.customerName}</p>
         ) : null}
       </div>
 
-      <ul className="mb-4 space-y-3 text-slate-100">
+      <ul className="mb-4 space-y-3 text-slate-900 dark:text-slate-100">
         {orderItems.map((item, idx) => {
           const notesText = item.display.notes || (item.fallbackNotes?.length ? item.fallbackNotes.join(" · ") : null);
 
@@ -152,8 +152,8 @@ function KitchenTicketCard({ ticket, columnMeta, elapsedLabel, onContinue, onCan
 
               {item.display.ingredients.length ? (
                 <div className="mt-2 pl-3">
-                  <p className="text-sm font-semibold text-slate-300">{t("ingredients")}</p>
-                  <ul className="mt-1 space-y-0.5 pl-3 text-xs text-slate-400">
+                  <p className="text-sm font-semibold text-slate-600 dark:text-slate-300">{t("ingredients")}</p>
+                  <ul className="mt-1 space-y-0.5 pl-3 text-xs text-slate-500 dark:text-slate-400">
                     {item.display.ingredients.map((ingredientName, ingredientIdx) => (
                       <li key={`${ingredientName}-${ingredientIdx}`}>- {ingredientName}</li>
                     ))}
@@ -174,8 +174,8 @@ function KitchenTicketCard({ ticket, columnMeta, elapsedLabel, onContinue, onCan
 
               {item.display.removed.length ? (
                 <div className="mt-2 pl-3">
-                  <p className="text-sm font-semibold text-slate-400">{t("without")}</p>
-                  <ul className="mt-1 space-y-0.5 pl-3 text-xs text-slate-400">
+                  <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">{t("without")}</p>
+                  <ul className="mt-1 space-y-0.5 pl-3 text-xs text-slate-500 dark:text-slate-400">
                     {item.display.removed.map((removedName, removedIdx) => (
                       <li key={`${removedName}-${removedIdx}`}>- {removedName}</li>
                     ))}
@@ -184,8 +184,8 @@ function KitchenTicketCard({ ticket, columnMeta, elapsedLabel, onContinue, onCan
               ) : null}
 
               {notesText ? (
-                <div className="mt-2 border-t border-slate-700 pt-2 pl-3">
-                  <p className="text-sm text-amber-400">{t("cashierNote")}: {notesText}</p>
+                <div className="mt-2 border-t border-slate-200 pt-2 pl-3 dark:border-slate-700">
+                  <p className="text-sm text-amber-600 dark:text-amber-400">{t("cashierNote")}: {notesText}</p>
                 </div>
               ) : null}
             </li>
@@ -195,7 +195,7 @@ function KitchenTicketCard({ ticket, columnMeta, elapsedLabel, onContinue, onCan
 
       <Button
         onClick={() => onContinue(ticket)}
-        className={`w-full font-bold ${isReady ? "bg-slate-700 hover:bg-slate-600" : "bg-blue-500 hover:bg-blue-400"}`}
+        className={`w-full font-bold ${isReady ? "bg-slate-200 text-slate-800 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-100 dark:hover:bg-slate-600" : "bg-blue-500 text-white hover:bg-blue-400"}`}
       >
         {t(columnMeta.buttonLabelKey)}
         {isReady ? <Send className="size-4" /> : <Check className="size-4" />}
@@ -220,8 +220,8 @@ function KitchenColumn({ columnMeta, tickets, now, onContinue, onCancel, t }) {
     <section className="flex min-h-0 flex-col gap-4">
       <header className="flex items-center gap-2 px-1">
         <Icon className={`size-5 ${columnMeta.iconClass}`} />
-        <h3 className="text-3xl font-bold tracking-wide text-slate-200">{t(columnMeta.labelKey)}</h3>
-        <span className="rounded-full bg-slate-700 px-2 py-0.5 text-xs font-bold text-slate-200">{tickets.length}</span>
+        <h3 className="text-3xl font-bold tracking-wide text-slate-700 dark:text-slate-200">{t(columnMeta.labelKey)}</h3>
+        <span className="rounded-full bg-slate-200 px-2 py-0.5 text-xs font-bold text-slate-700 dark:bg-slate-700 dark:text-slate-200">{tickets.length}</span>
       </header>
 
       <div className={`min-h-[60vh] space-y-4 rounded-xl border border-dashed p-3 ${columnMeta.columnClass}`}>
@@ -349,7 +349,7 @@ export default function KitchenPage() {
                 <span className="text-[10px] font-bold uppercase text-slate-400">{t("totalActive")}</span>
                 <span className="text-2xl font-bold">{activeTickets.length} {t("orders")}</span>
               </div>
-              <div className="h-8 w-px bg-slate-600" />
+              <div className="h-8 w-px bg-slate-300 dark:bg-slate-600" />
               <div className="flex flex-col">
                 <span className="text-[10px] font-bold uppercase text-slate-400">{t("avgTime")}</span>
                 <span className="text-2xl font-bold">{averageTimeLabel}</span>
@@ -361,7 +361,7 @@ export default function KitchenPage() {
         {error ? <AppAlert type="error" message={error} /> : null}
 
         {loading ? (
-          <div className="flex items-center gap-2 text-sm text-slate-300">
+          <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-300">
             <AppSpinner size={16} inline /> {t("updating")}
           </div>
         ) : null}

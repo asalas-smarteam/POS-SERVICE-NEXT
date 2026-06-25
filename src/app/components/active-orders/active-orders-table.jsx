@@ -28,6 +28,7 @@ export function ActiveOrdersTable({ orders, onAction }) {
         <TableRow>
           <TableHead>{t("customer")}</TableHead>
           <TableHead>{t("orderType")}</TableHead>
+          <TableHead>{t("kitchenStatusLabel")}</TableHead>
           <TableHead>{t("products")}</TableHead>
           <TableHead>{t("amount")}</TableHead>
           <TableHead className="text-right">{t("actions")}</TableHead>
@@ -39,6 +40,13 @@ export function ActiveOrdersTable({ orders, onAction }) {
             <TableCell className="font-medium">{order.customerTitle}</TableCell>
             <TableCell>
               <Badge className={order.orderTypeBadgeClass}>{order.orderTypeLabel}</Badge>
+            </TableCell>
+            <TableCell>
+              {order.kitchenStatusLabel ? (
+                <Badge className={order.kitchenStatusBadgeClass}>{order.kitchenStatusLabel}</Badge>
+              ) : (
+                <span className="text-xs text-muted-foreground">—</span>
+              )}
             </TableCell>
             <TableCell>
               <Badge className={order.orderTypeBadgeClass}>

@@ -53,6 +53,7 @@ const OrderSchema = new mongoose.Schema({
       'PENDING',
       'IN_PROGRESS',
       'READY',
+      'COMPLETED',
       'DELETED',
       'CANCELLED',
     ],
@@ -81,6 +82,11 @@ const OrderSchema = new mongoose.Schema({
   items: [OrderItemSchema],
   total: { type: Number, default: 0 },
   customerName: { type: String, default: '' },
+  // User (waiter/cashier) who registered the order.
+  createdBy: {
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    name: { type: String, default: '' },
+  },
   orderType: { type: String, default: 'takeaway' },
   tableId: { type: String, default: null },
   tableLabel: { type: String, default: null },

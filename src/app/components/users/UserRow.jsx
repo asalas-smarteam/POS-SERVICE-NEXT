@@ -49,20 +49,20 @@ export function UserRow({ user, index, isBusy, isSelf, onEdit, onDelete, onDeact
   const statusKey = user.isActive ? "active" : "inactive";
 
   return (
-    <TableRow className="border-slate-200 hover:bg-slate-50/80">
+    <TableRow className="border-slate-200 hover:bg-slate-50/80 dark:border-slate-800 dark:hover:bg-slate-800/40">
       <TableCell className="px-6 py-4">
         <div className="flex items-center gap-3">
           <Avatar className={`size-10 ${palette[index % palette.length]}`}>
             <AvatarFallback className="bg-transparent font-bold">{toInitials(user.username)}</AvatarFallback>
           </Avatar>
           <div className="flex flex-col">
-            <span className="text-sm font-semibold text-slate-900">{user.username}</span>
-            <span className="text-xs text-slate-400">ID: #{String(user._id || "").slice(-4)}</span>
+            <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">{user.username}</span>
+            <span className="text-xs text-slate-400 dark:text-slate-500">ID: #{String(user._id || "").slice(-4)}</span>
           </div>
         </div>
       </TableCell>
 
-      <TableCell className="px-6 py-4 text-sm text-slate-600">{user.email || "-"}</TableCell>
+      <TableCell className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">{user.email || "-"}</TableCell>
 
       <TableCell className="px-6 py-4">
         <Badge className={`rounded-full border text-xs font-medium ${roleClasses[roleLabel] || "bg-slate-100 text-slate-700 border-slate-200"}`} variant="outline">
@@ -77,7 +77,7 @@ export function UserRow({ user, index, isBusy, isSelf, onEdit, onDelete, onDeact
         </span>
       </TableCell>
 
-      <TableCell className="px-6 py-4 text-sm text-slate-500">{formatLastLogin(user.lastLoginAt || user.updatedAt, t("never"))}</TableCell>
+      <TableCell className="px-6 py-4 text-sm text-slate-500 dark:text-slate-400">{formatLastLogin(user.lastLoginAt || user.updatedAt, t("never"))}</TableCell>
 
       <TableCell className="px-6 py-4 text-right">
         <DropdownMenu>

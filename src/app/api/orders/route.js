@@ -4,12 +4,16 @@ import { authorizeRequest } from '@/lib/security/authorizeRequest';
 import { getTenantConnection } from '@/lib/db/connections';
 import { OrderModel } from '@/models/tenant/Order';
 import { TableModel } from '@/models/tenant/Table';
+import { UserModel } from '@/models/tenant/User';
 import { getTenantOrderConfig, normalizePaymentMode } from '@/lib/tenant/orderMetadata';
 
 const normalizeText = (value) =>
   typeof value === "string" ? value.trim() : "";
 
-const ACTIVE_ORDER_STATUSES = ['DRAFT', 'KITCHEN', 'PENDING', 'IN_PROGRESS'];
+// An order stays "active" while it is open (not paid/closed) and has not reached
+// a terminal state. Kitchen progress (kitchenStatus) is independent: an order
+// that is "ready to serve" is still active until it is paid (checkout).
+const INACTIVE_ORDER_STATUSES = ['COMPLETED', 'CANCELLED', 'DELETED'];
 
 export async function GET(req) {
   try {
@@ -30,7 +34,7 @@ export async function GET(req) {
 
     if (onlyActive) {
       query.isClosed = false;
-      query.status = { $in: ACTIVE_ORDER_STATUSES };
+      query.status = { $nin: INACTIVE_ORDER_STATUSES };
     }
 
     if (tableId && onlyActive) {
@@ -48,10 +52,19 @@ export async function GET(req) {
 export async function POST(req) {
   try {
     const tenant = await resolveTenant(req);
-    await authorizeRequest(req, 'orders');
+    const authPayload = await authorizeRequest(req, 'orders');
     const conn = await getTenantConnection(tenant.dbName);
     const Order = OrderModel(conn);
     const Table = TableModel(conn);
+
+    let createdBy = null;
+    if (authPayload?.userId) {
+      const user = await UserModel(conn).findById(authPayload.userId).lean();
+      createdBy = {
+        userId: authPayload.userId,
+        name: user?.username || user?.email || '',
+      };
+    }
 
     const body = await req.json().catch(() => ({}));
     const customerName = normalizeText(body?.customerName);
@@ -90,6 +103,7 @@ export async function POST(req) {
 
     const order = await Order.create({
       customerName,
+      createdBy,
       orderType: selectedOrderType.id,
       tableId,
       tableLabel,
