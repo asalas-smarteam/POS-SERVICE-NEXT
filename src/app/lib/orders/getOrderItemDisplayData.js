@@ -44,29 +44,39 @@ const buildIngredientSections = (item = {}) => {
   return { ingredients, extras, removed };
 };
 
-export function getOrderItemDisplayData(item) {
+const DEFAULT_LABELS = {
+  half: "Half",
+  ingredients: "Ingredients",
+  extras: "Extras",
+  removed: "Removed",
+  cashierNote: "Cashier Note",
+};
+
+export function getOrderItemDisplayData(item, { labels, includeNote = true } = {}) {
   const safeItem = item ?? {};
+  const L = { ...DEFAULT_LABELS, ...(labels ?? {}) };
+
   const hasHalf = Boolean(safeItem?.isHalfAndHalf && safeItem?.halves?.[0]);
   const baseName = resolveItemName(safeItem);
   const halfName = hasHalf ? resolveItemName(safeItem.halves[0]) : "";
 
   const title = hasHalf && halfName
-    ? `Half ${baseName} / Half ${halfName}`
+    ? `${L.half} ${baseName} / ${L.half} ${halfName}`
     : baseName;
 
   const { ingredients, extras, removed } = buildIngredientSections(safeItem);
+  const note = getStringValue(safeItem?.note);
 
   const subtitleLines = [
-    ...(ingredients.length ? [`Ingredients: ${ingredients.join(", ")}`] : []),
-    ...(extras.length ? [`Extras: ${extras.join(", ")}`] : []),
-    ...(removed.length ? [`Removed: ${removed.join(", ")}`] : []),
-    ...(getStringValue(safeItem?.note)
-      ? [`Cashier Note: ${getStringValue(safeItem?.note)}`]
-      : []),
+    ...(ingredients.length ? [`${L.ingredients}: ${ingredients.join(", ")}`] : []),
+    ...(extras.length ? [`${L.extras}: ${extras.join(", ")}`] : []),
+    ...(removed.length ? [`${L.removed}: ${removed.join(", ")}`] : []),
+    ...(includeNote && note ? [`${L.cashierNote}: ${note}`] : []),
   ];
 
   return {
     title,
     subtitleLines,
+    note,
   };
 }

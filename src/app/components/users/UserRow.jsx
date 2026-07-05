@@ -41,7 +41,7 @@ const formatLastLogin = (value, neverLabel) => {
   return new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(date);
 };
 
-export function UserRow({ user, index, isBusy, isSelf, onEdit, onDelete, onDeactivate, onResetPassword }) {
+export function UserRow({ user, index, isBusy, isSelf, onEdit, onDelete, onDeactivate, onActivate, onResetPassword }) {
   const t = useTranslations("Users");
   const tRoles = useTranslations("Roles");
   const tStatus = useTranslations("UserStatus");
@@ -91,10 +91,17 @@ export function UserRow({ user, index, isBusy, isSelf, onEdit, onDelete, onDeact
               <Pencil className="mr-2 size-4" />
               {t("edit")}
             </DropdownMenuItem>
-            <DropdownMenuItem disabled={isBusy || isSelf || !user.isActive} onClick={() => onDeactivate(user)}>
-              <Power className="mr-2 size-4" />
-              {t("deactivate")}
-            </DropdownMenuItem>
+            {user.isActive ? (
+              <DropdownMenuItem disabled={isBusy || isSelf} onClick={() => onDeactivate(user)}>
+                <Power className="mr-2 size-4" />
+                {t("deactivate")}
+              </DropdownMenuItem>
+            ) : (
+              <DropdownMenuItem disabled={isBusy} onClick={() => onActivate(user)}>
+                <Power className="mr-2 size-4" />
+                {t("activate")}
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem disabled={isBusy} onClick={() => onResetPassword(user)}>
               <Undo2 className="mr-2 size-4" />
               {t("resetPassword")}

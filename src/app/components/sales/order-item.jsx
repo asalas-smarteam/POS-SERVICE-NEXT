@@ -23,9 +23,23 @@ export function OrderItem({
   className,
 }) {
   const t = useTranslations("Orders");
+  const tk = useTranslations("Kitchen");
   const locale = useLocale();
   const [notesOpen, setNotesOpen] = useState(false);
-  const displayData = useMemo(() => getOrderItemDisplayData(item), [item]);
+  const labels = useMemo(
+    () => ({
+      half: tk("half"),
+      ingredients: tk("ingredients"),
+      extras: tk("extras"),
+      removed: tk("removed"),
+      cashierNote: tk("cashierNote"),
+    }),
+    [tk]
+  );
+  const displayData = useMemo(
+    () => getOrderItemDisplayData(item, { labels }),
+    [item, labels]
+  );
 
   return (
     <div

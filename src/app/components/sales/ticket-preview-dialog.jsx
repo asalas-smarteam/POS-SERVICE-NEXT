@@ -66,6 +66,7 @@ export function TicketPreviewDialog({
               customerName={ticket.customerName}
               items={ticket.items}
               orderNotes={ticket.orderNotes}
+              includeItemNote={false}
             />
           </ScrollArea>
         </div>

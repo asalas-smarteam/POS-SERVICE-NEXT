@@ -23,7 +23,9 @@ export function AppSidebar({
 }) {
   const t = useTranslations("Navigation")
   const user = useAuthStore((state) => state.user)
+  const tenant = useAuthStore((state) => state.tenant)
   const navMain = useAuthStore((state) => state.navMain)
+  const companyName = tenant?.name || "POS"
   const safeNavMain = Array.isArray(navMain) ? navMain : []
   const safeUser = user ?? {
     name: "Usuario",
@@ -39,7 +41,7 @@ export function AppSidebar({
             <SidebarMenuButton asChild className="data-[slot=sidebar-menu-button]:!p-1.5">
               <a href="#">
                 <IconInnerShadowTop className="!size-5" />
-                <span className="text-base font-semibold">Acme Inc.</span>
+                <span className="text-base font-semibold">{companyName}</span>
               </a>
             </SidebarMenuButton>
           </SidebarMenuItem>

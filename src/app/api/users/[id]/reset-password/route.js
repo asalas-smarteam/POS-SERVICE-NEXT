@@ -7,7 +7,7 @@ export async function PATCH(req, { params }) {
     const { User, authUser } = await getAuthContext(req);
     requireAdmin(authUser);
 
-    const { id } = params;
+    const { id } = await params;
     const body = await req.json();
     const newPassword = String(body?.newPassword || '');
 

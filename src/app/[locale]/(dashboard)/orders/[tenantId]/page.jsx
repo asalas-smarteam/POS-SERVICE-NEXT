@@ -30,6 +30,7 @@ const normalizeOrderNumber = (orderId) => {
 
 export default function OrdersPage() {
   const t = useTranslations("Orders");
+  const tk = useTranslations("Kitchen");
   const searchParams = useSearchParams();
   const { products, loading, error, fetchProducts } = useProductsStore(
     (state) => ({
@@ -355,6 +356,23 @@ export default function OrdersPage() {
       const tableLabelValue = checkoutValues?.tableLabel ?? null;
       const paymentMode = resolvePaymentModeFromStrategy(paymentStrategy, paymentStrategyOptions);
 
+      const ticketLabels = {
+        half: tk("half"),
+        ingredients: tk("ingredients"),
+        extras: tk("extras"),
+        removed: tk("removed"),
+        cashierNote: tk("cashierNote"),
+        kitchenOrder: tk("kitchenOrder"),
+        customer: tk("customer"),
+        notes: tk("notes"),
+        endOfTicket: tk("endOfTicket"),
+      };
+
+      const buildTicketNotes = () =>
+        items
+          .filter((item) => typeof item.note === "string" && item.note.trim())
+          .map((item) => item.note.trim());
+
       if (isEditingExistingOrder) {
         const orderId = editingOrderId;
 
@@ -410,7 +428,8 @@ export default function OrdersPage() {
             halves: Array.isArray(item.halves) ? item.halves : [],
           })),
           customerName: customerNameValue,
-          orderNotes: [],
+          orderNotes: buildTicketNotes(),
+          labels: ticketLabels,
           terminalLabel: t("terminal"),
           terminalValue: t("register"),
         };
@@ -500,7 +519,8 @@ export default function OrdersPage() {
           halves: Array.isArray(item.halves) ? item.halves : [],
         })),
         customerName: customerNameValue,
-        orderNotes: [],
+        orderNotes: buildTicketNotes(),
+        labels: ticketLabels,
         terminalLabel: t("terminal"),
         terminalValue: t("register"),
       };

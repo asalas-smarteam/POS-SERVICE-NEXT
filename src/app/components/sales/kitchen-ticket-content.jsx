@@ -12,9 +12,17 @@ export function KitchenTicketContent({
   customerName = "",
   items = [],
   orderNotes = [],
+  includeItemNote = true,
   className,
 }) {
   const t = useTranslations("Kitchen");
+  const labels = {
+    half: t("half"),
+    ingredients: t("ingredients"),
+    extras: t("extras"),
+    removed: t("removed"),
+    cashierNote: t("cashierNote"),
+  };
 
   return (
     <div className={cn("mx-auto w-[300px] rounded-md border bg-background p-4 text-xs text-foreground shadow-sm", className)}>
@@ -48,7 +56,10 @@ export function KitchenTicketContent({
 
       <div className="space-y-2 rounded-md border border-border/60 bg-muted/20 p-2">
         {items.map((item, index) => {
-          const { title, subtitleLines } = getOrderItemDisplayData(item);
+          const { title, subtitleLines } = getOrderItemDisplayData(item, {
+            labels,
+            includeNote: includeItemNote,
+          });
           return (
           <div key={`${item.name}-${index}`}>
             <p className="text-[11px] font-semibold">

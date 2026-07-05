@@ -234,6 +234,10 @@ export default function UsersPage() {
     await updateStatus(targetUser, false);
   };
 
+  const handleActivate = async (targetUser) => {
+    await updateStatus(targetUser, true);
+  };
+
   const openReset = (targetUser) => {
     setResetUser(targetUser);
     setResetPassword("");
@@ -305,6 +309,7 @@ export default function UsersPage() {
           onEdit={handleEditClick}
           onDelete={handleDelete}
           onDeactivate={handleDeactivate}
+          onActivate={handleActivate}
           onResetPassword={openReset}
         />
         <UsersPagination

@@ -67,7 +67,7 @@ const OrderSchema = new mongoose.Schema({
 
   kitchenStatus: {
     type: String,
-    enum: ['IN_PREPARATION', 'IN_OVEN', 'READY', 'CANCELLED'],
+    enum: ['IN_PREPARATION', 'IN_OVEN', 'READY', 'DISPATCHED', 'CANCELLED'],
     default: null,
   },
   kitchenStartedAt: {

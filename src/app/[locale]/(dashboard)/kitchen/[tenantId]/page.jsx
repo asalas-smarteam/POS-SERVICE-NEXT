@@ -307,7 +307,7 @@ export default function KitchenPage() {
   );
 
   const activeTickets = useMemo(
-    () => tickets.filter((ticket) => ticket.kitchenStatus !== "CANCELLED"),
+    () => tickets.filter((ticket) => !["CANCELLED", "DISPATCHED"].includes(ticket.kitchenStatus)),
     [tickets]
   );
 
@@ -329,6 +329,13 @@ export default function KitchenPage() {
       await updateTicketStatus(ticket._id, "READY");
       return;
     }
+
+    if (ticket.kitchenStatus === "READY") {
+      // Dispatch: remove the ticket from the kanban board without touching
+      // the order lifecycle (order.status stays owned by checkout).
+      await updateTicketStatus(ticket._id, "DISPATCHED");
+      return;
+    }
   };
 
   const handleCancel = async (ticket) => {
@@ -337,11 +344,23 @@ export default function KitchenPage() {
 
   return (
     <div className="flex h-full flex-col bg-white text-slate-900 dark:bg-[#061426] dark:text-slate-100">
-      <main className="mx-auto flex w-full max-w-[1600px] flex-1 flex-col gap-8 overflow-auto p-6 pb-28">
+      <main className="mx-auto flex w-full max-w-[1600px] flex-1 flex-col gap-8 overflow-auto p-6">
         <section className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
           <div>
             <h2 className="text-5xl font-black">{t("kitchenBoardTitle")}</h2>
             <p className="mt-1 text-lg text-slate-400">{t("kitchenBoardDescription")}</p>
+            <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-slate-500">
+              <span>{pendingDelivery} {t("pendingDelivery")}</span>
+              <span className="text-slate-300 dark:text-slate-600">•</span>
+              <span className="font-medium">{t("lastSynced")}</span>
+              <button
+                type="button"
+                onClick={fetchTickets}
+                className="rounded-lg p-2 text-slate-500 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
+                <span className="material-symbols-outlined">{t("refresh")}</span>
+              </button>
+            </div>
           </div>
           <div className="rounded-lg bg-slate-100 px-4 py-2 dark:bg-[#0c1f30]">
             <div className="flex items-center gap-3">
@@ -380,28 +399,6 @@ export default function KitchenPage() {
           ))}
         </section>
       </main>
-
-      <footer
-        className="fixed bottom-0 left-0 right-0 z-40 border-t border-slate-200 bg-white px-6 py-3 dark:border-slate-800 dark:bg-[#0c1f30]"
-      >
-        <div className="max-w-[1600px] mx-auto flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-6 text-sm">
-            <div className="flex items-center gap-2 text-slate-500">
-              <span>{pendingDelivery} {t("pendingDelivery")}</span>
-            </div>
-          </div>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-slate-500 font-medium">{t("lastSynced")}</span>
-            <button
-              type="button"
-              onClick={fetchTickets}
-              className="rounded-lg p-2 text-slate-500 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
-            >
-              <span className="material-symbols-outlined">{t("refresh")}</span>
-            </button>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

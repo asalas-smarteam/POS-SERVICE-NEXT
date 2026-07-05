@@ -250,6 +250,8 @@
     "customer": "Customer",
     "ingredients": "Ingredients",
     "extras": "Extras",
+    "removed": "Removed",
+    "half": "Half",
     "without": "Without",
     "cashierNote": "Cashier Note",
     "cancelTicket": "Cancel ticket",
@@ -266,7 +268,8 @@
     "kitchenOrder": "Kitchen order",
     "dateAndTime": "Date and time",
     "notes": "Notes",
-    "noNotes": "No notes"
+    "noNotes": "No notes",
+    "endOfTicket": "*** END OF TICKET ***"
   },
   "OrderStatus": {
     "PENDING": "Pending",

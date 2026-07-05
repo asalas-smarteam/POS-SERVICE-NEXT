@@ -5,11 +5,14 @@ import { getTenantConnection } from "@/lib/db/connections";
 import { OrderModel } from "@/models/tenant/Order";
 import { TableModel } from "@/models/tenant/Table";
 
-const ALLOWED_STATUSES = ["IN_PREPARATION", "IN_OVEN", "READY", "CANCELLED"];
+const ALLOWED_STATUSES = ["IN_PREPARATION", "IN_OVEN", "READY", "DISPATCHED", "CANCELLED"];
 const VALID_TRANSITIONS = {
   IN_PREPARATION: ["IN_OVEN", "CANCELLED"],
   IN_OVEN: ["READY", "CANCELLED"],
-  READY: [],
+  // Dispatching only removes the ticket from the kitchen board; the order
+  // lifecycle (order.status) remains owned by the checkout flow.
+  READY: ["DISPATCHED"],
+  DISPATCHED: [],
   CANCELLED: [],
 };
 
@@ -23,7 +26,13 @@ export async function PATCH(req, { params }) {
     }
 
     const tenant = await resolveTenant(req);
-    await authorizeRequest(req, "orders");
+    // Called from both the kitchen board (kitchen role) and active-orders
+    // (cashier/admin roles): accept access to either module.
+    try {
+      await authorizeRequest(req, "kitchen");
+    } catch (_kitchenAuthError) {
+      await authorizeRequest(req, "orders");
+    }
     const conn = await getTenantConnection(tenant.dbName);
     const Order = OrderModel(conn);
     const Table = TableModel(conn);
@@ -67,6 +76,6 @@ export async function PATCH(req, { params }) {
     await order.save();
     return NextResponse.json(order);
   } catch (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message }, { status: error.status || 500 });
   }
 }

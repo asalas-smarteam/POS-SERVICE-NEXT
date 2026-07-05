@@ -6,7 +6,7 @@ const LOCALE_REGEX = /^[a-z]{2}(?:-[A-Z]{2})?$/;
 export async function PUT(req, { params }) {
   try {
     const { User, authUser } = await getAuthContext(req);
-    const { id } = params;
+    const { id } = await params;
 
     if (String(authUser?._id) !== String(id) && authUser?.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });

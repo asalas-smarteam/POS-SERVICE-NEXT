@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/table";
 import { UserRow } from "@/components/users/UserRow";
 
-export function UsersTable({ users, loading, busyId, currentUserId, onEdit, onDelete, onDeactivate, onResetPassword }) {
+export function UsersTable({ users, loading, busyId, currentUserId, onEdit, onDelete, onDeactivate, onActivate, onResetPassword }) {
   const t = useTranslations("Users");
 
   if (loading) {
@@ -50,6 +50,7 @@ export function UsersTable({ users, loading, busyId, currentUserId, onEdit, onDe
                 onEdit={onEdit}
                 onDelete={onDelete}
                 onDeactivate={onDeactivate}
+                onActivate={onActivate}
                 onResetPassword={onResetPassword}
               />
             ))

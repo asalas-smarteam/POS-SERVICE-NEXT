@@ -36,10 +36,14 @@ export const loadJsPdf = () =>
 export async function generateKitchenTicketPdf(ticket) {
   const jsPDF = await loadJsPdf();
 
+  const labels = ticket.labels ?? {};
   const lineHeight = 4.5;
   const baseLines = 16;
   const itemLines = (ticket.items || []).reduce((count, item) => {
-    const { subtitleLines } = getOrderItemDisplayData(item);
+    const { subtitleLines } = getOrderItemDisplayData(item, {
+      labels,
+      includeNote: false,
+    });
     return count + 1 + subtitleLines.length;
   }, 0);
   const height = Math.max(80, (baseLines + itemLines) * lineHeight);
@@ -53,7 +57,7 @@ export async function generateKitchenTicketPdf(ticket) {
   const center = 40;
 
   doc.setFontSize(12);
-  doc.text("KITCHEN ORDER", center, y, { align: "center" });
+  doc.text(labels.kitchenOrder || "KITCHEN ORDER", center, y, { align: "center" });
 
   y += 7;
   doc.setFontSize(16);
@@ -73,7 +77,7 @@ export async function generateKitchenTicketPdf(ticket) {
 
   y += 9;
   if (ticket.customerName) {
-    doc.text("Customer", 6, y);
+    doc.text(labels.customer || "Customer", 6, y);
     doc.text(ticket.customerName, 6, y + 4);
     y += 9;
   }
@@ -82,7 +86,10 @@ export async function generateKitchenTicketPdf(ticket) {
   y += 4;
   doc.setFontSize(10);
   (ticket.items || []).forEach((item) => {
-    const { title, subtitleLines } = getOrderItemDisplayData(item);
+    const { title, subtitleLines } = getOrderItemDisplayData(item, {
+      labels,
+      includeNote: false,
+    });
     doc.text(`${item.quantity}x ${title}`, 6, y);
     y += lineHeight;
     subtitleLines.forEach((line) => {
@@ -99,7 +106,7 @@ export async function generateKitchenTicketPdf(ticket) {
 
   doc.setFontSize(9);
   if (ticket.orderNotes?.length) {
-    doc.text("Notas:", 6, y);
+    doc.text(`${labels.notes || "Notas"}:`, 6, y);
     y += lineHeight;
     ticket.orderNotes.forEach((note) => {
       doc.text(`- ${note}`, 8, y);
@@ -112,7 +119,7 @@ export async function generateKitchenTicketPdf(ticket) {
   doc.text(ticket.terminalValue || "-", 6, y + 4);
 
   y += 10;
-  doc.text("*** FIN DEL TICKET ***", center, y, { align: "center" });
+  doc.text(labels.endOfTicket || "*** FIN DEL TICKET ***", center, y, { align: "center" });
 
   return doc;
 }
