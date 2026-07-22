@@ -2,28 +2,21 @@
 
 import { Bell, Search, Settings } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useAuthStore } from "../../../store/authStore";
 
 export function SalesHeader({ searchTerm, onSearchChange }) {
   const t = useTranslations("Orders");
+  const operatorName = useAuthStore((state) => state.user?.name);
 
   return (
     <div className="flex flex-col gap-4 rounded-xl border bg-card p-4 shadow-sm md:flex-row md:items-center md:justify-between">
-      <div className="flex items-center gap-3">
-        <div className="flex size-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-          <span className="text-lg font-semibold">POS</span>
-        </div>
-        <div>
-          <h2 className="text-lg font-semibold">PointOfSale Pro</h2>
-          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-            <span>{t("terminal")}</span>
-            <span>•</span>
-            <span>{t("operator")}</span>
-            <Badge variant="secondary">{t("multiTenant")}</Badge>
-          </div>
-        </div>
+      <div>
+        <h2 className="text-lg font-semibold">{t("title")}</h2>
+        {operatorName ? (
+          <p className="text-xs text-muted-foreground">{operatorName}</p>
+        ) : null}
       </div>
       <div className="flex w-full flex-col gap-3 md:w-auto md:flex-row md:items-center">
         <div className="relative w-full md:w-[320px] lg:w-[360px]">

@@ -72,6 +72,10 @@ export async function calculateAndBuildOrderItem(conn, itemInput) {
       return { error: 'Both half-and-half products must have the same size', status: 400 };
     }
 
+    if ((productA.productSizeId || null) !== (productB.productSizeId || null)) {
+      return { error: 'Both half-and-half products must have the same portion', status: 400 };
+    }
+
     if (toObjectIdString(productA._id) === toObjectIdString(productB._id)) {
       return { error: 'Half-and-half products must be different', status: 400 };
     }

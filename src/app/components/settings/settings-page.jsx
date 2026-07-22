@@ -126,6 +126,7 @@ export function SettingsPage() {
         open={Boolean(selectedSetting)}
         setting={selectedSetting}
         editorData={editorData}
+        allSettings={settings}
         saving={saving}
         alert={dialogAlert}
         onOpenChange={handleCloseDialog}

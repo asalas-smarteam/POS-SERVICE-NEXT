@@ -36,6 +36,7 @@ const NAV_TRANSLATION_KEYS = {
   users: "users",
   settings: "settings",
   home: "home",
+  floor: "floor",
 };
 
 const normalizePath = (value = "") => {

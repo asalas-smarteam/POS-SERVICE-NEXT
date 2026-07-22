@@ -1,6 +1,6 @@
 "use client";
 
-import { Package, Pencil } from "lucide-react";
+import { Copy, Package, Pencil } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,16 +12,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { useCurrencyFormatter } from "@/hooks/useCurrencyFormatter";
 
-const formatPrice = (price) =>
-  Number(price || 0).toLocaleString("es-CL", {
-    style: "currency",
-    currency: "CLP",
-  });
-
-export function ProductCard({ product, onEdit, categoryLabel }) {
+export function ProductCard({ product, onEdit, onDuplicate, categoryLabel, sizeLabel }) {
   const t = useTranslations("Products");
   const tType = useTranslations("ProductTypes");
+  const { formatCurrency: formatPrice } = useCurrencyFormatter();
   const ingredientsCount = product?.ingredients?.length ?? 0;
 
   return (
@@ -34,6 +30,7 @@ export function ProductCard({ product, onEdit, categoryLabel }) {
         <CardDescription className="flex flex-wrap items-center gap-2">
           <span>{tType(product?.type ?? "SIMPLE")}</span>
           {categoryLabel ? <Badge variant="secondary">{categoryLabel}</Badge> : null}
+          {sizeLabel ? <Badge variant="outline">{sizeLabel}</Badge> : null}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-2 text-sm">
@@ -48,7 +45,11 @@ export function ProductCard({ product, onEdit, categoryLabel }) {
           </span>
         </div>
       </CardContent>
-      <CardFooter className="flex justify-end">
+      <CardFooter className="flex justify-end gap-2">
+        <Button variant="outline" onClick={() => onDuplicate?.(product)}>
+          <Copy className="mr-2 size-4" />
+          {t("duplicateProduct")}
+        </Button>
         <Button variant="outline" onClick={() => onEdit?.(product)}>
           <Pencil className="mr-2 size-4" />
           {t("editProduct")}

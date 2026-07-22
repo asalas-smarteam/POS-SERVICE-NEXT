@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { CategoryTabs } from "@/components/sales/category-tabs";
+import { SizeTabs } from "@/components/sales/size-tabs";
 import { HalfAndHalfQuickSelectorDialog } from "@/components/sales/half-and-half-quick-selector-dialog";
 import { OrderCheckoutDialog } from "@/components/sales/order-checkout-dialog";
 import { OrderSidebar } from "@/components/sales/order-sidebar";
@@ -43,6 +44,7 @@ export default function OrdersPage() {
 
   const {
     categories,
+    sizes,
     halfAndHalfPricing,
     paymentStrategy,
     paymentStrategyOptions,
@@ -50,6 +52,7 @@ export default function OrdersPage() {
     fetchSettings,
   } = useSettingsStore((state) => ({
     categories: state.categories,
+    sizes: state.sizes,
     halfAndHalfPricing: state.halfAndHalfPricing,
     paymentStrategy: state.paymentStrategy,
     paymentStrategyOptions: state.paymentStrategyOptions,
@@ -87,6 +90,7 @@ export default function OrdersPage() {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
+  const [activeSize, setActiveSize] = useState("all");
   const [isFiltering, setIsFiltering] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [checkoutError, setCheckoutError] = useState("");
@@ -201,7 +205,7 @@ export default function OrdersPage() {
     setIsFiltering(true);
     const timeout = setTimeout(() => setIsFiltering(false), 300);
     return () => clearTimeout(timeout);
-  }, [searchTerm, activeCategory]);
+  }, [searchTerm, activeCategory, activeSize]);
 
   const filteredProducts = useMemo(() => {
     const list = Array.isArray(products) ? products : [];
@@ -213,12 +217,15 @@ export default function OrdersPage() {
       if (!matchesSearch) {
         return false;
       }
-      if (activeCategory === "all") {
-        return true;
+      if (activeCategory !== "all" && product?.categoryId !== activeCategory) {
+        return false;
       }
-      return product?.categoryId === activeCategory;
+      if (activeSize !== "all" && product?.productSizeId !== activeSize) {
+        return false;
+      }
+      return true;
     });
-  }, [products, searchTerm, activeCategory]);
+  }, [products, searchTerm, activeCategory, activeSize]);
 
   const resolveItemUnitPrice = useCallback((item) => {
     const basePrice = Number(item?.basePrice ?? item?.price ?? 0);
@@ -714,6 +721,11 @@ export default function OrdersPage() {
               categories={categories}
               activeCategory={activeCategory}
               onSelect={setActiveCategory}
+            />
+            <SizeTabs
+              sizes={sizes}
+              activeSize={activeSize}
+              onSelect={setActiveSize}
             />
             <ProductGrid
               products={filteredProducts}

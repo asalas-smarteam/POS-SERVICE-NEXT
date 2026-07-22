@@ -1,5 +1,6 @@
 import { create } from "./zustand";
 import { getTenantHeaders } from "./tenantHeaders";
+import { DEFAULT_CURRENCY, normalizeCurrency } from "@/lib/tenant/currencySettings";
 import { DEFAULT_HALF_AND_HALF_PRICING, normalizeHalfAndHalfPricing } from "@/lib/tenant/halfAndHalfPricingSettings";
 import {
   DEFAULT_PAYMENT_STRATEGY,
@@ -69,6 +70,26 @@ const findSystemSettings = (settings = []) => {
   return normalized.find((setting) => setting?.description === "Settings");
 };
 
+const findSizesSetting = (settings = []) => {
+  const normalized = Array.isArray(settings) ? settings : [];
+  return normalized.find((setting) => setting?.description === "Product Sizes");
+};
+
+const buildSizesData = (settings = []) => {
+  const setting = findSizesSetting(settings);
+  const allSizes = Array.isArray(setting?.data) ? setting.data : [];
+  const sizes = allSizes.filter((size) => size?.active !== false);
+  return {
+    sizes,
+    sizeLookup: buildCategoryLookup(sizes),
+  };
+};
+
+const buildCurrency = (settings = []) => {
+  const baseSetting = findSystemSettings(settings);
+  return normalizeCurrency(baseSetting?.data?.currency || DEFAULT_CURRENCY);
+};
+
 const buildHalfAndHalfPricing = (settings = []) => {
   const baseSetting = findSystemSettings(settings);
   return normalizeHalfAndHalfPricing(baseSetting?.data?.halfAndHalfPricing || DEFAULT_HALF_AND_HALF_PRICING);
@@ -103,6 +124,9 @@ export const useSettingsStore = create((set) => ({
   categoryLookup: {},
   ingredientUnits: DEFAULT_INGREDIENT_UNITS,
   ingredientUnitLookup: buildUnitLookup(DEFAULT_INGREDIENT_UNITS),
+  sizes: [],
+  sizeLookup: {},
+  currency: DEFAULT_CURRENCY,
   halfAndHalfPricing: DEFAULT_HALF_AND_HALF_PRICING,
   paymentStrategy: DEFAULT_PAYMENT_STRATEGY,
   pricingStrategyOptions: DEFAULT_PRICING_STRATEGY_OPTIONS,
@@ -126,6 +150,8 @@ export const useSettingsStore = create((set) => ({
       const settings = Array.isArray(body) ? body : [];
       const categoryData = buildCategoryData(settings);
       const unitData = buildUnitData(settings);
+      const sizesData = buildSizesData(settings);
+      const currency = buildCurrency(settings);
       const halfAndHalfPricing = buildHalfAndHalfPricing(settings);
       const paymentStrategy = buildPaymentStrategy(settings);
       const pricingStrategyOptions = DEFAULT_PRICING_STRATEGY_OPTIONS;
@@ -137,6 +163,9 @@ export const useSettingsStore = create((set) => ({
         categoryLookup: categoryData.categoryLookup,
         ingredientUnits: unitData.ingredientUnits,
         ingredientUnitLookup: unitData.ingredientUnitLookup,
+        sizes: sizesData.sizes,
+        sizeLookup: sizesData.sizeLookup,
+        currency,
         halfAndHalfPricing,
         paymentStrategy,
         pricingStrategyOptions,

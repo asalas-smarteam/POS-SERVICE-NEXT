@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { DashboardFilterBar } from "./dashboard-filter-bar";
 import { RecentOrdersTable } from "./recent-orders-table";
@@ -9,6 +8,7 @@ import { SalesFlowCard } from "./sales-flow-card";
 import { StatCard } from "./stat-card";
 import { TopDishesCard } from "./top-dishes-card";
 import { AppAlert } from "@/components/app-alert";
+import { useCurrencyFormatter } from "@/hooks/useCurrencyFormatter";
 import { useSettingsStore } from "../../../store/settingsStore";
 import { getTenantHeaders } from "../../../store/tenantHeaders";
 
@@ -47,8 +47,6 @@ const formatTrend = (value) => {
 
 export function RestaurantDashboard({ pageTitle }) {
   const t = useTranslations("Dashboard");
-  const params = useParams();
-  const locale = params?.locale === "es" ? "es" : "en";
 
   const { categories, fetchSettings } = useSettingsStore((state) => ({
     categories: state.categories,
@@ -61,14 +59,10 @@ export function RestaurantDashboard({ pageTitle }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const { formatCurrency } = useCurrencyFormatter();
   const currencyFormatter = useMemo(
-    () =>
-      new Intl.NumberFormat(locale, {
-        style: "currency",
-        currency: locale === "es" ? "CRC" : "USD",
-        maximumFractionDigits: 2,
-      }),
-    [locale]
+    () => ({ format: formatCurrency }),
+    [formatCurrency]
   );
 
   useEffect(() => {

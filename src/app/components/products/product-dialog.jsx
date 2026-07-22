@@ -33,6 +33,7 @@ const emptyForm = {
   categoryId: "",
   sizeId: "",
   allowsHalf: false,
+  productSizeId: "",
 };
 
 const normalizeIngredients = (ingredients = []) =>
@@ -45,7 +46,7 @@ const normalizeIngredients = (ingredients = []) =>
     };
   });
 
-export function ProductDialog({ open, onOpenChange, product, onSuccess }) {
+export function ProductDialog({ open, onOpenChange, product, duplicateFrom, onSuccess }) {
   const t = useTranslations("Products");
   const tType = useTranslations("ProductTypes");
   const {
@@ -62,9 +63,10 @@ export function ProductDialog({ open, onOpenChange, product, onSuccess }) {
     updateProduct: state.updateProduct,
   }));
 
-  const { categories, settingsLoading, fetchSettings } = useSettingsStore(
+  const { categories, productSizes, settingsLoading, fetchSettings } = useSettingsStore(
     (state) => ({
       categories: state.categories,
+      productSizes: state.sizes,
       settingsLoading: state.loading,
       fetchSettings: state.fetchSettings,
     })
@@ -82,6 +84,7 @@ export function ProductDialog({ open, onOpenChange, product, onSuccess }) {
   const [ingredientSearch, setIngredientSearch] = useState("");
 
   const isEditing = Boolean(product?._id);
+  const isDuplicating = !isEditing && Boolean(duplicateFrom);
 
   useEffect(() => {
     if (open) {
@@ -100,15 +103,18 @@ export function ProductDialog({ open, onOpenChange, product, onSuccess }) {
       return;
     }
 
-    if (product) {
+    const source = product ?? duplicateFrom;
+
+    if (source) {
       setForm({
-        name: product?.name ?? "",
-        price: product?.price ?? "",
-        type: product?.type ?? "SIMPLE",
-        ingredients: normalizeIngredients(product?.ingredients ?? []),
-        categoryId: product?.categoryId ?? "",
-        sizeId: product?.sizeId?._id ?? product?.sizeId ?? "",
-        allowsHalf: Boolean(product?.allowsHalf),
+        name: source?.name ?? "",
+        price: source?.price ?? "",
+        type: source?.type ?? "SIMPLE",
+        ingredients: normalizeIngredients(source?.ingredients ?? []),
+        categoryId: source?.categoryId ?? "",
+        sizeId: source?.sizeId?._id ?? source?.sizeId ?? "",
+        allowsHalf: Boolean(source?.allowsHalf),
+        productSizeId: source?.productSizeId ?? "",
       });
     } else {
       const defaultSize = Array.isArray(sizes)
@@ -120,17 +126,25 @@ export function ProductDialog({ open, onOpenChange, product, onSuccess }) {
         sizeId: defaultSize?._id ?? "",
       });
     }
-  }, [open, product, sizes]);
+  }, [open, product, duplicateFrom, sizes]);
 
   useEffect(() => {
-    if (!open || isEditing || form.categoryId) {
+    if (!open || isEditing || isDuplicating || form.categoryId) {
       return;
     }
     const defaultCategory = categories.find((category) => category?.id === "bebidas");
     if (defaultCategory?.id) {
       setForm((current) => ({ ...current, categoryId: defaultCategory.id }));
     }
-  }, [categories, form.categoryId, isEditing, open]);
+  }, [categories, form.categoryId, isEditing, isDuplicating, open]);
+
+  const categorySizes = useMemo(() => {
+    const selectedCategory = categories.find((category) => category?.id === form.categoryId);
+    const enabledSizeIds = Array.isArray(selectedCategory?.sizeIds) ? selectedCategory.sizeIds : [];
+    return productSizes.filter((size) => enabledSizeIds.includes(size.id));
+  }, [categories, form.categoryId, productSizes]);
+
+  const requiresProductSize = categorySizes.length > 0;
 
   const selectedIngredientIds = useMemo(
     () => new Set(form.ingredients.map((item) => item.ingredientId)),
@@ -200,6 +214,7 @@ export function ProductDialog({ open, onOpenChange, product, onSuccess }) {
       type: form.type,
       sizeId: form.sizeId || null,
       allowsHalf: Boolean(form.allowsHalf),
+      productSizeId: form.productSizeId || null,
     };
 
     if (form.type === "COMPOSED") {
@@ -215,6 +230,11 @@ export function ProductDialog({ open, onOpenChange, product, onSuccess }) {
 
     if (!payload.name || !payload.price) {
       setAlert({ type: "error", message: t("completeNameAndPrice") });
+      return;
+    }
+
+    if (requiresProductSize && !payload.productSizeId) {
+      setAlert({ type: "error", message: t("completeProductSize") });
       return;
     }
 
@@ -240,10 +260,14 @@ export function ProductDialog({ open, onOpenChange, product, onSuccess }) {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Package className="size-5 text-muted-foreground" />
-            {isEditing ? t("editProduct") : t("createProduct")}
+            {isEditing ? t("editProduct") : isDuplicating ? t("duplicateProduct") : t("createProduct")}
           </DialogTitle>
           <DialogDescription>
-            {isEditing ? t("editSelectedProduct") : t("createProductDescription")}
+            {isEditing
+              ? t("editSelectedProduct")
+              : isDuplicating
+                ? t("duplicateProductDescription")
+                : t("createProductDescription")}
           </DialogDescription>
         </DialogHeader>
 
@@ -285,37 +309,67 @@ export function ProductDialog({ open, onOpenChange, product, onSuccess }) {
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label>{t("category")}</Label>
-            {settingsLoading ? (
-              <Skeleton className="h-10 w-full" />
-            ) : (
-              <Select
-                value={form.categoryId}
-                onValueChange={(value) =>
-                  setForm((current) => ({
-                    ...current,
-                    categoryId: value,
-                  }))
-                }
-                disabled={categories.length === 0}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder={t("selectCategory")} />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((category) => (
-                    <SelectItem key={category.id} value={category.id}>
-                      {category.label ?? category.id}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-            {!settingsLoading && categories.length === 0 ? (
-              <p className="text-xs text-muted-foreground">
-                {t("noCategoriesConfigured")}
-              </p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label>{t("category")}</Label>
+              {settingsLoading ? (
+                <Skeleton className="h-10 w-full" />
+              ) : (
+                <Select
+                  value={form.categoryId}
+                  onValueChange={(value) =>
+                    setForm((current) => ({
+                      ...current,
+                      categoryId: value,
+                      productSizeId: "",
+                    }))
+                  }
+                  disabled={categories.length === 0}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder={t("selectCategory")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.label ?? category.id}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              {!settingsLoading && categories.length === 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  {t("noCategoriesConfigured")}
+                </p>
+              ) : null}
+            </div>
+
+            {requiresProductSize ? (
+              <div className="space-y-2">
+                <Label>{t("portion")}</Label>
+                <Select
+                  value={form.productSizeId}
+                  onValueChange={(value) =>
+                    setForm((current) => ({
+                      ...current,
+                      productSizeId: value,
+                    }))
+                  }
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder={t("selectPortion")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categorySizes.map((size) => (
+                      <SelectItem key={size.id} value={size.id}>
+                        {size.label ?? size.id}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">{t("portionHelp")}</p>
+              </div>
             ) : null}
           </div>
 

@@ -1,11 +1,13 @@
 "use client";
 
 import { Moon, Sun } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useThemeStore } from "../../store/themeStore";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 export function ThemeToggle({ className = "" }) {
+  const t = useTranslations("ThemeToggle");
   const { theme, toggleTheme } = useThemeStore();
   const isDark = theme === "dark";
 
@@ -13,7 +15,7 @@ export function ThemeToggle({ className = "" }) {
     <Tooltip>
       <TooltipTrigger asChild>
         <Button
-          aria-label="Switch Theme"
+          aria-label={t("switchTheme")}
           className={`h-10 rounded-lg border px-3 text-sm font-semibold transition-all duration-300 ${
             isDark
               ? "border-slate-700 bg-[#0c1f30] text-slate-100 hover:bg-[#10283f]"
@@ -25,10 +27,10 @@ export function ThemeToggle({ className = "" }) {
           variant="outline"
         >
           {isDark ? <Sun className="size-4" /> : <Moon className="size-4" />}
-          <span>{isDark ? "Light Mode" : "Dark Mode"}</span>
+          <span>{isDark ? t("lightMode") : t("darkMode")}</span>
         </Button>
       </TooltipTrigger>
-      <TooltipContent side="right">Switch Theme</TooltipContent>
+      <TooltipContent side="right">{t("switchTheme")}</TooltipContent>
     </Tooltip>
   );
 }

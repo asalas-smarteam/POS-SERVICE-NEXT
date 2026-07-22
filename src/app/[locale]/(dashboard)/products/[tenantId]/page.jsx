@@ -20,12 +20,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { useCurrencyFormatter } from "@/hooks/useCurrencyFormatter";
 import { useProductsStore } from "../../../../../store/productsStore";
 import { useSettingsStore } from "../../../../../store/settingsStore";
 
 export default function ProductsPage() {
   const t = useTranslations("Products");
   const tType = useTranslations("ProductTypes");
+  const { formatCurrency } = useCurrencyFormatter();
   const {
     products,
     loading,
@@ -56,16 +58,18 @@ export default function ProductsPage() {
     setPage: state.setPage,
   }));
 
-  const { categories, categoryLookup, settingsLoading, fetchSettings } =
+  const { categories, categoryLookup, sizeLookup, settingsLoading, fetchSettings } =
     useSettingsStore((state) => ({
       categories: state.categories,
       categoryLookup: state.categoryLookup,
+      sizeLookup: state.sizeLookup,
       settingsLoading: state.loading,
       fetchSettings: state.fetchSettings,
     }));
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
+  const [duplicateSource, setDuplicateSource] = useState(null);
   const [actionAlert, setActionAlert] = useState(null);
 
   useEffect(() => {
@@ -81,6 +85,13 @@ export default function ProductsPage() {
       return t("uncategorized");
     }
     return categoryLookup[product.categoryId] ?? product.categoryId;
+  };
+
+  const resolveSizeLabel = (product) => {
+    if (!product?.productSizeId) {
+      return null;
+    }
+    return sizeLookup[product.productSizeId] ?? product.productSizeId;
   };
 
   const viewOptions = [
@@ -133,11 +144,19 @@ export default function ProductsPage() {
 
   const handleCreate = () => {
     setEditingProduct(null);
+    setDuplicateSource(null);
     setDialogOpen(true);
   };
 
   const handleEdit = (product) => {
     setEditingProduct(product);
+    setDuplicateSource(null);
+    setDialogOpen(true);
+  };
+
+  const handleDuplicate = (product) => {
+    setEditingProduct(null);
+    setDuplicateSource(product);
     setDialogOpen(true);
   };
 
@@ -171,7 +190,9 @@ export default function ProductsPage() {
         <ProductTable
           products={paginatedProducts}
           onEdit={handleEdit}
+          onDuplicate={handleDuplicate}
           getCategoryLabel={resolveCategoryLabel}
+          getSizeLabel={resolveSizeLabel}
         />
       );
     }
@@ -179,30 +200,34 @@ export default function ProductsPage() {
     if (viewMode === "list") {
       return (
         <div className="space-y-3">
-          {paginatedProducts.map((product) => (
-            <Card key={product._id ?? product.name}>
-              <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <p className="text-sm font-semibold">{product.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {tType(product.type)} · {product.ingredients?.length ?? 0} {t("ingredients").toLowerCase()}
-                  </p>
-                </div>
-                <Badge variant="secondary">{resolveCategoryLabel(product)}</Badge>
-                <div className="flex items-center gap-3">
-                  <span className="text-sm font-medium">
-                    {Number(product.price || 0).toLocaleString("es-CL", {
-                      style: "currency",
-                      currency: "CLP",
-                    })}
-                  </span>
-                  <Button variant="outline" size="sm" onClick={() => handleEdit(product)}>
-                    {t("editProduct")}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+          {paginatedProducts.map((product) => {
+            const sizeLabel = resolveSizeLabel(product);
+            return (
+              <Card key={product._id ?? product.name}>
+                <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm font-semibold">{product.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {tType(product.type)} · {product.ingredients?.length ?? 0} {t("ingredients").toLowerCase()}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary">{resolveCategoryLabel(product)}</Badge>
+                    {sizeLabel ? <Badge variant="outline">{sizeLabel}</Badge> : null}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-medium">{formatCurrency(product.price)}</span>
+                    <Button variant="outline" size="sm" onClick={() => handleDuplicate(product)}>
+                      {t("duplicateProduct")}
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => handleEdit(product)}>
+                      {t("editProduct")}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       );
     }
@@ -214,7 +239,9 @@ export default function ProductsPage() {
             key={product._id ?? product.name}
             product={product}
             onEdit={handleEdit}
+            onDuplicate={handleDuplicate}
             categoryLabel={resolveCategoryLabel(product)}
+            sizeLabel={resolveSizeLabel(product)}
           />
         ))}
       </div>
@@ -332,9 +359,11 @@ export default function ProductsPage() {
           setDialogOpen(value);
           if (!value) {
             setEditingProduct(null);
+            setDuplicateSource(null);
           }
         }}
         product={editingProduct}
+        duplicateFrom={duplicateSource}
         onSuccess={handleDialogSuccess}
       />
     </div>

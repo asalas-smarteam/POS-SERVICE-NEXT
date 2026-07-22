@@ -4,6 +4,11 @@
     "save": "Save",
     "cancel": "Cancel"
   },
+  "ThemeToggle": {
+    "darkMode": "Dark Mode",
+    "lightMode": "Light Mode",
+    "switchTheme": "Switch Theme"
+  },
   "Navigation": {
     "dashboard": "Dashboard",
     "orders": "Orders",
@@ -13,6 +18,7 @@
     "kitchen": "Kitchen",
     "users": "Users",
     "settings": "Settings",
+    "floor": "Floor",
     "logout": "Logout",
     "profile": "Profile",
     "search": "Search",
@@ -155,8 +161,6 @@
     "emptyCart": "No products in order",
     "searchProducts": "Search products",
     "terminal": "Terminal #04",
-    "operator": "Alex Johnson",
-    "multiTenant": "Multi-tenant",
     "settings": "Settings",
     "notifications": "Notifications",
     "currentOrder": "Current Order",
@@ -186,6 +190,7 @@
     "chooseCompatibleProduct": "Choose a compatible product",
     "addHalfAndHalf": "Add half and half",
     "allItems": "All Items",
+    "allSizes": "All Sizes",
     "filteringProducts": "Filtering products...",
     "noProductsInCategory": "No products available for this category.",
     "unknownProduct": "Product",
@@ -330,7 +335,13 @@
     "editSelectedProduct": "Update selected product data.",
     "createProductDescription": "Complete the information to register a new product.",
     "unknownProduct": "Product",
-    "na": "N/A"
+    "na": "N/A",
+    "duplicateProduct": "Duplicate product",
+    "duplicateProductDescription": "Adjust the name, price, portion and ingredient quantities to create a variant of this product.",
+    "portion": "Portion",
+    "selectPortion": "Select portion",
+    "portionHelp": "This category has configured portions. Each portion is its own product: adjust the price and ingredient quantities as needed.",
+    "completeProductSize": "Select a portion for this category."
   },
   "ActiveOrders": {
     "title": "Active orders",
@@ -540,7 +551,9 @@
     "orderTypeIdPlaceholder": "id (e.g. delivery)",
     "orderTypeLabelPlaceholder": "Visible label",
     "orderTypesSaveError": "Unable to save order types.",
-    "orderTypesSaved": "Order types saved."
+    "orderTypesSaved": "Order types saved.",
+    "categorySizesLabel": "Available sizes",
+    "noSizesAvailable": "No sizes configured yet. Add them in the Product Sizes setting."
   },
   "Floor": {
     "table": "Table",

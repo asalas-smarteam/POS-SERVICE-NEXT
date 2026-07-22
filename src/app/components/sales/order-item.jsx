@@ -2,17 +2,12 @@
 
 import { useMemo, useState } from "react";
 import { MessageSquarePlus, Minus, Plus, Trash2 } from "lucide-react";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { OrderItemNotesDialog } from "@/components/sales/order-item-notes-dialog";
 import { getOrderItemDisplayData } from "@/lib/orders/getOrderItemDisplayData";
+import { useCurrencyFormatter } from "@/hooks/useCurrencyFormatter";
 import { cn } from "@/lib/utils";
-
-const formatCurrency = (value, locale) =>
-  new Intl.NumberFormat(locale, {
-    style: "currency",
-    currency: "CLP",
-  }).format(Number(value ?? 0));
 
 export function OrderItem({
   item,
@@ -24,7 +19,7 @@ export function OrderItem({
 }) {
   const t = useTranslations("Orders");
   const tk = useTranslations("Kitchen");
-  const locale = useLocale();
+  const { formatCurrency } = useCurrencyFormatter();
   const [notesOpen, setNotesOpen] = useState(false);
   const labels = useMemo(
     () => ({
@@ -62,7 +57,7 @@ export function OrderItem({
           )}
         </div>
         <span className="text-sm font-semibold text-foreground">
-          {formatCurrency(item.price * item.quantity, locale)}
+          {formatCurrency(item.price * item.quantity)}
         </span>
       </div>
       <div className="mt-3 flex items-center justify-between">

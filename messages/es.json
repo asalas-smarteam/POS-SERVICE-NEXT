@@ -4,6 +4,11 @@
     "save": "Guardar",
     "cancel": "Cancelar"
   },
+  "ThemeToggle": {
+    "darkMode": "Modo oscuro",
+    "lightMode": "Modo claro",
+    "switchTheme": "Cambiar tema"
+  },
   "Navigation": {
     "dashboard": "Panel",
     "orders": "Órdenes",
@@ -13,6 +18,7 @@
     "kitchen": "Cocina",
     "users": "Usuarios",
     "settings": "Configuración",
+    "floor": "Mesas",
     "logout": "Cerrar sesión",
     "profile": "Perfil",
     "search": "Buscar",
@@ -155,8 +161,6 @@
     "emptyCart": "No hay productos en la orden",
     "searchProducts": "Buscar productos",
     "terminal": "Terminal #04",
-    "operator": "Alex Johnson",
-    "multiTenant": "Multi-tenant",
     "settings": "Configuración",
     "notifications": "Notificaciones",
     "currentOrder": "Orden actual",
@@ -186,6 +190,7 @@
     "chooseCompatibleProduct": "Elige un producto compatible",
     "addHalfAndHalf": "Agregar mitad y mitad",
     "allItems": "Todos los productos",
+    "allSizes": "Todos los tamaños",
     "filteringProducts": "Filtrando productos...",
     "noProductsInCategory": "No hay productos disponibles para esta categoría.",
     "unknownProduct": "Producto",
@@ -330,7 +335,13 @@
     "editSelectedProduct": "Actualiza los datos del producto seleccionado.",
     "createProductDescription": "Completa la información para registrar un nuevo producto.",
     "unknownProduct": "Producto",
-    "na": "N/A"
+    "na": "N/A",
+    "duplicateProduct": "Duplicar producto",
+    "duplicateProductDescription": "Ajusta el nombre, precio, porción y cantidades de ingredientes para crear una variante de este producto.",
+    "portion": "Porción",
+    "selectPortion": "Selecciona la porción",
+    "portionHelp": "Esta categoría tiene porciones configuradas. Cada porción es un producto independiente: ajusta el precio y las cantidades de ingredientes según corresponda.",
+    "completeProductSize": "Selecciona una porción para esta categoría."
   },
   "ActiveOrders": {
     "title": "Órdenes activas",
@@ -540,7 +551,9 @@
     "orderTypeIdPlaceholder": "id (ej: delivery)",
     "orderTypeLabelPlaceholder": "Etiqueta visible",
     "orderTypesSaveError": "No se pudo guardar los tipos de orden.",
-    "orderTypesSaved": "Tipos de orden guardados."
+    "orderTypesSaved": "Tipos de orden guardados.",
+    "categorySizesLabel": "Tamaños disponibles",
+    "noSizesAvailable": "No hay tamaños configurados. Agrégalos en la configuración de Tamaños."
   },
   "Floor": {
     "table": "Mesa",

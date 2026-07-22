@@ -1,4 +1,5 @@
 import { TenantSettingModel } from '@/models/tenant/TenantSetting';
+import { DEFAULT_CURRENCY, normalizeCurrency } from '@/lib/tenant/currencySettings';
 import {
   DEFAULT_HALF_AND_HALF_PRICING,
   normalizeHalfAndHalfPricing,
@@ -16,11 +17,7 @@ export const TENANT_SETTINGS_DEFAULTS = [
   {
     description: 'Settings',
     data: {
-      currency: {
-        code: 'CRC',
-        symbol: '₡',
-        decimals: 0,
-      },
+      currency: DEFAULT_CURRENCY,
       halfAndHalfPricing: DEFAULT_HALF_AND_HALF_PRICING,
       paymentStrategy: DEFAULT_PAYMENT_STRATEGY,
       orderTypes: DEFAULT_ORDER_TYPES,
@@ -29,9 +26,17 @@ export const TENANT_SETTINGS_DEFAULTS = [
   {
     description: 'Product Category',
     data: [
-      { id: 'bebidas', label: 'Bebida', active: true },
-      { id: 'plato_fuerte', label: 'Plato Fuerte', active: true },
-      { id: 'postres', label: 'Postre', active: true },
+      { id: 'bebidas', label: 'Bebida', active: true, sizeIds: [] },
+      { id: 'plato_fuerte', label: 'Plato Fuerte', active: true, sizeIds: [] },
+      { id: 'postres', label: 'Postre', active: true, sizeIds: [] },
+    ],
+  },
+  {
+    description: 'Product Sizes',
+    data: [
+      { id: 'small', label: 'Pequeño', active: true },
+      { id: 'medium', label: 'Mediano', active: true },
+      { id: 'large', label: 'Grande', active: true },
     ],
   },
   {
@@ -99,6 +104,7 @@ function enforceSettingsDefaults(setting) {
 
   const nextData = {
     ...currentData,
+    currency: normalizeCurrency(currentData.currency),
     halfAndHalfPricing: normalizeHalfAndHalfPricing(currentData.halfAndHalfPricing),
     paymentStrategy: normalizePaymentStrategy(currentData.paymentStrategy),
     orderTypes: normalizeOrderTypes(currentData.orderTypes),

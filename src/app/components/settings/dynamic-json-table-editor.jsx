@@ -1,7 +1,7 @@
 "use client";
 
 import { Plus, Trash2 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -46,6 +46,29 @@ const PAYMENT_STRATEGY_SELECT_OPTIONS = [
   { value: "cashier_choice", labelKey: "paymentStrategyCashierChoice" },
 ];
 
+// Visual-only labels for raw JSON field names coming from tenant settings
+// documents. The underlying keys stay in English; only the on-screen label
+// changes with the active locale.
+const FIELD_LABELS = {
+  currency: { es: "Moneda", en: "Currency" },
+  code: { es: "Código", en: "Code" },
+  symbol: { es: "Símbolo", en: "Symbol" },
+  decimals: { es: "Decimales", en: "Decimals" },
+  halfAndHalfPricing: { es: "Precios mitad y mitad", en: "Half and half pricing" },
+  strategy: { es: "Estrategia", en: "Strategy" },
+  extraAmount: { es: "Monto extra", en: "Extra amount" },
+  paymentStrategy: { es: "Estrategia de cobro", en: "Payment strategy" },
+  orderTypes: { es: "Tipos de orden", en: "Order types" },
+  ingredients: { es: "Ingredientes", en: "Ingredients" },
+  products: { es: "Productos", en: "Products" },
+  id: { es: "Id", en: "Id" },
+  label: { es: "Etiqueta", en: "Label" },
+  isDefault: { es: "Por defecto", en: "Default" },
+  active: { es: "Activo", en: "Active" },
+};
+
+export const getFieldLabel = (key, locale) => FIELD_LABELS[key]?.[locale] ?? key;
+
 const PRICING_STRATEGY_SELECT_OPTIONS = [
   { value: "HIGHEST", labelKey: "chargeHighestPrice" },
   { value: "AVERAGE", labelKey: "chargeAveragePrice" },
@@ -72,7 +95,7 @@ const renderSelectInput = ({ value, placeholder, options, onValueChange, t }) =>
   );
 };
 
-function PrimitiveObjectEditor({ data, onChange, t, parentKey = "" }) {
+function PrimitiveObjectEditor({ data, onChange, t, locale, parentKey = "" }) {
   const entries = Object.entries(data ?? {});
 
   return (
@@ -87,7 +110,7 @@ function PrimitiveObjectEditor({ data, onChange, t, parentKey = "" }) {
         <TableBody>
           {entries.map(([key, value]) => (
             <TableRow key={key}>
-              <TableCell className="font-medium">{key}</TableCell>
+              <TableCell className="font-medium">{getFieldLabel(key, locale)}</TableCell>
               <TableCell>
                 {typeof value === "boolean" ? (
                   <Checkbox
@@ -126,7 +149,7 @@ function PrimitiveObjectEditor({ data, onChange, t, parentKey = "" }) {
   );
 }
 
-function ArrayEditor({ data, onChange, title, t }) {
+function ArrayEditor({ data, onChange, title, t, locale }) {
   const rows = Array.isArray(data) ? data : [];
   const columns = Array.from(
     rows.reduce((acc, row) => {
@@ -176,7 +199,7 @@ function ArrayEditor({ data, onChange, title, t }) {
           <TableHeader>
             <TableRow>
               {resolvedColumns.map((column) => (
-                <TableHead key={column}>{column}</TableHead>
+                <TableHead key={column}>{getFieldLabel(column, locale)}</TableHead>
               ))}
               <TableHead className="w-[90px]">{t("actions")}</TableHead>
             </TableRow>
@@ -238,9 +261,10 @@ function ArrayEditor({ data, onChange, title, t }) {
 
 export function DynamicJsonTableEditor({ data, onChange }) {
   const t = useTranslations("Settings");
+  const locale = useLocale();
 
   if (Array.isArray(data)) {
-    return <ArrayEditor data={data} onChange={onChange} title={t("data")} t={t} />;
+    return <ArrayEditor data={data} onChange={onChange} title={t("data")} t={t} locale={locale} />;
   }
 
   if (isObject(data)) {
@@ -249,26 +273,28 @@ export function DynamicJsonTableEditor({ data, onChange }) {
     );
 
     if (!hasNestedCollections) {
-      return <PrimitiveObjectEditor data={data} onChange={onChange} t={t} />;
+      return <PrimitiveObjectEditor data={data} onChange={onChange} t={t} locale={locale} />;
     }
 
     return (
       <div className="space-y-4">
         {Object.entries(data).map(([sectionKey, sectionValue]) => (
           <div key={sectionKey} className="space-y-2">
-            <Label className="text-sm font-semibold capitalize">{sectionKey}</Label>
+            <Label className="text-sm font-semibold">{getFieldLabel(sectionKey, locale)}</Label>
             {Array.isArray(sectionValue) ? (
                 <ArrayEditor
                   data={sectionValue}
                   onChange={(nextSection) => onChange({ ...data, [sectionKey]: nextSection })}
-                  title={t("section", { name: sectionKey })}
+                  title={t("section", { name: getFieldLabel(sectionKey, locale) })}
                   t={t}
+                  locale={locale}
                 />
               ) : isObject(sectionValue) ? (
                 <PrimitiveObjectEditor
                   data={sectionValue}
                   onChange={(nextSection) => onChange({ ...data, [sectionKey]: nextSection })}
                   t={t}
+                  locale={locale}
                   parentKey={sectionKey}
                 />
             ) : sectionKey === "paymentStrategy" ? (

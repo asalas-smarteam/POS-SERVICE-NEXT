@@ -108,7 +108,7 @@ export default function DashboardLayout({ children }) {
       <AppSidebar variant="inset" />
       <SidebarInset className="h-full overflow-hidden">
         <SiteHeader title={headerTitle} />
-        <div className="flex flex-1 flex-col overflow-hidden">{children}</div>
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden">{children}</div>
       </SidebarInset>
     </SidebarProvider>
   );

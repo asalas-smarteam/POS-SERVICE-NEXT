@@ -1,20 +1,15 @@
 "use client";
 
 import { Pause, Save, Trash2, Wallet } from "lucide-react";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { AppAlert } from "@/components/app-alert";
 import { AppSpinner } from "@/components/app-spinner";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { OrderItem } from "@/components/sales/order-item";
+import { useCurrencyFormatter } from "@/hooks/useCurrencyFormatter";
 import { cn } from "@/lib/utils";
-
-const formatCurrency = (value, locale) =>
-  new Intl.NumberFormat(locale, {
-    style: "currency",
-    currency: "CLP",
-  }).format(Number(value ?? 0));
 
 export function OrderSidebar({
   items = [],
@@ -39,7 +34,7 @@ export function OrderSidebar({
   className,
 }) {
   const t = useTranslations("Orders");
-  const locale = useLocale();
+  const { formatCurrency } = useCurrencyFormatter();
   const tax = subtotal * taxRate;
   const total = subtotal + tax - discount;
   const normalizedOrderNumber = orderNumber?.trim() ? orderNumber.trim() : "";
@@ -98,20 +93,20 @@ export function OrderSidebar({
       <div className="space-y-2 text-sm">
         <div className="flex items-center justify-between text-muted-foreground">
           <span>{t("subtotal")}</span>
-          <span>{formatCurrency(subtotal, locale)}</span>
+          <span>{formatCurrency(subtotal)}</span>
         </div>
         <div className="flex items-center justify-between text-muted-foreground">
           <span>{`${t("tax")} (8%)`}</span>
-          <span>{formatCurrency(tax, locale)}</span>
+          <span>{formatCurrency(tax)}</span>
         </div>
         <div className="flex items-center justify-between text-muted-foreground">
           <span>{t("discount")}</span>
-          <span className="text-emerald-600">{formatCurrency(discount, locale)}</span>
+          <span className="text-emerald-600">{formatCurrency(discount)}</span>
         </div>
         <Separator />
         <div className="flex items-center justify-between text-base font-semibold">
           <span>{t("total")}</span>
-          <span className="text-primary">{formatCurrency(total, locale)}</span>
+          <span className="text-primary">{formatCurrency(total)}</span>
         </div>
       </div>
 

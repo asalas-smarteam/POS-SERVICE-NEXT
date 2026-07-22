@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { AppAlert } from "@/components/app-alert";
 import { AppSpinner } from "@/components/app-spinner";
 import { Button } from "@/components/ui/button";
@@ -14,11 +14,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { DynamicJsonTableEditor } from "@/components/settings/dynamic-json-table-editor";
+import { CategorySizesEditor } from "@/components/settings/category-sizes-editor";
+import { getDescriptionLabel } from "@/lib/settings/settingLabels";
 
 export function SettingsEditorDialog({
   open,
   setting,
   editorData,
+  allSettings = [],
   saving,
   alert,
   onOpenChange,
@@ -26,7 +29,14 @@ export function SettingsEditorDialog({
   onSave,
 }) {
   const t = useTranslations("Settings");
+  const locale = useLocale();
   const settingId = setting?._id;
+  const isCategorySetting = setting?.description === "Product Category";
+  const productSizes = useMemo(() => {
+    const sizesSetting = allSettings.find((item) => item?.description === "Product Sizes");
+    const sizes = Array.isArray(sizesSetting?.data) ? sizesSetting.data : [];
+    return sizes.filter((size) => size?.active !== false);
+  }, [allSettings]);
 
   const canSave = useMemo(() => {
     return Boolean(settingId) && editorData !== null;
@@ -43,7 +53,9 @@ export function SettingsEditorDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-4xl">
         <DialogHeader>
-          <DialogTitle>{t("editSetting")} {setting?.description}</DialogTitle>
+          <DialogTitle>
+            {t("editSetting")} {getDescriptionLabel(setting?.description, locale)}
+          </DialogTitle>
           <DialogDescription>
             {t("updateTenantValues")}
           </DialogDescription>
@@ -54,6 +66,13 @@ export function SettingsEditorDialog({
         <div className="py-2">
           {editorData === null ? (
             <p className="text-sm text-muted-foreground">{t("selectSetting")}</p>
+          ) : isCategorySetting ? (
+            <CategorySizesEditor
+              data={editorData}
+              onChange={onEditorChange}
+              sizes={productSizes}
+              t={t}
+            />
           ) : (
             <DynamicJsonTableEditor data={editorData} onChange={onEditorChange} />
           )}

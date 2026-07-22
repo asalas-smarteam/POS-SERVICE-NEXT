@@ -3,6 +3,7 @@ import { resolveTenant } from '@/lib/tenant/resolveTenant';
 import { authorizeRequest } from '@/lib/security/authorizeRequest';
 import { getTenantConnection } from '@/lib/db/connections';
 import { TenantSettingModel } from '@/models/tenant/TenantSetting';
+import { validateCurrency, normalizeCurrency } from '@/lib/tenant/currencySettings';
 import {
   HALF_AND_HALF_PRICING_STRATEGIES,
   validateHalfAndHalfPricing,
@@ -69,6 +70,9 @@ export async function PUT(req, { params }) {
 
     if (existing.description === 'Settings') {
       const currentSettingsData = isPlainObject(existing.data) ? existing.data : {};
+      const hasCurrency =
+        isPlainObject(nextData) &&
+        Object.prototype.hasOwnProperty.call(nextData, 'currency');
       const hasHalfAndHalfPricing =
         isPlainObject(nextData) &&
         Object.prototype.hasOwnProperty.call(nextData, 'halfAndHalfPricing');
@@ -78,6 +82,13 @@ export async function PUT(req, { params }) {
       const hasOrderTypes =
         isPlainObject(nextData) &&
         Object.prototype.hasOwnProperty.call(nextData, 'orderTypes');
+
+      if (hasCurrency) {
+        const validationError = validateCurrency(nextData.currency);
+        if (validationError) {
+          return NextResponse.json({ error: validationError }, { status: 400 });
+        }
+      }
 
       if (hasHalfAndHalfPricing) {
         const validationError = validateHalfAndHalfPricing(nextData.halfAndHalfPricing, pricingStrategies);
@@ -101,6 +112,9 @@ export async function PUT(req, { params }) {
       }
 
       if (isPlainObject(nextData)) {
+        nextData.currency = normalizeCurrency(
+          hasCurrency ? nextData.currency : currentSettingsData.currency
+        );
         nextData.halfAndHalfPricing = normalizeHalfAndHalfPricing(
           hasHalfAndHalfPricing
             ? nextData.halfAndHalfPricing
