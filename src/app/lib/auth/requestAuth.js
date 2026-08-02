@@ -40,6 +40,28 @@ export async function getAuthContext(req) {
 
   const conn = await getTenantConnection(tenant.dbName);
   const User = UserModel(conn);
+
+  // Sesion de dueño dentro de una sede: no existe fila de usuario en la DB de la
+  // sede. Se valida que la sede pertenezca a la empresa del dueño y se sintetiza
+  // un authUser con rol ADMIN para reutilizar toda la logica de sede.
+  if (payload?.kind === 'owner') {
+    if (String(tenant.companyId || '') !== String(payload.companyId || '')) {
+      const error = new Error('Forbidden');
+      error.status = 403;
+      throw error;
+    }
+
+    const authUser = {
+      _id: null,
+      role: 'ADMIN',
+      email: payload.email || '',
+      isActive: true,
+      isOwner: true,
+    };
+
+    return { payload, tenant, conn, User, authUser };
+  }
+
   const authUser = await User.findById(payload.userId);
 
   if (!authUser || authUser.isActive === false) {

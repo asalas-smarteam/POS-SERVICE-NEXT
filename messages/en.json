@@ -28,7 +28,30 @@
     "billing": "Billing",
     "notifications": "Notifications",
     "noAccessAssigned": "No access assigned.",
-    "github": "GitHub"
+    "github": "GitHub",
+    "adminPanel": "Admin panel",
+    "sedeSelector": "Select location"
+  },
+  "AdminPanel": {
+    "title": "Admin panel",
+    "sedesTitle": "Locations",
+    "enterSede": "Enter location",
+    "manageUsers": "Manage users",
+    "usersTitle": "Users",
+    "newUser": "New user",
+    "createUser": "Create user",
+    "username": "Username",
+    "email": "Email",
+    "password": "Password",
+    "role": "Role",
+    "userCount": "{count} users",
+    "noUsers": "No users yet.",
+    "noSedes": "No locations.",
+    "loading": "Loading...",
+    "loadError": "Unable to load locations.",
+    "createError": "Unable to create user.",
+    "invalidForm": "Complete the fields (password min 6 characters).",
+    "activateError": "Could not activate the module."
   },
   "Auth": {
     "loginTitle": "Login",
@@ -84,7 +107,23 @@
     "invalidEmail": "Please enter a valid email.",
     "passwordMinLength": "Password must contain at least 8 characters.",
     "registerFailed": "Unable to register. Please try again.",
-    "registerSuccess": "Account created successfully. Redirecting to login..."
+    "registerSuccess": "Account created successfully. Redirecting to login...",
+    "companyDetails": "Company Details",
+    "companyName": "Company Name",
+    "companyNamePlaceholder": "e.g. Test Company",
+    "branchCount": "How many locations do you need?",
+    "branchCountHelp": "Each location is an independent system: its own users, passwords, roles and sales.",
+    "ownerCredentials": "Owner Account",
+    "ownerEmail": "Owner Email",
+    "ownerEmailPlaceholder": "owner@company.com",
+    "ownerPassword": "Owner Password",
+    "priceSummaryTitle": "Subscription summary",
+    "priceBaseLabel": "Base location",
+    "priceExtraLabel": "Additional locations",
+    "priceExtraUnit": "{count} × {price}",
+    "priceTotalLabel": "Monthly total",
+    "perMonthShort": "/mo",
+    "noModulesAvailable": "You have no modules enabled. Contact the account administrator."
   },
   "Dashboard": {
     "title": "Dashboard",
@@ -151,12 +190,45 @@
   "Orders": {
     "title": "Orders",
     "newOrder": "New Order",
+    "splitBill": "Split bill",
+    "shared": "Shared",
+    "addPerson": "Person",
+    "personName": "Name",
+    "splitPayTitle": "Split / Charge",
+    "paidLabel": "Paid",
+    "amountDue": "Balance",
+    "fullyPaid": "Order fully paid.",
+    "method": "Method",
+    "method_cash": "Cash",
+    "method_card": "Card",
+    "method_other": "Other",
+    "payAll": "Pay all",
+    "equalSplit": "Equal split",
+    "selectItems": "Select items",
+    "byPerson": "By person",
+    "confirmPayment": "Charge {amount}",
+    "people": "People",
+    "perPerson": "per person",
+    "chargeOneShare": "Charge {amount}",
+    "pending": "Pending",
+    "thisPayment": "This payment",
+    "noPendingItems": "No pending items.",
+    "selectItemsHint": "Tap items to add them.",
+    "holdToSelectAll": "Tap to move 1 unit; hold to move all.",
+    "remainingAfter": "Remaining after",
+    "chargeAccount": "Charge account",
+    "payError": "Could not process the payment.",
+    "paymentDone": "Charged {amount}",
+    "receiptTitle": "PAYMENT RECEIPT",
+    "orderLabel": "Order",
+    "paidThis": "PAID",
+    "receiptFooter": "*** THANK YOU ***",
     "total": "Total",
     "subtotal": "Subtotal",
     "tax": "Tax",
     "discount": "Discount",
     "notes": "Notes",
-    "sendToKitchen": "Send to Kitchen",
+    "sendToKitchen": "Send to kitchen",
     "checkout": "Checkout",
     "emptyCart": "No products in order",
     "searchProducts": "Search products",
@@ -212,6 +284,7 @@
     "orderTypePlaceholder": "Select an order type",
     "orderTypeRequired": "Order type is required.",
     "orderCheckoutDialogTitle": "Complete order",
+    "sendToKitchenHint": "{count, plural, one {# item needs preparation} other {# items need preparation}}. Uncheck to skip the kitchen.",
     "tablePlaceholder": "Select a table",
     "tableRequired": "A table is required for on-table orders.",
     "notAssigned": "Not assigned",
@@ -235,7 +308,11 @@
     "cashierNotePlaceholder": "Add an optional cashier note for kitchen",
     "toppingsModifiers": "Toppings / Modifiers",
     "noModifierChanges": "No modifier changes.",
-    "saveChanges": "Save changes"
+    "saveChanges": "Save changes",
+    "tableLabel": "Table reference",
+    "tableLabelPlaceholder": "e.g. Table 4, Patio 2",
+    "tableLabelHint": "Type a reference to identify the table on the order.",
+    "tableLabelRequired": "A table reference is required for on-table orders."
   },
   "Kitchen": {
     "title": "Kitchen",
@@ -274,7 +351,10 @@
     "dateAndTime": "Date and time",
     "notes": "Notes",
     "noNotes": "No notes",
-    "endOfTicket": "*** END OF TICKET ***"
+    "noPrepItems": "No preparation needed",
+    "endOfTicket": "*** END OF TICKET ***",
+    "orderTicket": "Order ticket",
+    "walkInCustomer": "Walk-in customer"
   },
   "OrderStatus": {
     "PENDING": "Pending",
@@ -324,6 +404,11 @@
     "noIngredientsAdded": "No ingredients added.",
     "quantity": "Quantity",
     "allowHalfAndHalf": "Allow Half and Half",
+    "requiresKitchen": "Kitchen preparation",
+    "requiresKitchenInherit": "Follow the category",
+    "requiresKitchenYes": "Yes, send to kitchen",
+    "requiresKitchenNo": "No, hand over directly",
+    "requiresKitchenHelp": "Controls whether this product reaches the kitchen board. Defaults to its category setting.",
     "selectCategory": "Select category",
     "noCategoriesConfigured": "No categories configured. Go to /settings to add them.",
     "selectType": "Select type",
@@ -382,7 +467,12 @@
     "cancelOrder": "Cancel order",
     "cancelling": "Cancelling...",
     "managePayment": "Manage payment / Edit order",
-    "cancelOrderError": "Could not cancel the order."
+    "cancelOrderError": "Could not cancel the order.",
+    "remaining": "Remaining",
+    "paymentStatus": "Payment status",
+    "paidFull": "Paid",
+    "paidOfTotal": "Paid {paid} · Remaining {due}",
+    "splitPay": "Split / Charge"
   },
   "Ingredients": {
     "title": "Ingredients",
@@ -553,6 +643,7 @@
     "orderTypesSaveError": "Unable to save order types.",
     "orderTypesSaved": "Order types saved.",
     "categorySizesLabel": "Available sizes",
+    "requiresKitchenLabel": "Requires kitchen",
     "noSizesAvailable": "No sizes configured yet. Add them in the Product Sizes setting."
   },
   "Floor": {
@@ -581,5 +672,75 @@
       "reserved": "Reserved",
       "occupied": "Occupied"
     }
+  },
+  "Plans": {
+    "plan": {
+      "basic": {
+        "name": "Basic",
+        "description": "Point of sale, products and inventory"
+      },
+      "pro": {
+        "name": "Professional",
+        "description": "Everything in Basic plus reports, floor plan and kitchen"
+      },
+      "enterprise": {
+        "name": "Enterprise",
+        "description": "Custom solution"
+      },
+      "custom": {
+        "name": "Custom",
+        "description": "Pick only the modules you need"
+      }
+    },
+    "feature": {
+      "orders": {
+        "name": "Sales",
+        "description": "Take orders and charge customers"
+      },
+      "active-orders": {
+        "name": "Active orders",
+        "description": "Track and settle open orders"
+      },
+      "products": {
+        "name": "Products",
+        "description": "Catalog, categories and sizes"
+      },
+      "ingredients": {
+        "name": "Inventory",
+        "description": "Ingredients and automatic stock deduction"
+      },
+      "settings": {
+        "name": "Settings",
+        "description": "Business configuration"
+      },
+      "users": {
+        "name": "Users",
+        "description": "Staff and roles"
+      },
+      "dashboard": {
+        "name": "Reports",
+        "description": "Sales metrics and best sellers"
+      },
+      "floor": {
+        "name": "Floor plan",
+        "description": "Dining room layout and table management"
+      },
+      "kitchen": {
+        "name": "Kitchen",
+        "description": "Preparation and dispatch board"
+      }
+    },
+    "comingSoon": "Coming soon",
+    "comingSoonError": "This plan is not available yet.",
+    "currentPlan": "Current plan",
+    "includedInPlan": "Included in your plan",
+    "addOns": "Add-on modules",
+    "activate": "Activate",
+    "activating": "Activating...",
+    "discountBadge": "Offer",
+    "originalPrice": "Regular price",
+    "perMonthShort": "/mo",
+    "perBranch": "{count, plural, one {# extra branch} other {# extra branches}}",
+    "branchCountLabel": "{count, plural, one {# branch} other {# branches}}"
   }
 }

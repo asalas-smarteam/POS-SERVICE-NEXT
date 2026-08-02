@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { resolveTenant } from '@/lib/tenant/resolveTenant';
-import { authorizeRequest } from '@/lib/security/authorizeRequest';
+import { requireModuleAccess } from '@/lib/security/featureAccess';
 import { getTenantConnection } from '@/lib/db/connections';
 import { TableModel } from '@/models/tenant/Table';
 
@@ -53,7 +52,7 @@ function buildUpdatePayload(body = {}) {
 
 export async function PATCH(req, { params }) {
   try {
-    await authorizeRequest(req, 'floor');
+    const { tenant } = await requireModuleAccess(req, 'floor');
     const { id } = await params;
 
     if (!id) {
@@ -67,7 +66,6 @@ export async function PATCH(req, { params }) {
       return NextResponse.json({ error }, { status: 400 });
     }
 
-    const tenant = await resolveTenant(req);
     const conn = await getTenantConnection(tenant.dbName);
     const Table = TableModel(conn);
 
@@ -83,6 +81,6 @@ export async function PATCH(req, { params }) {
 
     return NextResponse.json(updated);
   } catch (e) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+    return NextResponse.json({ error: e.message }, { status: e.status || 500 });
   }
 }

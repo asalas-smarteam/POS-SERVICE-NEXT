@@ -1,10 +1,8 @@
 import { NextResponse } from 'next/server';
 import { hashPassword } from '@/lib/auth/hash';
-import { ROLE_VALUES } from '@/lib/auth/roles';
+import { getAssignableRoles } from '@/lib/auth/roles';
 import { getAuthContext, requireAdmin } from '@/lib/auth/requestAuth';
-import { getAuthContext as getJwtAuthContext } from '@/lib/auth/getAuthContext';
 import { connectMasterDB } from '@/lib/db/master';
-import { TenantModel } from '@/models/master/Tenant';
 import { UserIndexModel } from '@/models/master/UserIndex';
 import { normalizeEmail } from '@/lib/utils/normalizeEmail';
 import { hashEmail } from '@/lib/utils/hashEmail';
@@ -56,13 +54,8 @@ export async function GET(req) {
 
 export async function POST(req) {
   try {
-    const { User, authUser } = await getAuthContext(req);
+    const { User, authUser, tenant } = await getAuthContext(req);
     requireAdmin(authUser);
-    const authContext = await getJwtAuthContext(req);
-
-    if (authContext.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
 
     const body = await req.json();
     const username = String(body?.username || '').trim();
@@ -82,13 +75,11 @@ export async function POST(req) {
       return NextResponse.json({ error: 'Password must be at least 6 characters.' }, { status: 400 });
     }
 
-    if (!ROLE_VALUES.includes(role)) {
+    // No solo que el rol exista: que sea asignable con los modulos que la
+    // cuenta tiene contratados.
+    if (!getAssignableRoles(tenant?.features).includes(role)) {
       return NextResponse.json({ error: 'Invalid role value.' }, { status: 400 });
     }
-
-    const masterConn = await connectMasterDB();
-    const Tenant = TenantModel(masterConn);
-    const tenant = await Tenant.findOne({ tenantId: authContext.tenantId }).lean();
 
     if (!tenant?.internalDomain) {
       return NextResponse.json({ error: 'Tenant configuration is invalid.' }, { status: 400 });
@@ -114,14 +105,16 @@ export async function POST(req) {
       isActive: true,
     });
 
+    const masterConn = await connectMasterDB();
     const emailHash = hashEmail(email);
     const UserIndex = UserIndexModel(masterConn);
     await UserIndex.updateOne(
-      { emailHash, tenantId: authContext.tenantId },
+      { emailHash, tenantId: tenant.tenantId },
       {
         $set: {
           emailHash,
-          tenantId: authContext.tenantId,
+          tenantId: tenant.tenantId,
+          companyId: tenant.companyId ?? null,
         },
       },
       { upsert: true }

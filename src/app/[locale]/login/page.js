@@ -13,6 +13,7 @@ import {
   UtensilsCrossed,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { resolveLandingPath } from "@/lib/auth/landing";
 import { useAuthStore } from "../../../store/authStore";
 import { defaultLocale } from "../../../../i18n";
 
@@ -74,18 +75,36 @@ export default function LoginPage() {
         user: data.user ?? null,
         tenant: data.tenant ?? null,
         tenantId: data.tenantId,
+        companyId: data.companyId,
+        kind: data.kind,
+        availableSedes: data.availableSedes ?? [],
+        features: data.features ?? [],
         navMain: data.navMain ?? [],
       });
 
-      const normalizedRole = String(data?.user?.role ?? "").toLowerCase();
       const userLanguage = String(data?.user?.language ?? "").toLowerCase();
       const targetLocale = userLanguage || locale || defaultLocale;
-      const defaultPath =
-        normalizedRole === "cashier"
-          ? `/${targetLocale}/orders/${data.tenantId}`
-          : normalizedRole === "kitchen"
-            ? `/${targetLocale}/kitchen/${data.tenantId}`
-            : `/${targetLocale}/dashboard/${data.tenantId}`;
+
+      // El dueño aterriza en su panel administrativo (plano de control).
+      if (data.kind === "owner") {
+        router.push(`/${targetLocale}/admin/${data.companyId}`);
+        return;
+      }
+
+      // El nav ya viene filtrado por el plan contratado, asi que se aterriza en
+      // un modulo que la cuenta realmente tiene: con Basic no hay /dashboard y
+      // el middleware rebotaria el destino.
+      const defaultPath = resolveLandingPath({
+        locale: targetLocale,
+        tenantId: data.tenantId,
+        navMain: data.navMain,
+        role: data?.user?.role,
+      });
+
+      if (!defaultPath) {
+        setError(t("noModulesAvailable"));
+        return;
+      }
 
       router.push(defaultPath);
     } catch {

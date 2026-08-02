@@ -42,6 +42,16 @@ const ProductSchema = new mongoose.Schema({
   allowsHalf: { type: Boolean, default: false }, // pizzas
   allowsExtras: { type: Boolean, default: true },
 
+  // Kitchen routing override. 'INHERIT' (default) uses the category's
+  // `requiresKitchen` flag from the "Product Category" tenant setting; 'YES'
+  // and 'NO' force it for this product regardless of its category. See
+  // lib/tenant/kitchenRouting.js.
+  requiresKitchen: {
+    type: String,
+    enum: ['INHERIT', 'YES', 'NO'],
+    default: 'INHERIT',
+  },
+
 }, { timestamps: true });
 
 export function ProductModel(conn) {

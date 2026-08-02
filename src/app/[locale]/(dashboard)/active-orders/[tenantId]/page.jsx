@@ -9,6 +9,7 @@ import { ActiveOrdersTable } from "@/components/active-orders/active-orders-tabl
 import { AppAlert } from "@/components/app-alert";
 import { AppSkeleton } from "@/components/app-skeleton";
 import { KitchenTicketContent } from "@/components/sales/kitchen-ticket-content";
+import { SplitPaymentDialog } from "@/components/sales/split-payment-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -29,6 +30,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { useFeature } from "@/components/feature-gate";
 import { useOrderStore } from "../../../../../store/orderStore";
 import { useSettingsStore } from "../../../../../store/settingsStore";
 import { getTenantHeaders } from "../../../../../store/tenantHeaders";
@@ -87,6 +89,7 @@ const resolveAmount = (order) => {
 
 export default function ActiveOrdersPage() {
   const t = useTranslations("ActiveOrders");
+  const hasKitchen = useFeature("kitchen");
   const params = useParams();
   const router = useRouter();
   const hydrateOrder = useOrderStore((state) => state.hydrateOrder);
@@ -106,6 +109,7 @@ export default function ActiveOrdersPage() {
   const [actionDialogOpen, setActionDialogOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [splitDialogOpen, setSplitDialogOpen] = useState(false);
 
   const loadOrders = useCallback(async () => {
     setLoading(true);
@@ -164,7 +168,9 @@ export default function ActiveOrdersPage() {
   const normalizedOrders = useMemo(() => {
     return (Array.isArray(orders) ? orders : []).map((order) => {
       const orderTypeId = String(order?.orderType || "takeaway");
-      const kitchenStatusId = order?.kitchenStatus || null;
+      // Sin cocina contratada no hay estado que mostrar. Dejarlo en null apaga
+      // el badge en las tres vistas, que ya son null-safe.
+      const kitchenStatusId = hasKitchen ? order?.kitchenStatus || null : null;
       const tableLabel = String(order?.tableLabel ?? order?.tableId ?? "").trim();
       const orderTypeLabel =
         orderTypeId === "onTable"
@@ -177,6 +183,13 @@ export default function ActiveOrdersPage() {
               ? t("awaitsOrder")
               : orderTypeLookup[orderTypeId] ?? orderTypeId;
 
+      const amount = resolveAmount(order);
+      const amountPaid = Math.max(0, Number(order?.amountPaid || 0));
+      const amountDue = Math.max(0, amount - amountPaid);
+      const paymentStatus =
+        order?.paymentStatus ||
+        (amountPaid <= 0 ? "unpaid" : amountDue <= 0.005 ? "paid" : "partial");
+
       return {
         ...order,
         orderTypeId,
@@ -185,7 +198,10 @@ export default function ActiveOrdersPage() {
           ORDER_TYPE_BADGE_STYLES[orderTypeId] ?? ORDER_TYPE_BADGE_STYLES.default,
         customerTitle: String(order?.customerName ?? "").trim() || t("withoutCustomerName"),
         productsCount: resolveProductsCount(order?.items),
-        amount: resolveAmount(order),
+        amount,
+        amountPaid,
+        amountDue,
+        paymentStatus,
         kitchenStatusId,
         kitchenStatusLabel: kitchenStatusId ? kitchenStatusLabels[kitchenStatusId] ?? null : null,
         kitchenStatusBadgeClass: kitchenStatusId
@@ -193,7 +209,7 @@ export default function ActiveOrdersPage() {
           : null,
       };
     });
-  }, [orders, orderTypeLookup, kitchenStatusLabels, t]);
+  }, [orders, orderTypeLookup, kitchenStatusLabels, hasKitchen, t]);
 
   const filteredOrders = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
@@ -320,15 +336,12 @@ export default function ActiveOrdersPage() {
 
     setIsCancelling(true);
     try {
-      const response = await fetch(`/api/orders/${orderId}/kitchen-status`, {
-        method: "PATCH",
+      const response = await fetch(`/api/orders/${orderId}/cancel`, {
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
           ...getTenantHeaders(),
         },
-        body: JSON.stringify({
-          status: "CANCELLED",
-        }),
       });
       const body = await response.json().catch(() => ({}));
       if (!response.ok) {
@@ -555,6 +568,9 @@ export default function ActiveOrdersPage() {
                 <Button type="button" variant="destructive" onClick={handleCancelOrder} disabled={isCancelling}>
                   {isCancelling ? t("cancelling") : t("cancelOrder")}
                 </Button>
+                <Button type="button" variant="secondary" onClick={() => setSplitDialogOpen(true)}>
+                  {t("splitPay")}
+                </Button>
                 <Button type="button" onClick={handleManageOrder}>
                   {t("managePayment")}
                 </Button>
@@ -565,6 +581,20 @@ export default function ActiveOrdersPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      <SplitPaymentDialog
+        open={splitDialogOpen}
+        onOpenChange={setSplitDialogOpen}
+        order={selectedOrder}
+        onPaid={(data) => {
+          loadOrders();
+          if (data?.closed) {
+            setSplitDialogOpen(false);
+            setActionDialogOpen(false);
+            setSelectedOrder(null);
+          }
+        }}
+      />
     </div>
   );
 }

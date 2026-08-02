@@ -49,8 +49,6 @@ const STATUS_COLUMNS = [
   },
 ];
 
-const NAV_ITEMS = ["Kitchen Board", "Inventory", "Staff", "Settings"];
-
 const normalizeOrderNumber = (orderId) => {
   if (!orderId) return "000";
   const trimmed = String(orderId).slice(-5);
@@ -115,7 +113,13 @@ function KitchenTicketCard({ ticket, columnMeta, elapsedLabel, onContinue, onCan
       <div className="mb-3 flex items-start justify-between gap-2">
         <div>
           <p className="text-2xl font-bold text-sky-600 dark:text-sky-400">#{normalizeOrderNumber(ticket._id)}</p>
-          <h4 className="text-sm font-black text-slate-900 dark:text-slate-100">{t("table")} {ticket.tableLabel || ticket.tableName || ticket.tableNumber || "-"}</h4>
+          {/* Solo las ordenes en mesa tienen mesa. Antes se renderizaba
+              siempre y las de para llevar mostraban "Mesa -". */}
+          <h4 className="text-sm font-black text-slate-900 dark:text-slate-100">
+            {ticket.orderType === "onTable" && ticket.tableLabel
+              ? `${t("table")} ${ticket.tableLabel}`
+              : ticket.customerName || t("walkInCustomer")}
+          </h4>
         </div>
         <div className="flex flex-col items-end text-xs">
           <span className={`flex items-center gap-1 font-bold ${isInOven ? "text-orange-500 dark:text-orange-400" : "text-red-500 dark:text-red-400"}`}>

@@ -24,8 +24,9 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import { ALL_FEATURE_KEYS } from "@/lib/features/featureRegistry";
 
-const MODULE_ROUTES = ["dashboard", "orders", "active-orders", "kitchen", "users", "products", "ingredients", "settings", "floor"];
+const MODULE_ROUTES = ALL_FEATURE_KEYS;
 const NAV_TRANSLATION_KEYS = {
   dashboard: "dashboard",
   orders: "orders",

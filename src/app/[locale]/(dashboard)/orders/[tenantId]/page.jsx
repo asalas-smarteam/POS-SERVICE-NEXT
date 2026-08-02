@@ -14,6 +14,8 @@ import { generateKitchenTicketPdf } from "@/lib/pdf/ticketJsPdf";
 import { filterCompatibleHalfProducts } from "@/lib/halfAndHalf";
 import { calculateOrderItemUnitPrice } from "@/lib/pricing/halfAndHalfPricing";
 import { resolvePaymentModeFromStrategy } from "@/lib/tenant/paymentStrategySettings";
+import { resolveRequiresKitchen } from "@/lib/tenant/kitchenRouting";
+import { useFeature } from "@/components/feature-gate";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
 import { getTenantHeaders } from "../../../../../store/tenantHeaders";
@@ -33,6 +35,7 @@ export default function OrdersPage() {
   const t = useTranslations("Orders");
   const tk = useTranslations("Kitchen");
   const searchParams = useSearchParams();
+  const hasFloor = useFeature("floor");
   const { products, loading, error, fetchProducts } = useProductsStore(
     (state) => ({
       products: state.products,
@@ -73,6 +76,13 @@ export default function OrdersPage() {
     setCustomerName,
     editingOrder,
     hydrateOrder,
+    splitEnabled,
+    subAccounts,
+    activeAccountId,
+    setSplitEnabled,
+    addSubAccount,
+    removeSubAccount,
+    setActiveAccount,
   } = useOrderStore((state) => ({
     items: state.items,
     addItem: state.addItem,
@@ -86,6 +96,13 @@ export default function OrdersPage() {
     setCustomerName: state.setCustomerName,
     editingOrder: state.editingOrder,
     hydrateOrder: state.hydrateOrder,
+    splitEnabled: state.splitEnabled,
+    subAccounts: state.subAccounts,
+    activeAccountId: state.activeAccountId,
+    setSplitEnabled: state.setSplitEnabled,
+    addSubAccount: state.addSubAccount,
+    removeSubAccount: state.removeSubAccount,
+    setActiveAccount: state.setActiveAccount,
   }));
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -116,7 +133,14 @@ export default function OrdersPage() {
     fetchSettings();
   }, [fetchSettings]);
 
+  // Sin el modulo de mesas contratado no hay plano que consultar: la orden en
+  // mesa se identifica con una etiqueta libre en el checkout.
   useEffect(() => {
+    if (!hasFloor) {
+      setTables([]);
+      return;
+    }
+
     const fetchTables = async () => {
       try {
         const response = await fetch("/api/tables", {
@@ -136,7 +160,7 @@ export default function OrdersPage() {
     };
 
     fetchTables();
-  }, []);
+  }, [hasFloor]);
 
   useEffect(() => {
     const queryTableId = searchParams.get("tableId");
@@ -251,6 +275,39 @@ export default function OrdersPage() {
     [items, resolveItemUnitPrice]
   );
 
+  // Ruteo a cocina del carrito. El servidor lo recalcula al persistir cada
+  // linea (orderPricing.calculateAndBuildOrderItem); esto es solo para la
+  // previsualizacion del ticket y el checkbox del checkout.
+  const requiresKitchenByProductId = useMemo(() => {
+    const categoryById = new Map(
+      (categories || []).filter((c) => c?.id).map((c) => [String(c.id), c])
+    );
+    return new Map(
+      (products || []).map((product) => [
+        String(product._id),
+        resolveRequiresKitchen(product, categoryById.get(String(product.categoryId ?? ""))),
+      ])
+    );
+  }, [products, categories]);
+
+  const itemRequiresKitchen = useCallback(
+    (item) => {
+      // Una linea ya persistida trae el flag congelado; para las nuevas se
+      // resuelve del catalogo. Producto desconocido => va a cocina.
+      if (typeof item?.requiresKitchen === "boolean") {
+        return item.requiresKitchen;
+      }
+      const productId = String(item?.productId ?? item?.id ?? "");
+      return requiresKitchenByProductId.get(productId) !== false;
+    },
+    [requiresKitchenByProductId]
+  );
+
+  const kitchenItemCount = useMemo(
+    () => items.filter((item) => itemRequiresKitchen(item)).length,
+    [items, itemRequiresKitchen]
+  );
+
   const buildItemPayload = useCallback((item) => {
     const modifierNotes = Array.isArray(item?.modifierNotes)
       ? item.modifierNotes.filter(Boolean)
@@ -285,6 +342,13 @@ export default function OrdersPage() {
       extraIngredients,
       isHalfAndHalf: Boolean(item?.isHalfAndHalf),
       halves: Array.isArray(item?.halves) ? item.halves : [],
+      // Split bill: preservar identidad de linea, sub-cuenta y estado de pago
+      // (incluidas las unidades ya cobradas) a traves del round-trip del
+      // guardado (PUT items).
+      lineId: item?.lineId ?? item?.id,
+      accountId: item?.accountId ?? null,
+      paidQuantity: Number(item?.paidQuantity ?? 0),
+      settled: Boolean(item?.settled),
     };
   }, []);
 
@@ -373,6 +437,7 @@ export default function OrdersPage() {
         customer: tk("customer"),
         notes: tk("notes"),
         endOfTicket: tk("endOfTicket"),
+        noPrepItems: tk("noPrepItems"),
       };
 
       const buildTicketNotes = () =>
@@ -433,6 +498,7 @@ export default function OrdersPage() {
             modifiers: Array.isArray(item.modifiers) ? item.modifiers : [],
             isHalfAndHalf: Boolean(item.isHalfAndHalf),
             halves: Array.isArray(item.halves) ? item.halves : [],
+            requiresKitchen: itemRequiresKitchen(item),
           })),
           customerName: customerNameValue,
           orderNotes: buildTicketNotes(),
@@ -462,6 +528,8 @@ export default function OrdersPage() {
           tableId: tableIdValue,
           tableLabel: tableLabelValue,
           paymentMode,
+          splitEnabled,
+          subAccounts: subAccounts.map((a) => ({ id: a.id, name: a.name })),
         }),
       });
       if (!orderResponse.ok) {
@@ -497,6 +565,9 @@ export default function OrdersPage() {
           tableId: tableIdValue,
           tableLabel: tableLabelValue,
           paymentMode,
+          // Este endpoint confirma la orden (inventario, estado, mesa); el flag
+          // solo decide si tambien entra al tablero de cocina.
+          sendToKitchen: checkoutValues?.sendToKitchen !== false,
         }),
       });
       if (!sendResponse.ok) {
@@ -524,6 +595,7 @@ export default function OrdersPage() {
           modifiers: Array.isArray(item.modifiers) ? item.modifiers : [],
           isHalfAndHalf: Boolean(item.isHalfAndHalf),
           halves: Array.isArray(item.halves) ? item.halves : [],
+          requiresKitchen: itemRequiresKitchen(item),
         })),
         customerName: customerNameValue,
         orderNotes: buildTicketNotes(),
@@ -564,6 +636,8 @@ export default function OrdersPage() {
     editingOrder?.tableLabel,
     editingOrderId,
     isEditingExistingOrder,
+    splitEnabled,
+    subAccounts,
     t,
   ]);
 
@@ -592,7 +666,27 @@ export default function OrdersPage() {
         throw new Error(errorBody?.error || t("orderItemsError"));
       }
 
-      const latestOrder = await response.json().catch(() => null);
+      // Persistir la configuracion de division (sub-cuentas + splitEnabled).
+      await fetch(`/api/orders/${orderId}/split`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          ...getTenantHeaders(),
+        },
+        body: JSON.stringify({
+          splitEnabled,
+          subAccounts: subAccounts.map((a) => ({ id: a.id, name: a.name })),
+        }),
+      }).catch(() => {});
+
+      const refreshed = await fetch(`/api/orders?active=true`, {
+        headers: { ...getTenantHeaders() },
+      })
+        .then((r) => r.json())
+        .catch(() => null);
+      const latestOrder = Array.isArray(refreshed)
+        ? refreshed.find((o) => String(o?._id) === String(orderId))
+        : await response.json().catch(() => null);
       if (latestOrder) {
         hydrateOrder(latestOrder);
         setSelectedOrderType(latestOrder?.orderType || "takeaway");
@@ -613,6 +707,8 @@ export default function OrdersPage() {
     buildItemPayload,
     editingOrderId,
     hydrateOrder,
+    splitEnabled,
+    subAccounts,
     t,
   ]);
 
@@ -743,7 +839,10 @@ export default function OrdersPage() {
             orderNumber={isEditingExistingOrder ? normalizeOrderNumber(editingOrderId) : ""}
             orderContextLabel={
               selectedOrderType === "onTable"
-                ? selectedTable?.name || selectedTableId || t("notAssigned")
+                ? selectedTable?.name ||
+                  editingOrder?.tableLabel ||
+                  selectedTableId ||
+                  t("notAssigned")
                 : customerName || t("walkInCustomer")
             }
             subtotal={subtotal}
@@ -760,6 +859,13 @@ export default function OrdersPage() {
             isSubmitting={isSubmitting || hydratingOrder}
             isLoading={hydratingOrder}
             checkoutError={checkoutError}
+            splitEnabled={splitEnabled}
+            subAccounts={subAccounts}
+            activeAccountId={activeAccountId}
+            onToggleSplit={setSplitEnabled}
+            onAddAccount={addSubAccount}
+            onSelectAccount={setActiveAccount}
+            onRemoveAccount={removeSubAccount}
           />
         </div>
       </div>
@@ -768,7 +874,6 @@ export default function OrdersPage() {
         open={ticketDialogOpen}
         onOpenChange={setTicketDialogOpen}
         ticket={ticketPreview}
-        onPrint={() => window.print()}
       />
 
       <OrderCheckoutDialog
@@ -780,7 +885,9 @@ export default function OrdersPage() {
         defaultCustomerName={customerName}
         defaultOrderType={selectedOrderType || orderTypes[0]?.id || "takeaway"}
         defaultTableId={selectedTableId}
+        defaultTableLabel={editingOrder?.tableLabel || ""}
         lockOrderTypeAndTable={isEditingExistingOrder}
+        kitchenItemCount={isEditingExistingOrder ? 0 : kitchenItemCount}
         onConfirm={handleCheckoutConfirm}
       />
 

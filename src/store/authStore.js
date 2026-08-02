@@ -1,16 +1,7 @@
 import { create, createJSONStorage, persist } from "./zustand";
+import { ALL_FEATURE_KEYS, resolveFeatures } from "@/lib/features/featureRegistry";
 
-const AUTH_ROUTES = [
-  "dashboard",
-  "orders",
-  "active-orders",
-  "kitchen",
-  "users",
-  "products",
-  "ingredients",
-  "settings",
-  "floor",
-];
+const AUTH_ROUTES = ALL_FEATURE_KEYS;
 
 const normalizePath = (path = "") => {
   if (!path) {
@@ -71,7 +62,14 @@ export const useAuthStore = create(
       token: null,
       tenant: null,
       tenantId: "",
+      companyId: "",
+      kind: "",
+      isOwner: false,
+      availableSedes: [],
       navMain: [],
+      // Entitlements de la cuenta. Solo para presentacion: quien decide de
+      // verdad es el middleware (paginas) y el gate de la API (datos).
+      features: [],
       permissionsMap: {},
       isAuthenticated: false,
       hasHydrated: false,
@@ -80,6 +78,12 @@ export const useAuthStore = create(
         const user = data.user ?? null;
         const tenant = data.tenant ?? null;
         const tenantId = String(data.tenantId ?? tenant?.tenantId ?? tenant?.id ?? "");
+        const companyId = String(data.companyId ?? "");
+        const kind = String(data.kind ?? "");
+        const isOwner = kind === "owner";
+        const availableSedes = Array.isArray(data.availableSedes)
+          ? data.availableSedes
+          : [];
         const currentNavMain = get?.()?.navMain;
         const navMain = Array.isArray(data.navMain)
           ? data.navMain
@@ -87,15 +91,26 @@ export const useAuthStore = create(
             ? currentNavMain
             : [];
         const permissionsMap = buildPermissionsMap(navMain);
+        const currentFeatures = get?.()?.features;
+        const features = Array.isArray(data.features)
+          ? resolveFeatures(data.features)
+          : Array.isArray(currentFeatures)
+            ? currentFeatures
+            : [];
 
         set({
           token,
           user,
           tenant,
           tenantId,
+          companyId,
+          kind,
+          isOwner,
+          availableSedes,
           navMain,
+          features,
           permissionsMap,
-          isAuthenticated: Boolean(token || user || tenantId),
+          isAuthenticated: Boolean(token || user || tenantId || companyId),
         });
       },
       logout: () => {
@@ -104,7 +119,12 @@ export const useAuthStore = create(
           user: null,
           tenant: null,
           tenantId: "",
+          companyId: "",
+          kind: "",
+          isOwner: false,
+          availableSedes: [],
           navMain: [],
+          features: [],
           permissionsMap: {},
           isAuthenticated: false,
         });
@@ -137,7 +157,12 @@ export const useAuthStore = create(
         token: state.token,
         tenant: state.tenant,
         tenantId: state.tenantId,
+        companyId: state.companyId,
+        kind: state.kind,
+        isOwner: state.isOwner,
+        availableSedes: state.availableSedes,
         navMain: state.navMain,
+        features: state.features,
         permissionsMap: state.permissionsMap,
       }),
       onRehydrateStorage: (set, get) => () => {
@@ -150,9 +175,13 @@ export const useAuthStore = create(
 
         set({
           isAuthenticated: Boolean(
-            currentState.token || currentState.user || currentState.tenantId
+            currentState.token ||
+              currentState.user ||
+              currentState.tenantId ||
+              currentState.companyId
           ),
           permissionsMap: nextPermissionsMap,
+          features: Array.isArray(currentState.features) ? currentState.features : [],
           hasHydrated: true,
         });
       },

@@ -13,10 +13,10 @@ import { UsersFilters } from "@/components/users/UsersFilters";
 import { UsersPagination } from "@/components/users/UsersPagination";
 import { UsersStats } from "@/components/users/UsersStats";
 import { UsersTable } from "@/components/users/UsersTable";
+import { getAssignableRoles } from "@/lib/auth/roles";
 import { getTenantHeaders } from "../../../../../store/tenantHeaders";
 import { useAuthStore } from "../../../../../store/authStore";
 
-const ROLES = ["ADMIN", "KITCHEN", "CASHIER"];
 
 const getHeaders = (token) => ({
   "Content-Type": "application/json",
@@ -31,6 +31,10 @@ export default function UsersPage() {
   const tenant = useAuthStore((state) => state.tenant);
   const token = useAuthStore((state) => state.token);
   const user = useAuthStore((state) => state.user);
+  const features = useAuthStore((state) => state.features);
+  // Sin el modulo de cocina no tiene sentido ofrecer el rol de cocina: ese rol
+  // no puede entrar a ninguna otra pantalla.
+  const roles = useMemo(() => getAssignableRoles(features), [features]);
 
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -342,7 +346,7 @@ export default function UsersPage() {
               <Label>{t("role")}</Label>
               <Select value={createForm.role} onValueChange={(role) => setCreateForm((prev) => ({ ...prev, role }))}>
                 <SelectTrigger><SelectValue placeholder={t("selectRole")} /></SelectTrigger>
-                <SelectContent>{ROLES.map((role) => <SelectItem key={role} value={role}>{tRoles(role)}</SelectItem>)}</SelectContent>
+                <SelectContent>{roles.map((role) => <SelectItem key={role} value={role}>{tRoles(role)}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             {createError ? <p className="text-sm text-destructive">{createError}</p> : null}
@@ -365,7 +369,7 @@ export default function UsersPage() {
               <Label>{t("role")}</Label>
               <Select value={editForm.role} onValueChange={(role) => setEditForm((prev) => ({ ...prev, role }))}>
                 <SelectTrigger><SelectValue placeholder={t("selectRole")} /></SelectTrigger>
-                <SelectContent>{ROLES.map((role) => <SelectItem key={role} value={role}>{tRoles(role)}</SelectItem>)}</SelectContent>
+                <SelectContent>{roles.map((role) => <SelectItem key={role} value={role}>{tRoles(role)}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="space-y-2">

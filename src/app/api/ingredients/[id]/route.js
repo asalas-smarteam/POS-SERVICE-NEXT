@@ -6,7 +6,7 @@ import { IngredientModel } from '@/models/tenant/Ingredient';
 
 export async function PUT(req, { params }) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     if (!id) {
       return NextResponse.json({ error: 'Ingredient id is required.' }, { status: 400 });
@@ -35,7 +35,7 @@ export async function PUT(req, { params }) {
 
 export async function DELETE(req, { params }) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     if (!id) {
       return NextResponse.json({ error: 'Ingredient id is required.' }, { status: 400 });

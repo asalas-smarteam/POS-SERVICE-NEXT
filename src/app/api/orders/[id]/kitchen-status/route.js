@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
-import { resolveTenant } from "@/lib/tenant/resolveTenant";
-import { authorizeRequest } from "@/lib/security/authorizeRequest";
+import { requireModuleAccess } from "@/lib/security/featureAccess";
 import { getTenantConnection } from "@/lib/db/connections";
 import { OrderModel } from "@/models/tenant/Order";
-import { TableModel } from "@/models/tenant/Table";
+import { releaseOrderTable } from "@/lib/tenant/tableAssignment";
 
 const ALLOWED_STATUSES = ["IN_PREPARATION", "IN_OVEN", "READY", "DISPATCHED", "CANCELLED"];
 const VALID_TRANSITIONS = {
@@ -25,24 +24,25 @@ export async function PATCH(req, { params }) {
       return NextResponse.json({ error: "Invalid request" }, { status: 400 });
     }
 
-    const tenant = await resolveTenant(req);
-    // Called from both the kitchen board (kitchen role) and active-orders
-    // (cashier/admin roles): accept access to either module.
-    try {
-      await authorizeRequest(req, "kitchen");
-    } catch (_kitchenAuthError) {
-      await authorizeRequest(req, "orders");
-    }
+    // Solo el tablero de cocina llega hasta aca. Cancelar una orden desde la
+    // lista de ordenes activas tiene su propio endpoint (POST /cancel), que no
+    // depende de tener contratado el modulo de cocina.
+    const { tenant } = await requireModuleAccess(req, "kitchen");
     const conn = await getTenantConnection(tenant.dbName);
     const Order = OrderModel(conn);
-    const Table = TableModel(conn);
     const order = await Order.findById(orderId);
 
     if (!order) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
-    const currentStatus = order.kitchenStatus ?? "IN_PREPARATION";
+    // kitchenStatus null = la orden nunca se despacho a cocina (solo bebidas, o
+    // el cajero desactivo el envio). No hay ticket que mover.
+    if (!order.kitchenStatus) {
+      return NextResponse.json({ error: "Order is not in the kitchen" }, { status: 400 });
+    }
+
+    const currentStatus = order.kitchenStatus;
     if (currentStatus !== nextStatus) {
       const allowedNext = VALID_TRANSITIONS[currentStatus] ?? [];
       if (!allowedNext.includes(nextStatus)) {
@@ -64,16 +64,14 @@ export async function PATCH(req, { params }) {
 
     if (nextStatus === "CANCELLED") {
       order.status = "CANCELLED";
-      if (order.orderType === "onTable" && order.tableId) {
-        await Table.findOneAndUpdate(
-          { id: order.tableId },
-          { status: "available" },
-          { new: false }
-        );
-      }
     }
 
     await order.save();
+
+    if (nextStatus === "CANCELLED") {
+      await releaseOrderTable(conn, order);
+    }
+
     return NextResponse.json(order);
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: error.status || 500 });

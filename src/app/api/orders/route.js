@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
-import { resolveTenant } from '@/lib/tenant/resolveTenant';
-import { authorizeRequest } from '@/lib/security/authorizeRequest';
+import { requireModuleAccess } from '@/lib/security/featureAccess';
 import { getTenantConnection } from '@/lib/db/connections';
 import { OrderModel } from '@/models/tenant/Order';
-import { TableModel } from '@/models/tenant/Table';
 import { UserModel } from '@/models/tenant/User';
 import { getTenantOrderConfig, normalizePaymentMode } from '@/lib/tenant/orderMetadata';
+import { resolveTableReference } from '@/lib/tenant/tableAssignment';
+import { hasFeature } from '@/lib/features/featureRegistry';
 
 const normalizeText = (value) =>
   typeof value === "string" ? value.trim() : "";
@@ -17,8 +17,7 @@ const INACTIVE_ORDER_STATUSES = ['COMPLETED', 'CANCELLED', 'DELETED'];
 
 export async function GET(req) {
   try {
-    const tenant = await resolveTenant(req);
-    await authorizeRequest(req, 'orders');
+    const { tenant } = await requireModuleAccess(req, 'orders');
     const conn = await getTenantConnection(tenant.dbName);
     const Order = OrderModel(conn);
 
@@ -45,17 +44,15 @@ export async function GET(req) {
     const orders = await Order.find(query).sort({ createdAt: -1 }).lean();
     return NextResponse.json(orders);
   } catch (e) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+    return NextResponse.json({ error: e.message }, { status: e.status || 500 });
   }
 }
 
 export async function POST(req) {
   try {
-    const tenant = await resolveTenant(req);
-    const authPayload = await authorizeRequest(req, 'orders');
+    const { tenant, payload: authPayload } = await requireModuleAccess(req, 'orders');
     const conn = await getTenantConnection(tenant.dbName);
     const Order = OrderModel(conn);
-    const Table = TableModel(conn);
 
     let createdBy = null;
     if (authPayload?.userId) {
@@ -88,18 +85,20 @@ export async function POST(req) {
     let tableLabel = null;
 
     if (isOnTableOrder) {
-      if (!incomingTableId) {
-        return NextResponse.json({ error: "tableId is required for onTable orders." }, { status: 400 });
-      }
-
-      const table = await Table.findOne({ id: incomingTableId }).lean();
-      if (!table) {
-        return NextResponse.json({ error: "Selected table not found." }, { status: 400 });
-      }
-
-      tableId = table.id;
-      tableLabel = incomingTableLabel || table.name || null;
+      ({ tableId, tableLabel } = await resolveTableReference({
+        conn,
+        hasFloor: hasFeature(tenant.features, 'floor'),
+        incomingTableId,
+        incomingTableLabel,
+      }));
     }
+
+    const splitEnabled = Boolean(body?.splitEnabled);
+    const subAccounts = Array.isArray(body?.subAccounts)
+      ? body.subAccounts
+          .filter((a) => a && a.id)
+          .map((a) => ({ id: String(a.id), name: String(a.name || "").trim(), isPaid: false }))
+      : [];
 
     const order = await Order.create({
       customerName,
@@ -108,12 +107,14 @@ export async function POST(req) {
       tableId,
       tableLabel,
       paymentMode: normalizePaymentMode(incomingPaymentMode, paymentModeDefault, paymentModeOptions),
+      splitEnabled,
+      subAccounts,
       isClosed: false,
       closedAt: null,
     });
     return NextResponse.json(order);
 
   } catch (e) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+    return NextResponse.json({ error: e.message }, { status: e.status || 500 });
   }
 }

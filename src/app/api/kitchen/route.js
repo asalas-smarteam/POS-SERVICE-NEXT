@@ -1,13 +1,11 @@
 import { NextResponse } from 'next/server';
-import { resolveTenant } from '@/lib/tenant/resolveTenant';
-import { authorizeRequest } from '@/lib/security/authorizeRequest';
+import { requireModuleAccess } from '@/lib/security/featureAccess';
 import { getTenantConnection } from '@/lib/db/connections';
 import { OrderModel } from '@/models/tenant/Order';
 
 export async function GET(req) {
   try {
-    const tenant = await resolveTenant(req);
-    await authorizeRequest(req, 'kitchen');
+    const { tenant } = await requireModuleAccess(req, 'kitchen');
     const conn = await getTenantConnection(tenant.dbName);
     const Order = OrderModel(conn);
 
@@ -19,6 +17,6 @@ export async function GET(req) {
 
     return NextResponse.json(tickets);
   } catch (e) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+    return NextResponse.json({ error: e.message }, { status: e.status || 500 });
   }
 }

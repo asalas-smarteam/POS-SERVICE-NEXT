@@ -21,6 +21,7 @@ import { AppSpinner } from "@/components/app-spinner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { IngredientSearchSelect } from "@/components/ingredients/ingredient-search-select";
+import { useFeature } from "@/components/feature-gate";
 import { useProductsStore } from "../../../store/productsStore";
 import { useProductSizesStore } from "../../../store/productSizesStore";
 import { useSettingsStore } from "../../../store/settingsStore";
@@ -34,6 +35,7 @@ const emptyForm = {
   sizeId: "",
   allowsHalf: false,
   productSizeId: "",
+  requiresKitchen: "INHERIT",
 };
 
 const normalizeIngredients = (ingredients = []) =>
@@ -49,6 +51,7 @@ const normalizeIngredients = (ingredients = []) =>
 export function ProductDialog({ open, onOpenChange, product, duplicateFrom, onSuccess }) {
   const t = useTranslations("Products");
   const tType = useTranslations("ProductTypes");
+  const hasIngredients = useFeature("ingredients");
   const {
     ingredients,
     fetchIngredients,
@@ -115,6 +118,7 @@ export function ProductDialog({ open, onOpenChange, product, duplicateFrom, onSu
         sizeId: source?.sizeId?._id ?? source?.sizeId ?? "",
         allowsHalf: Boolean(source?.allowsHalf),
         productSizeId: source?.productSizeId ?? "",
+        requiresKitchen: source?.requiresKitchen ?? "INHERIT",
       });
     } else {
       const defaultSize = Array.isArray(sizes)
@@ -215,9 +219,10 @@ export function ProductDialog({ open, onOpenChange, product, duplicateFrom, onSu
       sizeId: form.sizeId || null,
       allowsHalf: Boolean(form.allowsHalf),
       productSizeId: form.productSizeId || null,
+      requiresKitchen: form.requiresKitchen || "INHERIT",
     };
 
-    if (form.type === "COMPOSED") {
+    if (form.type === "COMPOSED" && hasIngredients) {
       payload.ingredients = form.ingredients.map((item) => ({
         ingredientId: item.ingredientId,
         quantity: Number(item.quantity) || 0,
@@ -443,7 +448,33 @@ export function ProductDialog({ open, onOpenChange, product, duplicateFrom, onSu
             <Label htmlFor="product-allows-half">{t("allowHalfAndHalf")}</Label>
           </div>
 
-          {form.type === "COMPOSED" ? (
+          <div className="space-y-2">
+            <Label>{t("requiresKitchen")}</Label>
+            <Select
+              value={form.requiresKitchen}
+              onValueChange={(value) =>
+                setForm((current) => ({
+                  ...current,
+                  requiresKitchen: value,
+                }))
+              }
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="INHERIT">{t("requiresKitchenInherit")}</SelectItem>
+                <SelectItem value="YES">{t("requiresKitchenYes")}</SelectItem>
+                <SelectItem value="NO">{t("requiresKitchenNo")}</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">{t("requiresKitchenHelp")}</p>
+          </div>
+
+          {/* La receta depende del modulo de inventario. Hoy va incluido en
+              todos los planes, pero queda detras del gate para que un producto
+              se pueda crear sin mover ingredientes cuando se vuelva opcional. */}
+          {form.type === "COMPOSED" && hasIngredients ? (
             <div className="space-y-4 rounded-lg border p-4">
               <div className="flex items-center justify-between">
                 <div>

@@ -112,7 +112,10 @@ const getTenantCategoryLookup = async (conn) => {
   }, {});
 };
 
-export async function getDashboardMetrics(conn, { range = "today", categoryId = "all" } = {}) {
+export async function getDashboardMetrics(
+  conn,
+  { range = "today", categoryId = "all", includeKitchenStatus = true } = {}
+) {
   const Order = OrderModel(conn);
   const Product = ProductModel(conn);
 
@@ -259,7 +262,9 @@ export async function getDashboardMetrics(conn, { range = "today", categoryId = 
     customer: order?.customerName || "",
     waiter: order?.createdBy?.name || "",
     status: order?.status || "DRAFT",
-    kitchenStatus: order?.kitchenStatus || null,
+    // Sin el modulo de cocina contratado no hay estado de cocina que mostrar;
+    // el badge de la tabla lo combina con el estado del pedido.
+    kitchenStatus: includeKitchenStatus ? order?.kitchenStatus || null : null,
     total: orderRevenue(order) || toNumber(order?.total),
   }));
 

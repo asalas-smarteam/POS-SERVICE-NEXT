@@ -1,17 +1,17 @@
 import { NextResponse } from 'next/server';
-import { ROLE_VALUES } from '@/lib/auth/roles';
+import { getAssignableRoles } from '@/lib/auth/roles';
 import { getAuthContext, requireAdmin } from '@/lib/auth/requestAuth';
 
 export async function PATCH(req, { params }) {
   try {
-    const { User, authUser } = await getAuthContext(req);
+    const { User, authUser, tenant } = await getAuthContext(req);
     requireAdmin(authUser);
 
     const { id } = await params;
     const body = await req.json();
     const role = String(body?.role || '');
 
-    if (!ROLE_VALUES.includes(role)) {
+    if (!getAssignableRoles(tenant?.features).includes(role)) {
       return NextResponse.json({ error: 'Invalid role value.' }, { status: 400 });
     }
 

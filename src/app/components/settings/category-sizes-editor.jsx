@@ -18,9 +18,11 @@ import { getFieldLabel } from "@/components/settings/dynamic-json-table-editor";
 // Bespoke editor for the "Product Category" tenant setting: on top of the
 // generic id/label/active columns, it lets an admin toggle which of the
 // tenant's configured sizes (Settings > Product Sizes) each category may
-// use. The generic DynamicJsonTableEditor can't express this because a
-// category row's `sizeIds` is an array-valued cell, which it only knows how
-// to render as a plain text input.
+// use, plus whether the category needs kitchen preparation (drinks usually
+// don't, so they never reach the kitchen board). The generic
+// DynamicJsonTableEditor can't express this because a category row's
+// `sizeIds` is an array-valued cell, which it only knows how to render as a
+// plain text input.
 export function CategorySizesEditor({ data, onChange, sizes = [], t }) {
   const locale = useLocale();
   const rows = Array.isArray(data) ? data : [];
@@ -39,7 +41,7 @@ export function CategorySizesEditor({ data, onChange, sizes = [], t }) {
   };
 
   const addRow = () => {
-    onChange([...rows, { id: "", label: "", active: true, sizeIds: [] }]);
+    onChange([...rows, { id: "", label: "", active: true, sizeIds: [], requiresKitchen: true }]);
   };
 
   const removeRow = (rowIndex) => {
@@ -62,6 +64,7 @@ export function CategorySizesEditor({ data, onChange, sizes = [], t }) {
               <TableHead>{getFieldLabel("id", locale)}</TableHead>
               <TableHead>{getFieldLabel("label", locale)}</TableHead>
               <TableHead>{getFieldLabel("active", locale)}</TableHead>
+              <TableHead>{t("requiresKitchenLabel")}</TableHead>
               <TableHead>{t("categorySizesLabel")}</TableHead>
               <TableHead className="w-[90px]">{t("actions")}</TableHead>
             </TableRow>
@@ -69,7 +72,7 @@ export function CategorySizesEditor({ data, onChange, sizes = [], t }) {
           <TableBody>
             {rows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-muted-foreground">
+                <TableCell colSpan={6} className="text-center text-muted-foreground">
                   {t("noResults")}
                 </TableCell>
               </TableRow>
@@ -94,6 +97,14 @@ export function CategorySizesEditor({ data, onChange, sizes = [], t }) {
                       <Checkbox
                         checked={Boolean(row?.active)}
                         onCheckedChange={(checked) => updateRow(rowIndex, { active: Boolean(checked) })}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Checkbox
+                        checked={row?.requiresKitchen !== false}
+                        onCheckedChange={(checked) =>
+                          updateRow(rowIndex, { requiresKitchen: Boolean(checked) })
+                        }
                       />
                     </TableCell>
                     <TableCell>

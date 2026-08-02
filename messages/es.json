@@ -28,7 +28,30 @@
     "billing": "Facturación",
     "notifications": "Notificaciones",
     "noAccessAssigned": "Sin accesos asignados.",
-    "github": "GitHub"
+    "github": "GitHub",
+    "adminPanel": "Panel administrativo",
+    "sedeSelector": "Seleccionar sede"
+  },
+  "AdminPanel": {
+    "title": "Panel administrativo",
+    "sedesTitle": "Sedes",
+    "enterSede": "Entrar a la sede",
+    "manageUsers": "Gestionar usuarios",
+    "usersTitle": "Usuarios",
+    "newUser": "Nuevo usuario",
+    "createUser": "Crear usuario",
+    "username": "Nombre de usuario",
+    "email": "Correo",
+    "password": "Contraseña",
+    "role": "Rol",
+    "userCount": "{count} usuarios",
+    "noUsers": "Sin usuarios todavía.",
+    "noSedes": "No hay sedes.",
+    "loading": "Cargando...",
+    "loadError": "No se pudieron cargar las sedes.",
+    "createError": "No se pudo crear el usuario.",
+    "invalidForm": "Completa los campos (contraseña mínima 6 caracteres).",
+    "activateError": "No se pudo activar el módulo."
   },
   "Auth": {
     "loginTitle": "Iniciar sesión",
@@ -84,7 +107,23 @@
     "invalidEmail": "Por favor, ingresa un correo válido.",
     "passwordMinLength": "La contraseña debe contener al menos 8 caracteres.",
     "registerFailed": "No se pudo completar el registro. Intenta nuevamente.",
-    "registerSuccess": "Cuenta creada correctamente. Redirigiendo al inicio de sesión..."
+    "registerSuccess": "Cuenta creada correctamente. Redirigiendo al inicio de sesión...",
+    "companyDetails": "Datos de la empresa",
+    "companyName": "Nombre de la empresa",
+    "companyNamePlaceholder": "p. ej. Empresa Prueba",
+    "branchCount": "¿Cuántas sedes necesitas?",
+    "branchCountHelp": "Cada sede es un sistema independiente: sus propios usuarios, contraseñas, roles y ventas.",
+    "ownerCredentials": "Cuenta del dueño",
+    "ownerEmail": "Correo del dueño",
+    "ownerEmailPlaceholder": "dueno@empresa.com",
+    "ownerPassword": "Contraseña del dueño",
+    "priceSummaryTitle": "Resumen de tu suscripción",
+    "priceBaseLabel": "Sede base",
+    "priceExtraLabel": "Sedes adicionales",
+    "priceExtraUnit": "{count} × {price}",
+    "priceTotalLabel": "Total mensual",
+    "perMonthShort": "/mes",
+    "noModulesAvailable": "No tienes ningún módulo habilitado. Contacta al administrador de la cuenta."
   },
   "Dashboard": {
     "title": "Panel principal",
@@ -151,6 +190,39 @@
   "Orders": {
     "title": "Órdenes",
     "newOrder": "Nueva orden",
+    "splitBill": "Dividir cuenta",
+    "shared": "Compartido",
+    "addPerson": "Persona",
+    "personName": "Nombre",
+    "splitPayTitle": "Dividir / Cobrar",
+    "paidLabel": "Pagado",
+    "amountDue": "Saldo",
+    "fullyPaid": "Cuenta pagada por completo.",
+    "method": "Método",
+    "method_cash": "Efectivo",
+    "method_card": "Tarjeta",
+    "method_other": "Otro",
+    "payAll": "Pagar todo",
+    "equalSplit": "Partes iguales",
+    "selectItems": "Seleccionar productos",
+    "byPerson": "Por persona",
+    "confirmPayment": "Cobrar {amount}",
+    "people": "Personas",
+    "perPerson": "por persona",
+    "chargeOneShare": "Cobrar {amount}",
+    "pending": "Pendiente",
+    "thisPayment": "Este pago",
+    "noPendingItems": "Sin productos pendientes.",
+    "selectItemsHint": "Toca productos para agregarlos.",
+    "holdToSelectAll": "Toca para mover 1 unidad; mantén presionado para mover todas.",
+    "remainingAfter": "Restante después",
+    "chargeAccount": "Cobrar cuenta",
+    "payError": "No se pudo procesar el pago.",
+    "paymentDone": "Cobrado {amount}",
+    "receiptTitle": "RECIBO DE PAGO",
+    "orderLabel": "Orden",
+    "paidThis": "PAGADO",
+    "receiptFooter": "*** GRACIAS ***",
     "total": "Total",
     "subtotal": "Subtotal",
     "tax": "Impuesto",
@@ -212,6 +284,7 @@
     "orderTypePlaceholder": "Selecciona un tipo de orden",
     "orderTypeRequired": "Debes seleccionar un tipo de orden.",
     "orderCheckoutDialogTitle": "Finalizar orden",
+    "sendToKitchenHint": "{count, plural, one {# producto requiere preparación} other {# productos requieren preparación}}. Desmarca si no quieres enviarlo a cocina.",
     "tablePlaceholder": "Selecciona una mesa",
     "tableRequired": "Debes seleccionar una mesa para orden en mesa.",
     "notAssigned": "Sin asignar",
@@ -235,7 +308,11 @@
     "cashierNotePlaceholder": "Agrega una nota opcional para cocina",
     "toppingsModifiers": "Coberturas / Modificadores",
     "noModifierChanges": "Sin cambios de modificadores.",
-    "saveChanges": "Guardar cambios"
+    "saveChanges": "Guardar cambios",
+    "tableLabel": "Identificación de la mesa",
+    "tableLabelPlaceholder": "Ej. Mesa 4, Terraza 2",
+    "tableLabelHint": "Escribe una referencia para identificar la mesa en la orden.",
+    "tableLabelRequired": "Debes indicar una identificación para la mesa."
   },
   "Kitchen": {
     "title": "Cocina",
@@ -274,7 +351,10 @@
     "dateAndTime": "Fecha y hora",
     "notes": "Notas",
     "noNotes": "Sin notas",
-    "endOfTicket": "*** FIN DEL TICKET ***"
+    "noPrepItems": "No requiere preparación",
+    "endOfTicket": "*** FIN DEL TICKET ***",
+    "orderTicket": "Ticket de orden",
+    "walkInCustomer": "Cliente en mostrador"
   },
   "OrderStatus": {
     "PENDING": "Pendiente",
@@ -324,6 +404,11 @@
     "noIngredientsAdded": "No hay ingredientes agregados.",
     "quantity": "Cantidad",
     "allowHalfAndHalf": "Permitir mitad y mitad",
+    "requiresKitchen": "Preparación en cocina",
+    "requiresKitchenInherit": "Según la categoría",
+    "requiresKitchenYes": "Sí, va a cocina",
+    "requiresKitchenNo": "No, entrega directa",
+    "requiresKitchenHelp": "Define si el producto se envía al tablero de cocina. Por defecto usa la configuración de su categoría.",
     "selectCategory": "Seleccionar categoría",
     "noCategoriesConfigured": "No hay categorías configuradas. Ve a /settings para agregarlas.",
     "selectType": "Selecciona el tipo",
@@ -382,7 +467,12 @@
     "cancelOrder": "Cancelar orden",
     "cancelling": "Cancelando...",
     "managePayment": "Gestionar pago / Editar orden",
-    "cancelOrderError": "No se pudo cancelar la orden."
+    "cancelOrderError": "No se pudo cancelar la orden.",
+    "remaining": "Restante",
+    "paymentStatus": "Estado de pago",
+    "paidFull": "Pagado",
+    "paidOfTotal": "Pagado {paid} · Restante {due}",
+    "splitPay": "Dividir / Cobrar"
   },
   "Ingredients": {
     "title": "Ingredientes",
@@ -553,6 +643,7 @@
     "orderTypesSaveError": "No se pudo guardar los tipos de orden.",
     "orderTypesSaved": "Tipos de orden guardados.",
     "categorySizesLabel": "Tamaños disponibles",
+    "requiresKitchenLabel": "Requiere cocina",
     "noSizesAvailable": "No hay tamaños configurados. Agrégalos en la configuración de Tamaños."
   },
   "Floor": {
@@ -581,5 +672,75 @@
       "reserved": "Reservada",
       "occupied": "Ocupada"
     }
+  },
+  "Plans": {
+    "plan": {
+      "basic": {
+        "name": "Básico",
+        "description": "Punto de venta, productos e inventario"
+      },
+      "pro": {
+        "name": "Profesional",
+        "description": "Todo lo del Básico más reportes, plano de mesas y cocina"
+      },
+      "enterprise": {
+        "name": "Empresarial",
+        "description": "Solución a medida"
+      },
+      "custom": {
+        "name": "Personalizado",
+        "description": "Elige solo los módulos que necesitas"
+      }
+    },
+    "feature": {
+      "orders": {
+        "name": "Ventas",
+        "description": "Tomar órdenes y cobrar"
+      },
+      "active-orders": {
+        "name": "Órdenes activas",
+        "description": "Seguimiento y cobro de las órdenes abiertas"
+      },
+      "products": {
+        "name": "Productos",
+        "description": "Catálogo, categorías y tamaños"
+      },
+      "ingredients": {
+        "name": "Inventario",
+        "description": "Ingredientes y descuento automático de existencias"
+      },
+      "settings": {
+        "name": "Ajustes",
+        "description": "Configuración del negocio"
+      },
+      "users": {
+        "name": "Usuarios",
+        "description": "Personal y roles"
+      },
+      "dashboard": {
+        "name": "Reportes",
+        "description": "Métricas de ventas y productos más vendidos"
+      },
+      "floor": {
+        "name": "Plano de mesas",
+        "description": "Diseño del salón y gestión de mesas"
+      },
+      "kitchen": {
+        "name": "Cocina",
+        "description": "Tablero de preparación y despacho"
+      }
+    },
+    "comingSoon": "Próximamente",
+    "comingSoonError": "Este plan todavía no está disponible.",
+    "currentPlan": "Plan actual",
+    "includedInPlan": "Incluido en tu plan",
+    "addOns": "Módulos adicionales",
+    "activate": "Activar",
+    "activating": "Activando...",
+    "discountBadge": "Oferta",
+    "originalPrice": "Precio regular",
+    "perMonthShort": "/mes",
+    "perBranch": "{count, plural, one {# sede adicional} other {# sedes adicionales}}",
+    "branchCountLabel": "{count, plural, one {# sede} other {# sedes}}"
   }
 }

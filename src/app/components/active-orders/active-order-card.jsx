@@ -42,6 +42,24 @@ export function ActiveOrderCard({ order, onAction }) {
           <span className="text-muted-foreground">{t("amount")}</span>
           <span className="font-medium">{formatAmount(order?.amount)}</span>
         </div>
+        {order?.paymentStatus === "partial" ? (
+          <div className="flex items-center justify-between">
+            <span className="text-muted-foreground">{t("remaining")}</span>
+            <Badge className="border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400">
+              {t("paidOfTotal", {
+                paid: formatAmount(order?.amountPaid),
+                due: formatAmount(order?.amountDue),
+              })}
+            </Badge>
+          </div>
+        ) : order?.paymentStatus === "paid" ? (
+          <div className="flex items-center justify-between">
+            <span className="text-muted-foreground">{t("paymentStatus")}</span>
+            <Badge className="border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+              {t("paidFull")}
+            </Badge>
+          </div>
+        ) : null}
         <div className="flex items-center justify-between">
           <span className="text-muted-foreground">{t("products")}</span>
           <Badge className={order?.orderTypeBadgeClass}>

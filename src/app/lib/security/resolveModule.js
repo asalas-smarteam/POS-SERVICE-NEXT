@@ -37,3 +37,31 @@ export const resolveModuleFromPath = (pathname, locales = []) => {
     segments,
   };
 };
+
+// Detecta la ruta del panel administrativo del dueño: /{locale}/admin/{companyId}.
+// Es company-scoped (no lleva tenantId), por eso se resuelve aparte del matcher
+// de modulos de sede.
+export const resolveAdminPanelFromPath = (pathname, locales = []) => {
+  if (typeof pathname !== "string" || pathname.length === 0) {
+    return null;
+  }
+
+  const normalizedPath = normalizePathWithoutLocale(pathname, locales);
+
+  if (typeof normalizedPath !== "string" || normalizedPath === "/") {
+    return null;
+  }
+
+  const segments = normalizedPath.split("/").filter(Boolean);
+
+  if (segments[0]?.toLowerCase() !== "admin") {
+    return null;
+  }
+
+  const companyId = segments[1];
+  if (!companyId) {
+    return null;
+  }
+
+  return { companyId, segments };
+};

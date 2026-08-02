@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { resolveTenant } from '@/lib/tenant/resolveTenant';
-import { authorizeRequest } from '@/lib/security/authorizeRequest';
+import { requireModuleAccess } from '@/lib/security/featureAccess';
 import { getTenantConnection } from '@/lib/db/connections';
 import { TableModel } from '@/models/tenant/Table';
 
@@ -36,8 +35,7 @@ function validateTablePayload(payload = {}) {
 
 export async function GET(req) {
   try {
-    await authorizeRequest(req, 'floor');
-    const tenant = await resolveTenant(req);
+    const { tenant } = await requireModuleAccess(req, 'floor');
     const conn = await getTenantConnection(tenant.dbName);
     const Table = TableModel(conn);
 
@@ -45,14 +43,13 @@ export async function GET(req) {
 
     return NextResponse.json(tables);
   } catch (e) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+    return NextResponse.json({ error: e.message }, { status: e.status || 500 });
   }
 }
 
 export async function POST(req) {
   try {
-    await authorizeRequest(req, 'floor');
-    const tenant = await resolveTenant(req);
+    const { tenant } = await requireModuleAccess(req, 'floor');
     const conn = await getTenantConnection(tenant.dbName);
     const Table = TableModel(conn);
 
@@ -89,6 +86,6 @@ export async function POST(req) {
       { status: 201 }
     );
   } catch (e) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+    return NextResponse.json({ error: e.message }, { status: e.status || 500 });
   }
 }

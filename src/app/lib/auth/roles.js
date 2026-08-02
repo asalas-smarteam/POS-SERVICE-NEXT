@@ -1,3 +1,5 @@
+import { hasFeature, moduleFromHref } from "@/lib/features/featureRegistry";
+
 export const USER_ROLES = Object.freeze({
   ADMIN: "ADMIN",
   KITCHEN: "KITCHEN",
@@ -44,7 +46,33 @@ export const NAV_BY_ROLE = Object.freeze({
   ],
 });
 
+// Roles que solo tienen sentido con cierto modulo contratado. El rol de cocina
+// no puede ver nada mas que /kitchen, asi que crear uno sin ese modulo deja al
+// usuario sin ninguna pantalla a la que entrar.
+const ROLE_REQUIRED_FEATURE = Object.freeze({
+  [USER_ROLES.KITCHEN]: "kitchen",
+});
+
+export const getAssignableRoles = (features) =>
+  ROLE_VALUES.filter((role) => {
+    const required = ROLE_REQUIRED_FEATURE[role];
+    return required ? hasFeature(features, required) : true;
+  });
+
 export const getRoleNav = (role) => {
   const navItems = NAV_BY_ROLE[role];
   return Array.isArray(navItems) ? navItems : [];
 };
+
+// Deja solo los items que la cuenta tiene contratados.
+//
+// Se filtra aca, al armar la respuesta del login, y no al sembrar RoleNav: el
+// nav esta persistido en la DB de cada sede y solo se siembra al crearla, asi
+// que filtrar en el seed haria que un upgrade de plan nunca se propagara.
+export const filterNavByFeatures = (navItems, features) =>
+  (Array.isArray(navItems) ? navItems : []).filter((item) => {
+    const moduleKey = moduleFromHref(item?.href ?? item?.url ?? "");
+    // Un item que no mapea a ningun modulo conocido (config legado) se deja
+    // pasar: el middleware lo bloqueara si corresponde.
+    return moduleKey ? hasFeature(features, moduleKey) : true;
+  });

@@ -1,4 +1,5 @@
 import { getOrderItemDisplayData } from "@/lib/orders/getOrderItemDisplayData";
+import { splitItemsByKitchen } from "@/lib/tenant/kitchenRouting";
 
 const JSPDF_CDN =
   "https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js";
@@ -46,7 +47,12 @@ export async function generateKitchenTicketPdf(ticket) {
     });
     return count + 1 + subtitleLines.length;
   }, 0);
-  const height = Math.max(80, (baseLines + itemLines) * lineHeight);
+  // Igual que en la previsualizacion: lo que cocina prepara arriba, el resto
+  // (bebidas, empacados) en un bloque etiquetado al final.
+  const { kitchenItems, otherItems } = splitItemsByKitchen(ticket.items);
+  // +2 lineas por el encabezado y la separacion del bloque "sin preparacion".
+  const extraLines = otherItems.length ? 2 : 0;
+  const height = Math.max(80, (baseLines + itemLines + extraLines) * lineHeight);
 
   const doc = new jsPDF({
     unit: "mm",
@@ -85,11 +91,13 @@ export async function generateKitchenTicketPdf(ticket) {
 
   y += 4;
   doc.setFontSize(10);
-  (ticket.items || []).forEach((item) => {
+
+  const printItem = (item) => {
     const { title, subtitleLines } = getOrderItemDisplayData(item, {
       labels,
       includeNote: false,
     });
+    doc.setFontSize(10);
     doc.text(`${item.quantity}x ${title}`, 6, y);
     y += lineHeight;
     subtitleLines.forEach((line) => {
@@ -98,7 +106,17 @@ export async function generateKitchenTicketPdf(ticket) {
       y += lineHeight;
       doc.setFontSize(10);
     });
-  });
+  };
+
+  kitchenItems.forEach(printItem);
+
+  if (otherItems.length) {
+    y += 2;
+    doc.setFontSize(8);
+    doc.text(`${labels.noPrepItems || "SIN PREPARACION"}:`, 6, y);
+    y += lineHeight;
+    otherItems.forEach(printItem);
+  }
 
   y += 2;
   doc.line(4, y, 76, y);

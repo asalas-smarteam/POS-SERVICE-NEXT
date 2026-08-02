@@ -42,6 +42,54 @@ const OrderItemSchema = new mongoose.Schema({
   ],
 
   note: { type: String, default: '' },
+
+  // Ruteo a cocina, resuelto en el servidor a partir del producto y su
+  // categoria (lib/tenant/kitchenRouting.js). Se congela en la linea para que
+  // el ticket y el tablero no dependan de cambios de configuracion posteriores.
+  requiresKitchen: { type: Boolean, default: true },
+
+  // Split bill: identidad estable de la linea (generada en el cliente),
+  // sub-cuenta dueña ('shared'/null = Compartido) y estado de asentado (pagado).
+  lineId: { type: String, default: null },
+  accountId: { type: String, default: null },
+  // Unidades ya cobradas de esta linea (cobro parcial por cantidad: el cliente
+  // paga 2 de 10 Coca Colas). `settled` = la linea quedo cubierta por completo,
+  // es decir paidQuantity >= quantity.
+  paidQuantity: { type: Number, default: 0 },
+  settled: { type: Boolean, default: false },
+  settledAt: { type: Date, default: null },
+}, { _id: false });
+
+// Sub-cuenta nombrada dentro de una orden (una persona/tab en un bar).
+const SubAccountSchema = new mongoose.Schema({
+  id: { type: String, required: true },
+  name: { type: String, default: '' },
+  isPaid: { type: Boolean, default: false },
+  paidAt: { type: Date, default: null },
+}, { _id: false });
+
+// Un pago (parcial o total) contra la orden.
+const PaymentSchema = new mongoose.Schema({
+  id: { type: String, required: true },
+  amount: { type: Number, default: 0 },
+  method: { type: String, default: 'cash' }, // cash | card | other
+  mode: { type: String, default: 'custom' }, // full | equal | items | account | custom
+  accountId: { type: String, default: null },
+  note: { type: String, default: '' },
+  // Snapshot de lo pagado, para el recibo (independiente de ediciones futuras).
+  lines: [
+    {
+      name: String,
+      // Unidades cubiertas por ESTE pago (puede ser menos que la linea entera).
+      quantity: Number,
+      totalPrice: Number,
+    },
+  ],
+  paidAt: { type: Date, default: Date.now },
+  createdBy: {
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    name: { type: String, default: '' },
+  },
 }, { _id: false });
 
 const OrderSchema = new mongoose.Schema({
@@ -94,6 +142,18 @@ const OrderSchema = new mongoose.Schema({
     type: String,
     default: 'pay_later',
   },
+
+  // ----- Split bill (dividir la cuenta) -----
+  splitEnabled: { type: Boolean, default: false },
+  subAccounts: { type: [SubAccountSchema], default: [] },
+  payments: { type: [PaymentSchema], default: [] },
+  amountPaid: { type: Number, default: 0 },
+  paymentStatus: {
+    type: String,
+    enum: ['unpaid', 'partial', 'paid'],
+    default: 'unpaid',
+  },
+
   isClosed: {
     type: Boolean,
     default: false,

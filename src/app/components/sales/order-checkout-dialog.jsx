@@ -3,10 +3,12 @@
 import { useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useFeature } from "@/components/feature-gate";
 
 export function OrderCheckoutDialog({
   open,
@@ -17,13 +19,21 @@ export function OrderCheckoutDialog({
   defaultCustomerName = "",
   defaultOrderType = "",
   defaultTableId = "",
+  defaultTableLabel = "",
   lockOrderTypeAndTable = false,
+  kitchenItemCount = 0,
   onConfirm,
 }) {
   const t = useTranslations("Orders");
+  // Sin el plano de mesas contratado la orden igual puede ser "en mesa": en vez
+  // de elegir una mesa del plano, el cajero escribe una etiqueta libre.
+  const hasFloor = useFeature("floor");
+  const hasKitchen = useFeature("kitchen");
   const [customerName, setCustomerName] = useState(defaultCustomerName);
   const [orderType, setOrderType] = useState(defaultOrderType);
   const [tableId, setTableId] = useState(defaultTableId);
+  const [tableLabel, setTableLabel] = useState(defaultTableLabel);
+  const [sendToKitchen, setSendToKitchen] = useState(true);
   const [formError, setFormError] = useState("");
   const [wasOpen, setWasOpen] = useState(open);
 
@@ -36,6 +46,8 @@ export function OrderCheckoutDialog({
       setCustomerName(defaultCustomerName || "");
       setOrderType(defaultOrderType || orderTypes[0]?.id || "");
       setTableId(defaultTableId || "");
+      setTableLabel(defaultTableLabel || "");
+      setSendToKitchen(true);
       setFormError("");
     }
   }
@@ -49,12 +61,17 @@ export function OrderCheckoutDialog({
     () => tables.find((table) => table.id === tableId) || null,
     [tables, tableId]
   );
+  // El override del cajero solo tiene sentido si hay cocina contratada y algo
+  // del carrito requiere preparacion.
+  const showKitchenToggle = hasKitchen && kitchenItemCount > 0;
 
   const handleOpenChange = (nextOpen) => {
     if (!nextOpen) {
       setCustomerName(defaultCustomerName || "");
       setOrderType(defaultOrderType || orderTypes[0]?.id || "");
       setTableId(defaultTableId || "");
+      setTableLabel(defaultTableLabel || "");
+      setSendToKitchen(true);
       setFormError("");
     }
     onOpenChange?.(nextOpen);
@@ -77,16 +94,31 @@ export function OrderCheckoutDialog({
       }
     }
 
-    if (requiresTable && !tableId) {
-      setFormError(t("tableRequired"));
-      return;
+    const normalizedTableLabel = tableLabel.trim();
+
+    if (requiresTable) {
+      if (hasFloor && !tableId) {
+        setFormError(t("tableRequired"));
+        return;
+      }
+      if (!hasFloor && !normalizedTableLabel) {
+        setFormError(t("tableLabelRequired"));
+        return;
+      }
     }
 
     onConfirm?.({
       customerName: normalizedCustomerName,
       orderType,
-      tableId: requiresTable ? tableId : null,
-      tableLabel: requiresTable ? selectedTable?.name || null : null,
+      // Sin plano de mesas la orden no referencia ninguna fila de Table: viaja
+      // solo con la etiqueta, y por eso no hay estado de mesa que actualizar.
+      tableId: requiresTable && hasFloor ? tableId : null,
+      tableLabel: requiresTable
+        ? hasFloor
+          ? selectedTable?.name || null
+          : normalizedTableLabel
+        : null,
+      sendToKitchen: showKitchenToggle ? sendToKitchen : false,
     });
   };
 
@@ -127,7 +159,9 @@ export function OrderCheckoutDialog({
                   <Label htmlFor="checkout-table-readonly">{t("table")}</Label>
                   <Input
                     id="checkout-table-readonly"
-                    value={selectedTable?.name || tableId || t("notAssigned")}
+                    value={
+                      selectedTable?.name || tableLabel || tableId || t("notAssigned")
+                    }
                     readOnly
                     disabled
                   />
@@ -153,24 +187,58 @@ export function OrderCheckoutDialog({
               </div>
 
               {requiresTable ? (
-                <div className="space-y-2">
-                  <Label htmlFor="checkout-table">{t("table")}</Label>
-                  <Select value={tableId} onValueChange={setTableId}>
-                    <SelectTrigger id="checkout-table">
-                      <SelectValue placeholder={t("tablePlaceholder")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {tables.map((table) => (
-                        <SelectItem key={table.id} value={table.id}>
-                          {table.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                hasFloor ? (
+                  <div className="space-y-2">
+                    <Label htmlFor="checkout-table">{t("table")}</Label>
+                    <Select value={tableId} onValueChange={setTableId}>
+                      <SelectTrigger id="checkout-table">
+                        <SelectValue placeholder={t("tablePlaceholder")} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {tables.map((table) => (
+                          <SelectItem key={table.id} value={table.id}>
+                            {table.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Label htmlFor="checkout-table-label">{t("tableLabel")}</Label>
+                    <Input
+                      id="checkout-table-label"
+                      value={tableLabel}
+                      onChange={(event) => setTableLabel(event.target.value)}
+                      placeholder={t("tableLabelPlaceholder")}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      {t("tableLabelHint")}
+                    </p>
+                  </div>
+                )
               ) : null}
             </>
           )}
+
+          {/* Override del cajero. Solo aparece si algo del carrito requiere
+              preparacion: una orden de solo bebidas nunca va a cocina. */}
+          {showKitchenToggle ? (
+            <div className="flex items-start gap-2 rounded-lg border bg-muted/30 p-3">
+              <Checkbox
+                id="checkout-send-to-kitchen"
+                checked={sendToKitchen}
+                onCheckedChange={(checked) => setSendToKitchen(Boolean(checked))}
+                className="mt-0.5"
+              />
+              <div className="space-y-0.5">
+                <Label htmlFor="checkout-send-to-kitchen">{t("sendToKitchen")}</Label>
+                <p className="text-xs text-muted-foreground">
+                  {t("sendToKitchenHint", { count: kitchenItemCount })}
+                </p>
+              </div>
+            </div>
+          ) : null}
 
           {formError ? <p className="text-sm text-destructive">{formError}</p> : null}
         </div>

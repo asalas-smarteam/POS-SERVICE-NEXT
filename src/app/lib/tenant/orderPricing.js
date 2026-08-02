@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import { ProductModel } from '@/models/tenant/Product';
 import { calculateOrderItemUnitPrice } from '@/lib/pricing/halfAndHalfPricing';
 import {
@@ -5,6 +6,8 @@ import {
   normalizeHalfAndHalfPricing,
 } from '@/lib/tenant/halfAndHalfPricingSettings';
 import { getSystemSettings } from '@/lib/tenant/systemSettings';
+import { getProductCategoryMap } from '@/lib/tenant/categorySettings';
+import { resolveRequiresKitchen } from '@/lib/tenant/kitchenRouting';
 
 function toObjectIdString(value) {
   if (!value) return '';
@@ -93,6 +96,24 @@ export async function calculateAndBuildOrderItem(conn, itemInput) {
   const quantity = Math.max(1, toSafeNumber(itemInput?.quantity, 1));
   const totalPrice = unitPrice * quantity;
 
+  // Ruteo a cocina: se resuelve en el servidor (el cliente solo lo usa para la
+  // previsualizacion del ticket) a partir del producto y su categoria.
+  const categoryMap = await getProductCategoryMap(conn);
+  const requiresKitchen = resolveRequiresKitchen(
+    productA,
+    categoryMap.get(String(productA.categoryId ?? '')),
+  );
+
+  // Cobro parcial: nunca mas unidades pagadas que unidades de la linea (el
+  // cajero pudo bajar la cantidad despues de un cobro parcial). Las lineas
+  // anteriores a esta funcion solo traen `settled`, asi que ahi se asume que
+  // se pago la cantidad completa.
+  const incomingPaidQuantity =
+    itemInput?.paidQuantity === undefined || itemInput?.paidQuantity === null
+      ? (itemInput?.settled ? quantity : 0)
+      : toSafeNumber(itemInput.paidQuantity, 0);
+  const paidQuantity = Math.min(quantity, Math.max(0, incomingPaidQuantity));
+
   const normalizedHalves = isHalfAndHalf && productB
     ? [{
         ...itemInput.halves?.[0],
@@ -115,6 +136,17 @@ export async function calculateAndBuildOrderItem(conn, itemInput) {
     totalPrice,
     modifierNotes: normalizeStringArray(itemInput?.modifierNotes || itemInput?.notes),
     note: typeof itemInput?.note === 'string' ? itemInput.note.trim() : '',
+    requiresKitchen,
+    // Split bill: id estable de linea + asignacion a sub-cuenta + estado de pago.
+    // Se preservan si vienen del cliente (round-trip del PUT); si no, se generan.
+    lineId: itemInput?.lineId ? String(itemInput.lineId) : randomUUID(),
+    accountId: itemInput?.accountId ?? null,
+    paidQuantity,
+    settled: paidQuantity >= quantity && paidQuantity > 0,
+    settledAt:
+      paidQuantity >= quantity && paidQuantity > 0
+        ? (itemInput?.settledAt ?? new Date())
+        : null,
   };
 
   return { item: normalizedItem };
@@ -133,6 +165,20 @@ export function recalculateOrderTotals(order) {
     item.price = unitPrice;
     item.unitPrice = unitPrice;
     item.totalPrice = totalPrice;
+
+    // El cobro parcial vive en paidQuantity, nunca codificado en quantity /
+    // totalPrice (que se reescriben aqui). Solo hay que reclamparlo. Lineas
+    // viejas sin paidQuantity pero con settled cuentan como pagadas completas.
+    const rawPaidQuantity =
+      item?.paidQuantity === undefined || item?.paidQuantity === null
+        ? (item?.settled ? quantity : 0)
+        : toSafeNumber(item.paidQuantity, 0);
+    const paidQuantity = Math.min(quantity, Math.max(0, rawPaidQuantity));
+    item.paidQuantity = paidQuantity;
+    item.settled = paidQuantity > 0 && paidQuantity >= quantity;
+    if (!item.settled) {
+      item.settledAt = null;
+    }
 
     total += totalPrice;
   }

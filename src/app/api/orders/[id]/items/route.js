@@ -7,6 +7,7 @@ import {
   calculateAndBuildOrderItem,
   recalculateOrderTotals,
 } from '@/lib/tenant/orderPricing';
+import { recomputePaymentState } from '@/lib/tenant/paymentsService';
 
 const TERMINAL_STATUSES = ['COMPLETED', 'CANCELLED', 'DELETED'];
 
@@ -48,6 +49,7 @@ export async function POST(req, context) {
 
     order.items.push(builtItemResult.item);
     recalculateOrderTotals(order);
+    recomputePaymentState(order);
     await order.save();
 
     return NextResponse.json(order);
@@ -107,6 +109,7 @@ export async function PUT(req, context) {
 
     order.items = builtItems;
     recalculateOrderTotals(order);
+    recomputePaymentState(order);
     await order.save();
 
     return NextResponse.json(order);
