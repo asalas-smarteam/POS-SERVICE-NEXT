@@ -16,14 +16,12 @@ import {
 import { getFieldLabel } from "@/components/settings/dynamic-json-table-editor";
 
 // Bespoke editor for the "Product Category" tenant setting: on top of the
-// generic id/label/active columns, it lets an admin toggle which of the
-// tenant's configured sizes (Settings > Product Sizes) each category may
-// use, plus whether the category needs kitchen preparation (drinks usually
-// don't, so they never reach the kitchen board). The generic
-// DynamicJsonTableEditor can't express this because a category row's
-// `sizeIds` is an array-valued cell, which it only knows how to render as a
-// plain text input.
-export function CategorySizesEditor({ data, onChange, sizes = [], t }) {
+// generic id/label/active columns, it lets an admin toggle whether products
+// in a category use sizes at all (Settings > Product Sizes provides the
+// actual list of sizes, shared by every category that opts in), plus
+// whether the category needs kitchen preparation (drinks usually don't, so
+// they never reach the kitchen board).
+export function CategorySizesEditor({ data, onChange, t }) {
   const locale = useLocale();
   const rows = Array.isArray(data) ? data : [];
 
@@ -31,17 +29,8 @@ export function CategorySizesEditor({ data, onChange, sizes = [], t }) {
     onChange(rows.map((row, index) => (index === rowIndex ? { ...row, ...patch } : row)));
   };
 
-  const toggleSize = (rowIndex, sizeId, checked) => {
-    const row = rows[rowIndex];
-    const currentSizeIds = Array.isArray(row?.sizeIds) ? row.sizeIds : [];
-    const nextSizeIds = checked
-      ? [...new Set([...currentSizeIds, sizeId])]
-      : currentSizeIds.filter((id) => id !== sizeId);
-    updateRow(rowIndex, { sizeIds: nextSizeIds });
-  };
-
   const addRow = () => {
-    onChange([...rows, { id: "", label: "", active: true, sizeIds: [], requiresKitchen: true }]);
+    onChange([...rows, { id: "", label: "", active: true, hasSizes: false, requiresKitchen: true }]);
   };
 
   const removeRow = (rowIndex) => {
@@ -65,7 +54,7 @@ export function CategorySizesEditor({ data, onChange, sizes = [], t }) {
               <TableHead>{getFieldLabel("label", locale)}</TableHead>
               <TableHead>{getFieldLabel("active", locale)}</TableHead>
               <TableHead>{t("requiresKitchenLabel")}</TableHead>
-              <TableHead>{t("categorySizesLabel")}</TableHead>
+              <TableHead>{t("hasSizesLabel")}</TableHead>
               <TableHead className="w-[90px]">{t("actions")}</TableHead>
             </TableRow>
           </TableHeader>
@@ -78,7 +67,6 @@ export function CategorySizesEditor({ data, onChange, sizes = [], t }) {
               </TableRow>
             ) : (
               rows.map((row, rowIndex) => {
-                const rowSizeIds = Array.isArray(row?.sizeIds) ? row.sizeIds : [];
                 return (
                   <TableRow key={`${row?.id ?? "row"}-${rowIndex}`}>
                     <TableCell>
@@ -108,26 +96,12 @@ export function CategorySizesEditor({ data, onChange, sizes = [], t }) {
                       />
                     </TableCell>
                     <TableCell>
-                      {sizes.length === 0 ? (
-                        <span className="text-xs text-muted-foreground">{t("noSizesAvailable")}</span>
-                      ) : (
-                        <div className="flex flex-wrap gap-3">
-                          {sizes.map((size) => (
-                            <label
-                              key={size.id}
-                              className="flex items-center gap-1.5 text-xs font-medium"
-                            >
-                              <Checkbox
-                                checked={rowSizeIds.includes(size.id)}
-                                onCheckedChange={(checked) =>
-                                  toggleSize(rowIndex, size.id, Boolean(checked))
-                                }
-                              />
-                              {size.label ?? size.id}
-                            </label>
-                          ))}
-                        </div>
-                      )}
+                      <Checkbox
+                        checked={Boolean(row?.hasSizes)}
+                        onCheckedChange={(checked) =>
+                          updateRow(rowIndex, { hasSizes: Boolean(checked) })
+                        }
+                      />
                     </TableCell>
                     <TableCell>
                       <Button

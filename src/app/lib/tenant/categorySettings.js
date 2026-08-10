@@ -3,7 +3,7 @@ import { TenantSettingModel } from '@/models/tenant/TenantSetting';
 export const PRODUCT_CATEGORY_DESCRIPTION = 'Product Category';
 
 // Reads the "Product Category" tenant setting (a Mixed array of
-// { id, label, active, sizeIds, requiresKitchen } rows).
+// { id, label, active, hasSizes, requiresKitchen } rows).
 export async function getProductCategories(conn) {
   const TenantSetting = TenantSettingModel(conn);
   const doc = await TenantSetting.findOne({

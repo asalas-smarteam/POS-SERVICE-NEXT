@@ -422,11 +422,8 @@
     "unknownProduct": "Producto",
     "na": "N/A",
     "duplicateProduct": "Duplicar producto",
-    "duplicateProductDescription": "Ajusta el nombre, precio, porción y cantidades de ingredientes para crear una variante de este producto.",
-    "portion": "Porción",
-    "selectPortion": "Selecciona la porción",
-    "portionHelp": "Esta categoría tiene porciones configuradas. Cada porción es un producto independiente: ajusta el precio y las cantidades de ingredientes según corresponda.",
-    "completeProductSize": "Selecciona una porción para esta categoría."
+    "duplicateProductDescription": "Ajusta el nombre, precio, tamaño y cantidades de ingredientes para crear una variante de este producto.",
+    "completeProductSize": "Selecciona un tamaño para este producto."
   },
   "ActiveOrders": {
     "title": "Órdenes activas",
@@ -642,9 +639,8 @@
     "orderTypeLabelPlaceholder": "Etiqueta visible",
     "orderTypesSaveError": "No se pudo guardar los tipos de orden.",
     "orderTypesSaved": "Tipos de orden guardados.",
-    "categorySizesLabel": "Tamaños disponibles",
-    "requiresKitchenLabel": "Requiere cocina",
-    "noSizesAvailable": "No hay tamaños configurados. Agrégalos en la configuración de Tamaños."
+    "hasSizesLabel": "Usa tamaños",
+    "requiresKitchenLabel": "Requiere cocina"
   },
   "Floor": {
     "table": "Mesa",

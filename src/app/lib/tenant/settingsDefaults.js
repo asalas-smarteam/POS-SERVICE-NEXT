@@ -26,9 +26,9 @@ export const TENANT_SETTINGS_DEFAULTS = [
   {
     description: 'Product Category',
     data: [
-      { id: 'bebidas', label: 'Bebida', active: true, sizeIds: [], requiresKitchen: false },
-      { id: 'plato_fuerte', label: 'Plato Fuerte', active: true, sizeIds: [], requiresKitchen: true },
-      { id: 'postres', label: 'Postre', active: true, sizeIds: [], requiresKitchen: true },
+      { id: 'bebidas', label: 'Bebida', active: true, hasSizes: false, requiresKitchen: false },
+      { id: 'plato_fuerte', label: 'Plato Fuerte', active: true, hasSizes: false, requiresKitchen: true },
+      { id: 'postres', label: 'Postre', active: true, hasSizes: false, requiresKitchen: true },
     ],
   },
   {

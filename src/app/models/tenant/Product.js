@@ -17,18 +17,12 @@ const ProductSchema = new mongoose.Schema({
   name: { type: String, required: true },
   price: { type: Number, required: true },
   categoryId: { type: String, default: null },
-  sizeId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'ProductSize',
-    default: null,
-  },
 
-  // Portion/size variant for categories with configurable sizes (Settings >
-  // Product Sizes), e.g. "small"/"medium"/"large". Each size is its own
-  // Product document with its own price and ingredient quantities — this
-  // just tags which size variant this product represents. References a row
-  // id from that tenant setting; unrelated to `sizeId` above (ProductSize
-  // collection, used only for half-and-half pairing).
+  // Size variant for categories with configurable sizes (Settings > Product
+  // Sizes), e.g. "small"/"medium"/"large". Each size is its own Product
+  // document with its own price and ingredient quantities — this just tags
+  // which size variant this product represents. References a row id from
+  // that tenant setting.
   productSizeId: { type: String, default: null },
 
   type: {

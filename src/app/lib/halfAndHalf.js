@@ -13,11 +13,7 @@ export const filterCompatibleHalfProducts = ({ products, currentProduct }) => {
       return false;
     }
 
-    if (!currentProduct?.sizeId || product.sizeId !== currentProduct.sizeId) {
-      return false;
-    }
-
-    // Portion (Settings > Product Sizes), e.g. Pequeña/Mediana/Grande — must
+    // Size (Settings > Product Sizes), e.g. Pequeña/Mediana/Grande — must
     // match exactly, including when neither product has a portion set.
     if ((product?.productSizeId ?? null) !== (currentProduct?.productSizeId ?? null)) {
       return false;

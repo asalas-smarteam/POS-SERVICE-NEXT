@@ -422,11 +422,8 @@
     "unknownProduct": "Product",
     "na": "N/A",
     "duplicateProduct": "Duplicate product",
-    "duplicateProductDescription": "Adjust the name, price, portion and ingredient quantities to create a variant of this product.",
-    "portion": "Portion",
-    "selectPortion": "Select portion",
-    "portionHelp": "This category has configured portions. Each portion is its own product: adjust the price and ingredient quantities as needed.",
-    "completeProductSize": "Select a portion for this category."
+    "duplicateProductDescription": "Adjust the name, price, size and ingredient quantities to create a variant of this product.",
+    "completeProductSize": "Select a size for this product."
   },
   "ActiveOrders": {
     "title": "Active orders",
@@ -642,9 +639,8 @@
     "orderTypeLabelPlaceholder": "Visible label",
     "orderTypesSaveError": "Unable to save order types.",
     "orderTypesSaved": "Order types saved.",
-    "categorySizesLabel": "Available sizes",
-    "requiresKitchenLabel": "Requires kitchen",
-    "noSizesAvailable": "No sizes configured yet. Add them in the Product Sizes setting."
+    "hasSizesLabel": "Uses sizes",
+    "requiresKitchenLabel": "Requires kitchen"
   },
   "Floor": {
     "table": "Table",

@@ -21,7 +21,6 @@ export function SettingsEditorDialog({
   open,
   setting,
   editorData,
-  allSettings = [],
   saving,
   alert,
   onOpenChange,
@@ -32,11 +31,6 @@ export function SettingsEditorDialog({
   const locale = useLocale();
   const settingId = setting?._id;
   const isCategorySetting = setting?.description === "Product Category";
-  const productSizes = useMemo(() => {
-    const sizesSetting = allSettings.find((item) => item?.description === "Product Sizes");
-    const sizes = Array.isArray(sizesSetting?.data) ? sizesSetting.data : [];
-    return sizes.filter((size) => size?.active !== false);
-  }, [allSettings]);
 
   const canSave = useMemo(() => {
     return Boolean(settingId) && editorData !== null;
@@ -70,7 +64,6 @@ export function SettingsEditorDialog({
             <CategorySizesEditor
               data={editorData}
               onChange={onEditorChange}
-              sizes={productSizes}
               t={t}
             />
           ) : (
