@@ -23,6 +23,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar"
 import { ALL_FEATURE_KEYS } from "@/lib/features/featureRegistry";
 
@@ -73,6 +74,7 @@ const getNavItemLabel = (item) => {
 
 export function NavMain({ items }) {
   const t = useTranslations("Navigation");
+  const { isMobile, setOpenMobile } = useSidebar();
   const pathname = usePathname();
   const params = useParams();
   const locale = String(params?.locale ?? "");
@@ -107,6 +109,15 @@ export function NavMain({ items }) {
     "layout-grid": IconLayoutGrid,
   };
 
+  // En movil el menu es un drawer que tapa la pantalla: tras navegar no tiene
+  // sentido dejarlo abierto obligando a cerrarlo a mano. En escritorio la barra
+  // es fija y debe quedarse donde esta.
+  const handleNavigate = () => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  };
+
   return (
     <SidebarGroup>
       <SidebarGroupContent className="flex flex-col gap-2">
@@ -132,7 +143,7 @@ export function NavMain({ items }) {
             return (
               <SidebarMenuItem key={key}>
                 <SidebarMenuButton asChild tooltip={translatedLabel} isActive={isActive}>
-                  <Link href={href}>
+                  <Link href={href} onClick={handleNavigate}>
                     {ResolvedIcon && <ResolvedIcon />}
                     <span>{translatedLabel}</span>
                   </Link>
