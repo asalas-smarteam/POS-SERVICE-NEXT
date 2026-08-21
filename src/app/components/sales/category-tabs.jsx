@@ -27,7 +27,7 @@ export function CategoryTabs({ categories = [], activeCategory, onSelect }) {
               asChild
               variant={isActive ? "default" : "outline"}
               className={cn(
-                "cursor-pointer px-4 py-2 text-sm font-semibold transition",
+                "cursor-pointer select-none px-4 py-2 text-sm font-semibold transition active:scale-95",
                 isActive ? "shadow-sm" : "hover:bg-accent"
               )}
             >

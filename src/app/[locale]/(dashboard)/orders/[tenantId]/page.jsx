@@ -6,6 +6,10 @@ import { CategoryTabs } from "@/components/sales/category-tabs";
 import { SizeTabs } from "@/components/sales/size-tabs";
 import { HalfAndHalfQuickSelectorDialog } from "@/components/sales/half-and-half-quick-selector-dialog";
 import { OrderCheckoutDialog } from "@/components/sales/order-checkout-dialog";
+import {
+  OrderDetailDrawer,
+  OrderDetailTrigger,
+} from "@/components/sales/order-detail-drawer";
 import { OrderSidebar } from "@/components/sales/order-sidebar";
 import { ProductGrid } from "@/components/sales/product-grid";
 import { SalesHeader } from "@/components/sales/sales-header";
@@ -13,6 +17,7 @@ import { TicketPreviewDialog } from "@/components/sales/ticket-preview-dialog";
 import { generateKitchenTicketPdf } from "@/lib/pdf/ticketJsPdf";
 import { filterCompatibleHalfProducts } from "@/lib/halfAndHalf";
 import { calculateOrderItemUnitPrice } from "@/lib/pricing/halfAndHalfPricing";
+import { calculateOrderTotals, countOrderItems } from "@/lib/pricing/orderTotals";
 import { resolvePaymentModeFromStrategy } from "@/lib/tenant/paymentStrategySettings";
 import { resolveRequiresKitchen } from "@/lib/tenant/kitchenRouting";
 import { useFeature } from "@/components/feature-gate";
@@ -121,6 +126,7 @@ export default function OrdersPage() {
   const [selectedTableId, setSelectedTableId] = useState("");
   const [hydratingOrder, setHydratingOrder] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [orderDrawerOpen, setOrderDrawerOpen] = useState(false);
   const isSubmittingRef = useRef(false);
   const editingOrderId = editingOrder?.orderId ? String(editingOrder.orderId) : "";
   const isEditingExistingOrder = Boolean(editingOrderId);
@@ -274,6 +280,10 @@ export default function OrdersPage() {
       items.reduce((total, item) => total + resolveItemUnitPrice(item) * item.quantity, 0),
     [items, resolveItemUnitPrice]
   );
+
+  // Resumen para la barra movil: usa el mismo calculo que el panel de la orden.
+  const orderTotal = useMemo(() => calculateOrderTotals({ subtotal }).total, [subtotal]);
+  const orderItemCount = useMemo(() => countOrderItems(items), [items]);
 
   // Ruteo a cocina del carrito. El servidor lo recalcula al persistir cada
   // linea (orderPricing.calculateAndBuildOrderItem); esto es solo para la
@@ -717,6 +727,9 @@ export default function OrdersPage() {
       return;
     }
     setCheckoutError("");
+    // El checkout abre su propio dialogo: cerrar antes el drawer evita apilar
+    // dos capas modales de Radix.
+    setOrderDrawerOpen(false);
     setCheckoutDialogOpen(true);
   }, [items]);
 
@@ -803,9 +816,50 @@ export default function OrdersPage() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleCheckoutRequest]);
 
+  // El panel de la orden se monta dos veces (fijo en escritorio, drawer en
+  // movil); los props se arman una sola vez para que ambos muestren lo mismo.
+  const orderPanelProps = {
+    items,
+    orderNumber: isEditingExistingOrder ? normalizeOrderNumber(editingOrderId) : "",
+    orderContextLabel:
+      selectedOrderType === "onTable"
+        ? selectedTable?.name ||
+          editingOrder?.tableLabel ||
+          selectedTableId ||
+          t("notAssigned")
+        : customerName || t("walkInCustomer"),
+    subtotal,
+    onIncrease: increaseQty,
+    onDecrease: decreaseQty,
+    onRemove: removeItem,
+    onUpdateNotes: updateNotes,
+    onClear: clearOrder,
+    onCheckout: handleCheckoutRequest,
+    onSave: handleSaveOrder,
+    isEditing: isEditingExistingOrder,
+    canSave: hasUnsavedChanges,
+    isSaving,
+    isSubmitting: isSubmitting || hydratingOrder,
+    isLoading: hydratingOrder,
+    checkoutError,
+    splitEnabled,
+    subAccounts,
+    activeAccountId,
+    onToggleSplit: setSplitEnabled,
+    onAddAccount: addSubAccount,
+    onSelectAccount: setActiveAccount,
+    onRemoveAccount: removeSubAccount,
+  };
+
   return (
     <div className="flex flex-1 flex-col">
       <div className="@container/main flex flex-1 flex-col gap-6 px-4 py-6 lg:px-6">
+        <OrderDetailTrigger
+          itemCount={orderItemCount}
+          total={orderTotal}
+          onOpen={() => setOrderDrawerOpen(true)}
+        />
+
         <SalesHeader
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
@@ -834,41 +888,19 @@ export default function OrdersPage() {
           </section>
 
           <OrderSidebar
-            className="lg:sticky lg:top-6 lg:self-start"
-            items={items}
-            orderNumber={isEditingExistingOrder ? normalizeOrderNumber(editingOrderId) : ""}
-            orderContextLabel={
-              selectedOrderType === "onTable"
-                ? selectedTable?.name ||
-                  editingOrder?.tableLabel ||
-                  selectedTableId ||
-                  t("notAssigned")
-                : customerName || t("walkInCustomer")
-            }
-            subtotal={subtotal}
-            onIncrease={increaseQty}
-            onDecrease={decreaseQty}
-            onRemove={removeItem}
-            onUpdateNotes={updateNotes}
-            onClear={clearOrder}
-            onCheckout={handleCheckoutRequest}
-            onSave={handleSaveOrder}
-            isEditing={isEditingExistingOrder}
-            canSave={hasUnsavedChanges}
-            isSaving={isSaving}
-            isSubmitting={isSubmitting || hydratingOrder}
-            isLoading={hydratingOrder}
-            checkoutError={checkoutError}
-            splitEnabled={splitEnabled}
-            subAccounts={subAccounts}
-            activeAccountId={activeAccountId}
-            onToggleSplit={setSplitEnabled}
-            onAddAccount={addSubAccount}
-            onSelectAccount={setActiveAccount}
-            onRemoveAccount={removeSubAccount}
+            {...orderPanelProps}
+            className="hidden lg:sticky lg:top-6 lg:flex lg:self-start"
           />
         </div>
       </div>
+
+      <OrderDetailDrawer open={orderDrawerOpen} onOpenChange={setOrderDrawerOpen}>
+        <OrderSidebar
+          {...orderPanelProps}
+          fullHeight
+          onClose={() => setOrderDrawerOpen(false)}
+        />
+      </OrderDetailDrawer>
 
       <TicketPreviewDialog
         open={ticketDialogOpen}

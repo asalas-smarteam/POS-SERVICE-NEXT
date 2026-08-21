@@ -11,6 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { OrderItem } from "@/components/sales/order-item";
 import { useCurrencyFormatter } from "@/hooks/useCurrencyFormatter";
+import { calculateOrderTotals, DEFAULT_TAX_RATE } from "@/lib/pricing/orderTotals";
 import { cn } from "@/lib/utils";
 
 const SHARED = "shared";
@@ -20,7 +21,7 @@ export function OrderSidebar({
   orderNumber = "",
   orderContextLabel = "",
   subtotal = 0,
-  taxRate = 0.08,
+  taxRate = DEFAULT_TAX_RATE,
   discount = 0,
   onIncrease,
   onDecrease,
@@ -36,6 +37,10 @@ export function OrderSidebar({
   isLoading = false,
   checkoutError,
   className,
+  // En movil el panel vive dentro de un drawer: ocupa todo el alto disponible y
+  // necesita su propio boton de cierre.
+  fullHeight = false,
+  onClose,
   // Split bill
   splitEnabled = false,
   subAccounts = [],
@@ -47,8 +52,7 @@ export function OrderSidebar({
 }) {
   const t = useTranslations("Orders");
   const { formatCurrency } = useCurrencyFormatter();
-  const tax = subtotal * taxRate;
-  const total = subtotal + tax - discount;
+  const { tax, total } = calculateOrderTotals({ subtotal, taxRate, discount });
 
   const [addingPerson, setAddingPerson] = useState(false);
   const [personName, setPersonName] = useState("");
@@ -92,6 +96,7 @@ export function OrderSidebar({
     <aside
       className={cn(
         "flex w-full flex-col gap-4 rounded-xl border bg-card p-4 shadow-sm lg:w-[380px]",
+        fullHeight && "h-full min-h-0 rounded-none border-0 shadow-none lg:w-full",
         className
       )}
     >
@@ -102,19 +107,32 @@ export function OrderSidebar({
             {orderNumberLabel} {normalizedContextLabel}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => onToggleSplit?.(!splitEnabled)}
-          className={cn(
-            "flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold transition",
-            splitEnabled
-              ? "border-blue-500 bg-blue-500/10 text-blue-600 dark:text-blue-400"
-              : "border-muted text-muted-foreground hover:border-blue-400"
-          )}
-        >
-          <Split className="size-3.5" />
-          {t("splitBill")}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => onToggleSplit?.(!splitEnabled)}
+            className={cn(
+              "flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold transition active:scale-95",
+              splitEnabled
+                ? "border-blue-500 bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                : "border-muted text-muted-foreground hover:border-blue-400"
+            )}
+          >
+            <Split className="size-3.5" />
+            {t("splitBill")}
+          </button>
+          {onClose ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              aria-label={t("close")}
+              onClick={onClose}
+            >
+              <X className="size-4" />
+            </Button>
+          ) : null}
+        </div>
       </div>
 
       {splitEnabled ? (
@@ -187,7 +205,12 @@ export function OrderSidebar({
 
       <Separator />
 
-      <ScrollArea className="h-[300px] pr-2 lg:h-[400px]">
+      <ScrollArea
+        className={cn(
+          "pr-2",
+          fullHeight ? "min-h-0 flex-1" : "h-[300px] lg:h-[400px]"
+        )}
+      >
         <div className="flex flex-col gap-3">
           {visibleItems.length ? (
             visibleItems.map((item) => (
