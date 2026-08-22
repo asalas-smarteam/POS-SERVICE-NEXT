@@ -1,9 +1,11 @@
-import { ALL_FEATURE_KEYS, hasFeature } from "@/lib/features/featureRegistry";
+import { SEDE_ROUTE_FEATURE_KEYS, hasFeature } from "@/lib/features/featureRegistry";
 
 // Que puede ver cada rol. Es un eje ortogonal al plan contratado: el acceso
 // efectivo es la interseccion de este permiso con los features de la cuenta.
 export const ROLE_PERMISSIONS = {
-  admin: ALL_FEATURE_KEYS,
+  // Solo rutas de sede: los roles son un eje de sede, y las features
+  // company-scoped las administra el dueño desde su panel, no un rol.
+  admin: SEDE_ROUTE_FEATURE_KEYS,
   cashier: ["dashboard", "orders", "active-orders", "floor"],
   kitchen: ["dashboard", "kitchen"],
 };

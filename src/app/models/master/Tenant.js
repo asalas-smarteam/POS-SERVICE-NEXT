@@ -47,6 +47,18 @@ const TenantSchema = new mongoose.Schema({
     type: [String],
     default: [],
   },
+  // Slug del menu publico (/m/<slug>). Vive aca y no en la base de la sede
+  // porque resolver el link tiene que pasar antes de saber a que base conectarse.
+  // Sin default: el campo esta ausente hasta que se asigna un slug. La presencia
+  // de un valor nulo seria indexada por unique, reintroduciendo colisiones; sparse
+  // solo omite campos ausentes, no presentes-pero-nulos.
+  menuSlug: {
+    type: String,
+    lowercase: true,
+    trim: true,
+    unique: true,
+    sparse: true,
+  },
   status: {
     type: String,
     default: 'active',

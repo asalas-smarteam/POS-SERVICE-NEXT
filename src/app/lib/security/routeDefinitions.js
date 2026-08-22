@@ -1,9 +1,10 @@
-import { ALL_FEATURE_KEYS } from "@/lib/features/featureRegistry";
+import { SEDE_ROUTE_FEATURE_KEYS } from "@/lib/features/featureRegistry";
 
-// Cada feature del registro es una ruta protegida. Derivado en vez de escrito a
-// mano: la lista manual habia perdido 'floor', que quedaba sin chequeo de rol
-// ni de pertenencia de tenant en el middleware.
-export const PROTECTED_MODULES = ALL_FEATURE_KEYS;
+// Cada ruta de sede del registro es una ruta protegida. Derivado en vez de
+// escrito a mano: la lista manual habia perdido 'floor', que quedaba sin chequeo
+// de rol ni de pertenencia de tenant. Se excluyen las features company-scoped,
+// que no tienen ruta de sede que proteger.
+export const PROTECTED_MODULES = SEDE_ROUTE_FEATURE_KEYS;
 
 export const PUBLIC_ROUTE_PREFIXES = ["/login", "/register"];
 

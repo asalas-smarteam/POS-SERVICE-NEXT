@@ -82,11 +82,38 @@ drop. Al terminar, ya hay menús públicos funcionando y el módulo es vendible.
 
 Incluye el flujo borrador/publicado y la revalidación de la página pública.
 
+Spec: `2026-08-22-online-menu-engine-design.md`
+
 ### 1b. Editor visual
 
 Drag & drop del orden de bloques (`@dnd-kit`, ya instalado), variantes de diseño
 por bloque, tema global (logo, colores, tipografía), vista previa en vivo y
 clonado del menú entre sedes.
+
+#### Referencias de presentación para el bloque de categoría
+
+El dueño del proyecto aportó cuatro menús reales de pizzería. De ellos salen tres
+patrones distintos de presentar tamaños, y el sub-proyecto 1b tiene que soportar
+elegir entre ellos por bloque:
+
+| Patrón | Cómo funciona | ¿Lo soportan los datos actuales? |
+|---|---|---|
+| **Columnas de precio** | Encabezado con los tamaños y cada plato con sus precios alineados en columnas. Un plato puede tener un solo precio. | Sí |
+| **Tabla de precios única** | Tamaños y precios salen una vez para toda la categoría; los platos se listan solo con nombre e ingredientes. | **No garantizado** |
+| **Badges por ítem** | Tarjeta con foto y descripción, más un badge por tamaño con su precio debajo. | Sí |
+
+El patrón de tabla única asume que todos los platos de la categoría cuestan lo
+mismo por tamaño. El modelo no lo garantiza: cada tamaño es un `Product` con su
+precio propio, así que dos pizzas pueden diferir en el precio de "Grande". Antes de
+ofrecer ese patrón hay que decidir qué hacer cuando los precios no son uniformes:
+deshabilitarlo, mostrar un rango, o derivar la tabla y advertir en el editor.
+
+Dos observaciones más de las referencias: las descripciones de ingredientes son
+centrales en tres de los cuatro menús, y dos usan **doble columna** en pantalla
+angosta larga. El renderizador de 1a es de una sola columna con foto de 80 px.
+
+1a implementa un solo comportamiento por defecto: si la categoría tiene `hasSizes`,
+agrupa los productos por nombre y lista una fila por tamaño. Sin selector.
 
 ### 2. Catálogo de bloques ampliado
 
@@ -156,3 +183,19 @@ se registran para que las decisiones sean informadas.
    ni UI de borrado; solo `PUT`. No se agrega en este trabajo, pero condiciona el
    ciclo de vida de las imágenes del sub-proyecto 0 y hay que tenerlo en cuenta
    cuando esa feature se implemente.
+
+8. **El desacople de `ALL_FEATURE_KEYS` quedo a medias.** El sub-proyecto 1a
+   introdujo la marca `companyScoped` y arreglo `PROTECTED_MODULES` y
+   `ROLE_PERMISSIONS.admin`, pero `src/app/components/nav-main.jsx`,
+   `src/store/authStore.js` y `src/app/[locale]/(dashboard)/layout.jsx` siguen
+   tratando toda feature key como candidata a ruta de sede. Hoy es inocuo porque
+   `NAV_BY_ROLE` en `lib/auth/roles.js` se escribe a mano y no tiene entrada
+   `/online-menu`. La proxima feature company-scoped, o cualquier refactor de como
+   se arma el nav, reproduce la clase de bug que la marca existe para eliminar.
+
+9. **Subir `FEATURE_PRICES_SEED_VERSION` pisa los precios editados a mano.** El
+   contador es compartido por todas las filas del seed. Agregar una feature NO
+   requiere subirlo: `$setOnInsert` siembra la fila nueva con la version vigente y
+   el `$set` masivo solo alcanza filas con version menor. Subirlo es el mecanismo
+   para propagar precios cambiados a todos, y hay que usarlo a proposito.
+

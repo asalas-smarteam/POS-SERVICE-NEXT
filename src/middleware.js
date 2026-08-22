@@ -111,5 +111,11 @@ export async function middleware(request) {
 }
 
 export const config = {
-  matcher: ['/((?!api|_next|favicon.ico|.*\\..*).*)'],
+  // `m/` queda fuera a proposito: es la ruta del menu publico. No alcanza con
+  // marcarla publica en routeDefinitions, porque intlMiddleware corre en la
+  // primera linea del middleware y la redirigiria a /es/m/<slug>, que no sirve
+  // para imprimir en un QR. Lleva la barra final adrede: sin ella, "m" excluiria
+  // cualquier ruta cuyo primer segmento empiece con esa letra (p. ej. /mesas,
+  // /mi-cuenta), no solo /m/<slug>.
+  matcher: ['/((?!api|m/|_next|favicon.ico|.*\\..*).*)'],
 };

@@ -35,7 +35,11 @@ const ProductSchema = new mongoose.Schema({
   price: { type: Number, required: true },
   description: { type: String, default: '', trim: true, maxlength: 300 },
   image: { type: ProductImageSchema, default: null },
-  categoryId: { type: String, default: null },
+  // Indexado: el menu publico filtra con `{ categoryId: { $in: [...] } }` y
+  // ordena por nombre para trafico anonimo (sin sesion, sin rate limiting).
+  // Sin indice, cada cache miss es un collection scan mas un sort en memoria.
+  // Tambien acelera el listado de productos del POS, que filtra por lo mismo.
+  categoryId: { type: String, default: null, index: true },
 
   // Size variant for categories with configurable sizes (Settings > Product
   // Sizes), e.g. "small"/"medium"/"large". Each size is its own Product
