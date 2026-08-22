@@ -67,9 +67,12 @@ export const useProductsStore = create((set, get) => ({
       if (!response.ok) {
         throw new Error("No se pudo crear el producto.");
       }
+      // El diálogo necesita el _id recién creado para poder subir la foto: al
+      // crear todavía no existe id al que asociarla.
+      const created = await response.json().catch(() => null);
       await get().fetchProducts();
       set({ actionLoading: false });
-      return { success: true };
+      return { success: true, product: created };
     } catch (error) {
       set({
         error: error?.message || "Error al crear producto.",
@@ -99,6 +102,54 @@ export const useProductsStore = create((set, get) => ({
         error: error?.message || "Error al actualizar producto.",
         actionLoading: false,
       });
+      return { success: false, message: error?.message };
+    }
+  },
+  uploadProductImage: async (id, file) => {
+    set({ actionLoading: true });
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch(`/api/products/${id}/image`, {
+        method: "POST",
+        headers: { ...getTenantHeaders() },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        // Un 413 puede venir de la plataforma antes de llegar al handler, y en
+        // ese caso no hay cuerpo JSON que leer.
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body?.error || `Error ${response.status}`);
+      }
+
+      await get().fetchProducts();
+      set({ actionLoading: false });
+      return { success: true };
+    } catch (error) {
+      set({ actionLoading: false });
+      return { success: false, message: error?.message };
+    }
+  },
+  deleteProductImage: async (id) => {
+    set({ actionLoading: true });
+    try {
+      const response = await fetch(`/api/products/${id}/image`, {
+        method: "DELETE",
+        headers: { ...getTenantHeaders() },
+      });
+
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body?.error || `Error ${response.status}`);
+      }
+
+      await get().fetchProducts();
+      set({ actionLoading: false });
+      return { success: true };
+    } catch (error) {
+      set({ actionLoading: false });
       return { success: false, message: error?.message };
     }
   },
