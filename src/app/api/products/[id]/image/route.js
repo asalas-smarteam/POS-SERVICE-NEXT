@@ -6,12 +6,24 @@ import { getStorage } from '@/lib/storage';
 import { buildProductImageKey } from '@/lib/storage/storageKeys';
 import { ImageValidationError, validateImageBuffer } from '@/lib/storage/imageValidation';
 
+// Mismo patron que buildProductImageKey usa para productId: valida la forma
+// del id ANTES de tocar la base, asi un id invalido nunca llega a disparar un
+// CastError de mongoose (que devolveria 500 y nombraria el modelo en el mensaje).
+const OBJECT_ID_PATTERN = /^[0-9a-f]{24}$/i;
+
 const errorStatus = (error) => {
   if (error instanceof ImageValidationError) {
     return error.status;
   }
   return error?.status ?? 500;
 };
+
+// Los mensajes de error interno (fs, driver de storage, etc.) pueden traer
+// rutas absolutas del filesystem o detalles de configuracion. Solo se
+// enmascaran cuando el status es 500: los 400/403/404/413 son deliberados y
+// utiles para el cliente.
+const errorMessage = (status, error) =>
+  status === 500 ? 'Failed to process product image' : error.message;
 
 // Un borrado fallido deja un huerfano; abortar la operacion dejaria al producto
 // apuntando a un archivo que ya no queremos. El huerfano es el menor de los dos
@@ -36,6 +48,10 @@ const previousImageOf = (product) =>
 export async function POST(req, { params }) {
   try {
     const { id } = await params;
+    if (!OBJECT_ID_PATTERN.test(String(id ?? ''))) {
+      return NextResponse.json({ error: 'Invalid product id.' }, { status: 400 });
+    }
+
     const { tenant } = await requireModuleAccess(req, 'products');
     const conn = await getTenantConnection(tenant.dbName);
     const Product = ProductModel(conn);
@@ -45,7 +61,15 @@ export async function POST(req, { params }) {
       return NextResponse.json({ error: 'Product not found.' }, { status: 404 });
     }
 
-    const formData = await req.formData();
+    // req.formData() rechaza (TypeError, sin .status) cualquier body que no sea
+    // multipart: JSON, vacio, etc. Es un error del cliente, no del servidor.
+    let formData;
+    try {
+      formData = await req.formData();
+    } catch {
+      return NextResponse.json({ error: 'Request body must be multipart/form-data.' }, { status: 400 });
+    }
+
     const file = formData.get('file');
     if (!file || typeof file.arrayBuffer !== 'function') {
       return NextResponse.json({ error: 'file is required.' }, { status: 400 });
@@ -74,13 +98,18 @@ export async function POST(req, { params }) {
 
     return NextResponse.json(updated);
   } catch (error) {
-    return NextResponse.json({ error: error.message }, { status: errorStatus(error) });
+    const status = errorStatus(error);
+    return NextResponse.json({ error: errorMessage(status, error) }, { status });
   }
 }
 
 export async function DELETE(req, { params }) {
   try {
     const { id } = await params;
+    if (!OBJECT_ID_PATTERN.test(String(id ?? ''))) {
+      return NextResponse.json({ error: 'Invalid product id.' }, { status: 400 });
+    }
+
     const { tenant } = await requireModuleAccess(req, 'products');
     const conn = await getTenantConnection(tenant.dbName);
     const Product = ProductModel(conn);
@@ -107,6 +136,7 @@ export async function DELETE(req, { params }) {
 
     return NextResponse.json(updated);
   } catch (error) {
-    return NextResponse.json({ error: error.message }, { status: errorStatus(error) });
+    const status = errorStatus(error);
+    return NextResponse.json({ error: errorMessage(status, error) }, { status });
   }
 }
