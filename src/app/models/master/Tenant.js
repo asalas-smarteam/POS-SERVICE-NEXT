@@ -47,6 +47,18 @@ const TenantSchema = new mongoose.Schema({
     type: [String],
     default: [],
   },
+  // Slug del menu publico (/m/<slug>). Vive aca y no en la base de la sede
+  // porque resolver el link tiene que pasar antes de saber a que base conectarse.
+  // `sparse` es necesario: sin el, todas las sedes sin menu colisionarian en null
+  // contra el indice unico.
+  menuSlug: {
+    type: String,
+    default: null,
+    lowercase: true,
+    trim: true,
+    unique: true,
+    sparse: true,
+  },
   status: {
     type: String,
     default: 'active',
