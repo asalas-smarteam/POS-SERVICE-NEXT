@@ -13,9 +13,28 @@ const ProductIngredientSchema = new mongoose.Schema({
   },
 });
 
+// `pathname` es lo que permite borrar el archivo del almacenamiento. Guardando
+// solo la url, cada reemplazo de foto dejaria un huerfano ocupando espacio para
+// siempre. Las dimensiones se guardan para que next/image pueda reservar el
+// aspecto y el layout no salte al cargar.
+const ProductImageSchema = new mongoose.Schema(
+  {
+    url: { type: String, required: true },
+    pathname: { type: String, required: true },
+    width: { type: Number, default: null },
+    height: { type: Number, default: null },
+  },
+  // `_id: false` es una opcion del schema, no un path. Puesto dentro del primer
+  // objeto, mongoose lo interpretaria como un campo llamado "_id" de tipo
+  // booleano y el subdocumento igual tendria su propio ObjectId.
+  { _id: false },
+);
+
 const ProductSchema = new mongoose.Schema({
   name: { type: String, required: true },
   price: { type: Number, required: true },
+  description: { type: String, default: '', trim: true, maxlength: 300 },
+  image: { type: ProductImageSchema, default: null },
   categoryId: { type: String, default: null },
 
   // Size variant for categories with configurable sizes (Settings > Product
