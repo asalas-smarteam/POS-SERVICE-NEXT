@@ -101,7 +101,20 @@ export async function generateMetadata({ params }) {
 
     const conn = await getTenantConnection(tenant.dbName);
     const menu = await readMenuDocument(conn);
-    const heroBlock = menu.published?.blocks?.find((block) => block.type === "hero");
+
+    // Mismo gate que el componente de la pagina, y por la misma razon: un
+    // menu nunca publicado tiene que devolver el mismo titulo generico que un
+    // slug que no existe. Si aca se usara el nombre de la sede o el hero de
+    // un draft sin publicar, el <title> distinguiria "esta sede existe, esta
+    // activa y paga el modulo, pero nunca publico" de "este slug no es de
+    // nadie" — exactamente el oraculo que notFound() en el componente evita
+    // fusionando las cuatro causas (slug desconocido, sede inactiva, feature
+    // no contratado, nunca publicado) en una sola respuesta indistinguible.
+    if (!menu.published?.blocks?.length) {
+      return { title: FALLBACK_MENU_TITLE };
+    }
+
+    const heroBlock = menu.published.blocks.find((block) => block.type === "hero");
     const heroData = heroBlock?.data ?? {};
 
     const title = heroData.title || tenant.name || FALLBACK_MENU_TITLE;
