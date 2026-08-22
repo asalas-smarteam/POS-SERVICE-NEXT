@@ -3,7 +3,13 @@ import { SELECTABLE_FEATURE_KEYS } from '@/lib/features/featureRegistry';
 
 // Misma semantica que PLANS_SEED_VERSION: subirla propaga los defaults, no
 // subirla deja sobrevivir los precios editados a mano.
-export const FEATURE_PRICES_SEED_VERSION = 2;
+//
+// Agregar una fila nueva (como 'online-menu') no requiere subir la version:
+// $setOnInsert la siembra con la version actual sin tocar las demas filas.
+// Subirla es unicamente para cuando se quiere propagar a proposito un precio
+// cambiado a TODAS las cuentas, y pisaria los precios editados a mano de los
+// modulos existentes. No subir por reflejo al agregar un feature.
+export const FEATURE_PRICES_SEED_VERSION = 1;
 
 // Precios de arranque, pensados para que armar todo a la carta salga mas caro
 // que contratar el plan cerrado equivalente (custom completo 66 vs pro 55).
