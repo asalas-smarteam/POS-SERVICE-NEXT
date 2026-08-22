@@ -188,8 +188,11 @@ verse en el menú.
   texto; no hay imagen de relleno.
 - **Categoría ausente o inactiva**: su bloque se omite al renderizar. Desactivar
   una categoría en ajustes la saca del menú sin tener que editar el menú.
-- **Variantes de tamaño**: los productos se listan planos. Un plato con variantes
-  aparece como varios ítems, cada uno con su etiqueta de tamaño si la tiene.
+- **Variantes de tamaño**: los productos se listan planos, sin etiqueta de tamaño.
+  Un plato con variantes aparece como varios ítems, distinguidos por su nombre.
+  Renderizar la etiqueta exigiría leer el ajuste de tamaños de producto, y el repo
+  viene de un refactor que quitó esa funcionalidad, así que el campo quedaría
+  colgado.
 - **Bloque con `visible: false`**: no se renderiza ni se consultan sus productos.
 
 ## El módulo en el registro de features
@@ -243,10 +246,14 @@ siempre contra el master, nunca contra un dato del cliente.
 ```
 GET   /api/company/sedes/[tenantId]/menu     lee slug + draft + published
 PUT   /api/company/sedes/[tenantId]/menu     guarda slug + draft
-POST  /api/company/sedes/[tenantId]/menu/publish   copia draft a published y revalida
+POST  /api/company/sedes/[tenantId]/menu/publish      copia draft a published y revalida
+GET   /api/company/sedes/[tenantId]/menu/categories   categorias activas de la sede
 ```
 
-Los tres validan que la cuenta tenga el feature `online-menu`, con la misma
+El endpoint de categorias existe porque el editor vive en el panel del dueño, que no
+tiene sesion de sede y por lo tanto no puede reusar `/api/settings`.
+
+Los cuatro validan que la cuenta tenga el feature `online-menu`, con la misma
 lógica que usa la página pública. Un dueño que no compró el módulo no puede
 editarlo.
 
