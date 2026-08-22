@@ -1,5 +1,5 @@
 import { TenantSettingModel } from '@/models/tenant/TenantSetting';
-import { createEmptyMenu, normalizeMenuDocument } from '@/lib/menu/menuSchema';
+import { normalizeMenuDocument } from '@/lib/menu/menuSchema';
 
 export const MENU_SETTING_DESCRIPTION = 'Online Menu';
 
@@ -11,7 +11,7 @@ export async function readMenuDocument(conn) {
     description: MENU_SETTING_DESCRIPTION,
   }).lean();
 
-  return row?.data ? normalizeMenuDocument(row.data) : createEmptyMenu();
+  return normalizeMenuDocument(row?.data);
 }
 
 export async function writeMenuDocument(conn, document) {
