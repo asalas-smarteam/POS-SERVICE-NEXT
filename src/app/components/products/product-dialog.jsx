@@ -22,12 +22,15 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { IngredientSearchSelect } from "@/components/ingredients/ingredient-search-select";
 import { useFeature } from "@/components/feature-gate";
+import { ProductImageField } from "@/components/products/product-image-field";
+import { compressImage } from "@/lib/images/compressImage";
 import { useProductsStore } from "../../../store/productsStore";
 import { useSettingsStore } from "../../../store/settingsStore";
 
 const emptyForm = {
   name: "",
   price: "",
+  description: "",
   type: "SIMPLE",
   ingredients: [],
   categoryId: "",
@@ -56,12 +59,16 @@ export function ProductDialog({ open, onOpenChange, product, duplicateFrom, onSu
     actionLoading,
     createProduct,
     updateProduct,
+    uploadProductImage,
+    deleteProductImage,
   } = useProductsStore((state) => ({
     ingredients: state.ingredients,
     fetchIngredients: state.fetchIngredients,
     actionLoading: state.actionLoading,
     createProduct: state.createProduct,
     updateProduct: state.updateProduct,
+    uploadProductImage: state.uploadProductImage,
+    deleteProductImage: state.deleteProductImage,
   }));
 
   const { categories, productSizes, settingsLoading, fetchSettings } = useSettingsStore(
@@ -77,6 +84,13 @@ export function ProductDialog({ open, onOpenChange, product, duplicateFrom, onSu
   const [alert, setAlert] = useState(null);
   const [selectValue, setSelectValue] = useState("");
   const [ingredientSearch, setIngredientSearch] = useState("");
+  const [imageFile, setImageFile] = useState(null);
+  const [removeExistingImage, setRemoveExistingImage] = useState(false);
+  // El guardado encadena create/update con la subida o borrado de la foto.
+  // `actionLoading` del store se apaga entre esas dos llamadas, así que el
+  // botón usa esta bandera propia para seguir deshabilitado durante toda la
+  // secuencia y evitar un doble envío.
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isEditing = Boolean(product?._id);
   const isDuplicating = !isEditing && Boolean(duplicateFrom);
@@ -94,6 +108,8 @@ export function ProductDialog({ open, onOpenChange, product, duplicateFrom, onSu
       setAlert(null);
       setSelectValue("");
       setIngredientSearch("");
+      setImageFile(null);
+      setRemoveExistingImage(false);
       return;
     }
 
@@ -103,6 +119,7 @@ export function ProductDialog({ open, onOpenChange, product, duplicateFrom, onSu
       setForm({
         name: source?.name ?? "",
         price: source?.price ?? "",
+        description: source?.description ?? "",
         type: source?.type ?? "SIMPLE",
         ingredients: normalizeIngredients(source?.ingredients ?? []),
         categoryId: source?.categoryId ?? "",
@@ -224,19 +241,68 @@ export function ProductDialog({ open, onOpenChange, product, duplicateFrom, onSu
       return;
     }
 
-    const result = isEditing
-      ? await updateProduct(product._id, payload)
-      : await createProduct(payload);
+    payload.description = form.description.trim();
 
-    if (result?.success) {
+    // Bandera propia para toda la secuencia de guardado: `actionLoading` del
+    // store se apaga entre el create/update y la subida/borrado de la foto,
+    // y dejar el botón habilitado en ese hueco permite un doble envío.
+    setIsSubmitting(true);
+    try {
+      const result = isEditing
+        ? await updateProduct(product._id, payload)
+        : await createProduct(payload);
+
+      if (!result?.success) {
+        setAlert({
+          type: "error",
+          message: result?.message || t("saveError"),
+        });
+        return;
+      }
+
+      // El producto ya está guardado. Si falla la imagen no se reporta como
+      // error de guardado, porque no lo es: se avisa aparte y el diálogo
+      // queda abierto para poder reintentar.
+      const productId = isEditing ? product._id : result.product?._id;
+      let imageError = null;
+      let imageErrorStatus = null;
+
+      if (productId && imageFile) {
+        const compressed = await compressImage(imageFile);
+        const upload = await uploadProductImage(productId, compressed);
+        if (!upload.success) {
+          imageError = upload.message;
+          imageErrorStatus = upload.status;
+        }
+      } else if (productId && removeExistingImage && product?.image?.url) {
+        const removal = await deleteProductImage(productId);
+        if (!removal.success) {
+          imageError = removal.message;
+          imageErrorStatus = removal.status;
+        }
+      }
+
+      if (imageError) {
+        setImageFile(null);
+        // Los mensajes de la API vienen en inglés y no siempre son útiles
+        // para el usuario final; se mapean los casos conocidos y se deja el
+        // texto original solo para el caso sin mapear, donde ayuda a depurar.
+        const message =
+          imageErrorStatus === 413
+            ? t("photoTooLarge")
+            : imageErrorStatus === 400
+              ? t("photoUnsupportedFormat")
+              : t("photoUploadError", { reason: imageError });
+        setAlert({ type: "error", message });
+        onSuccess?.();
+        return;
+      }
+
       setAlert({ type: "success", message: t("savedSuccessfully") });
       onSuccess?.();
       onOpenChange?.(false);
-    } else {
-      setAlert({
-        type: "error",
-        message: result?.message || t("saveError"),
-      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -294,6 +360,41 @@ export function ProductDialog({ open, onOpenChange, product, duplicateFrom, onSu
               />
             </div>
           </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="product-description">{t("description")}</Label>
+            <textarea
+              id="product-description"
+              rows={3}
+              maxLength={300}
+              className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:opacity-50"
+              value={form.description}
+              onChange={(event) =>
+                setForm((current) => ({
+                  ...current,
+                  description: event.target.value,
+                }))
+              }
+              placeholder={t("descriptionPlaceholder")}
+            />
+            <p className="text-right text-xs text-muted-foreground">
+              {t("descriptionRemaining", { count: 300 - form.description.length })}
+            </p>
+          </div>
+
+          <ProductImageField
+            currentUrl={removeExistingImage ? null : product?.image?.url ?? null}
+            file={imageFile}
+            disabled={actionLoading}
+            onSelect={(file) => {
+              setImageFile(file);
+              setRemoveExistingImage(false);
+            }}
+            onRemove={() => {
+              setImageFile(null);
+              setRemoveExistingImage(true);
+            }}
+          />
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
@@ -515,12 +616,12 @@ export function ProductDialog({ open, onOpenChange, product, duplicateFrom, onSu
               type="button"
               variant="outline"
               onClick={() => onOpenChange?.(false)}
-              disabled={actionLoading}
+              disabled={isSubmitting}
             >
               {t("cancel")}
             </Button>
-            <Button type="submit" disabled={actionLoading}>
-              {actionLoading ? (
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? (
                 <span className="flex items-center gap-2">
                   <AppSpinner size={16} inline />
                   {t("saving")}

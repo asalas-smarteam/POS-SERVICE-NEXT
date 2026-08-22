@@ -121,7 +121,11 @@ export const useProductsStore = create((set, get) => ({
         // Un 413 puede venir de la plataforma antes de llegar al handler, y en
         // ese caso no hay cuerpo JSON que leer.
         const body = await response.json().catch(() => ({}));
-        throw new Error(body?.error || `Error ${response.status}`);
+        const error = new Error(body?.error || `Error ${response.status}`);
+        // El diálogo necesita el status para mostrar un mensaje localizado en
+        // vez del texto en inglés que devuelve la API.
+        error.status = response.status;
+        throw error;
       }
 
       await get().fetchProducts();
@@ -129,7 +133,7 @@ export const useProductsStore = create((set, get) => ({
       return { success: true };
     } catch (error) {
       set({ actionLoading: false });
-      return { success: false, message: error?.message };
+      return { success: false, message: error?.message, status: error?.status };
     }
   },
   deleteProductImage: async (id) => {
@@ -142,7 +146,9 @@ export const useProductsStore = create((set, get) => ({
 
       if (!response.ok) {
         const body = await response.json().catch(() => ({}));
-        throw new Error(body?.error || `Error ${response.status}`);
+        const error = new Error(body?.error || `Error ${response.status}`);
+        error.status = response.status;
+        throw error;
       }
 
       await get().fetchProducts();
@@ -150,7 +156,7 @@ export const useProductsStore = create((set, get) => ({
       return { success: true };
     } catch (error) {
       set({ actionLoading: false });
-      return { success: false, message: error?.message };
+      return { success: false, message: error?.message, status: error?.status };
     }
   },
 }));
