@@ -82,6 +82,8 @@ drop. Al terminar, ya hay menús públicos funcionando y el módulo es vendible.
 
 Incluye el flujo borrador/publicado y la revalidación de la página pública.
 
+Spec: `2026-08-22-online-menu-engine-design.md`
+
 ### 1b. Editor visual
 
 Drag & drop del orden de bloques (`@dnd-kit`, ya instalado), variantes de diseño
