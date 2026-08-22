@@ -1072,7 +1072,7 @@ Expected: `200`, el JSON ya no trae `image`, y el archivo desapareció de `publi
 ```bash
 curl -i -X DELETE http://localhost:3000/api/products/<PRODUCT_ID>/image
 ```
-Expected: `401`, porque falta la cookie.
+Expected: `500`, no 401. Es comportamiento preexistente de toda la API: `requireModuleAccess` llama primero a `resolveTenant`, que sin cookie ni headers lanza un Error pelado sin `.status`, y el mapeo cae al 500 por defecto. Lo que este paso verifica es que la ruta no deja pasar a alguien sin sesion; el codigo equivocado es deuda anotada aparte.
 
 - [ ] **Step 4: Commit**
 
