@@ -25,6 +25,15 @@ export const localDriver = {
       return;
     }
 
-    await unlink(toFilePath(image.pathname));
+    try {
+      await unlink(toFilePath(image.pathname));
+    } catch (error) {
+      // ENOENT ("No such file") no es un error: el objetivo es que el archivo no exista,
+      // y ya no existe. Cualquier otro error (permisos, archivo abierto, etc) se propaga
+      // para que el caller vea problemas reales.
+      if (error.code !== "ENOENT") {
+        throw error;
+      }
+    }
   },
 };
