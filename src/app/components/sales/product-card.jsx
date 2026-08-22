@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Check, Coffee } from "lucide-react";
+import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -55,7 +56,17 @@ export function ProductCard({ product, onSelect, onLongSelect }) {
     >
       <CardContent className="flex flex-col gap-3 p-4">
         <div className="relative flex h-28 items-center justify-center rounded-xl bg-muted/60">
-          <Coffee className="size-10 text-muted-foreground" />
+          {product?.image?.url ? (
+            <Image
+              src={product.image.url}
+              alt={product?.name ?? ""}
+              fill
+              sizes="(max-width: 640px) 50vw, 20vw"
+              className="rounded-xl object-cover"
+            />
+          ) : (
+            <Coffee className="size-10 text-muted-foreground" />
+          )}
           <span
             aria-hidden="true"
             className={cn(

@@ -1,6 +1,7 @@
 "use client";
 
 import { Copy, Package, Pencil } from "lucide-react";
+import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +23,17 @@ export function ProductCard({ product, onEdit, onDuplicate, categoryLabel, sizeL
 
   return (
     <Card className="h-full">
+      {product?.image?.url ? (
+        <div className="relative -mt-6 mb-0 aspect-[4/3] w-full overflow-hidden rounded-t-xl border-b">
+          <Image
+            src={product.image.url}
+            alt={product?.name ?? ""}
+            fill
+            sizes="(max-width: 768px) 100vw, 33vw"
+            className="object-cover"
+          />
+        </div>
+      ) : null}
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
           <Package className="size-4 text-muted-foreground" />
