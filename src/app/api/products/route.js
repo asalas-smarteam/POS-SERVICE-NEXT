@@ -4,6 +4,7 @@ import { authorizeRequest } from '@/lib/security/authorizeRequest';
 import { getTenantConnection } from '@/lib/db/connections';
 import { ProductModel } from '@/models/tenant/Product';
 import { IngredientModel } from '@/models/tenant/Ingredient';
+import { pickProductFields } from '@/lib/products/productFields';
 
 export async function POST(req) {
   try {
@@ -14,13 +15,16 @@ export async function POST(req) {
     const Product = ProductModel(conn);
 
     const body = await req.json();
-    if (body?.categoryId !== undefined && body?.categoryId !== null && typeof body.categoryId !== "string") {
+    const fields = pickProductFields(body);
+
+    if (fields.categoryId !== undefined && fields.categoryId !== null && typeof fields.categoryId !== "string") {
       return NextResponse.json({ error: "categoryId debe ser un string." }, { status: 400 });
     }
-    if (typeof body?.categoryId === "string" && body.categoryId.trim() === "") {
-      body.categoryId = null;
+    if (typeof fields.categoryId === "string" && fields.categoryId.trim() === "") {
+      fields.categoryId = null;
     }
-    const product = await Product.create(body);
+
+    const product = await Product.create(fields);
 
     return NextResponse.json(product);
   } catch (e) {
