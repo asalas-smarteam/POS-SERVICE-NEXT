@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { Building2, ChevronRight, Loader2, Plus, Store, Users } from "lucide-react";
 import { getAssignableRoles } from "@/lib/auth/roles";
@@ -164,8 +165,9 @@ function SubscriptionPanel({ onFeatureActivated }) {
   );
 }
 
-function SedeCard({ sede, locale, onEnter }) {
+function SedeCard({ sede, locale, companyId, onEnter }) {
   const t = useTranslations("AdminPanel");
+  const tMenu = useTranslations("OnlineMenu");
   const [expanded, setExpanded] = useState(false);
   const [users, setUsers] = useState([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
@@ -242,6 +244,14 @@ function SedeCard({ sede, locale, onEnter }) {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {sede.features?.includes("online-menu") ? (
+            <Link
+              href={`/${locale}/admin/${companyId}/menu/${sede.tenantId}`}
+              className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium transition hover:border-blue-500 dark:border-slate-700"
+            >
+              {tMenu("title")}
+            </Link>
+          ) : null}
           <button
             type="button"
             onClick={toggle}
@@ -470,7 +480,7 @@ export default function AdminPanelPage() {
         ) : (
           <div className="space-y-4">
             {sedes.map((sede) => (
-              <SedeCard key={sede.tenantId} sede={sede} locale={locale} onEnter={enterSede} />
+              <SedeCard key={sede.tenantId} sede={sede} locale={locale} companyId={companyId} onEnter={enterSede} />
             ))}
           </div>
         )}
