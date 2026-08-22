@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# uploads del driver de almacenamiento local (desarrollo)
+/public/uploads
