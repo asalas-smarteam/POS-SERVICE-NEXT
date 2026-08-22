@@ -15,8 +15,14 @@ export async function GET(req, { params }) {
     const categories = await getProductCategories(conn);
 
     return NextResponse.json({
+      // Estricto (=== true) y no "!== false": es la misma comparacion que usa
+      // renderableBlocks en menuSchema.js para decidir si la pagina publica
+      // muestra la categoria. Si el editor ofreciera aca una categoria que el
+      // renderer despues descarta, el dueno la marcaria, el PUT la guardaria,
+      // el publish diria que todo salio bien, y la seccion nunca aparece: sin
+      // error en ninguna capa. No "relajar" esto de vuelta a "!== false".
       categories: categories
-        .filter((category) => category?.id && category.active !== false)
+        .filter((category) => category?.id && category.active === true)
         .map((category) => ({ id: String(category.id), label: category.label ?? String(category.id) })),
     });
   } catch (error) {

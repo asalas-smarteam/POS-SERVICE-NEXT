@@ -130,8 +130,20 @@ describe("normalizeMenuDocument", () => {
     expect(doc.publishedAt).toBe("2026-08-22T10:00:00.000Z");
   });
 
-  it("siempre sella la version actual", () => {
-    expect(normalizeMenuDocument({ version: 99 }).version).toBe(MENU_SCHEMA_VERSION);
+  it("conserva la version 1 guardada", () => {
+    expect(normalizeMenuDocument({ version: 1 }).version).toBe(1);
+  });
+
+  it("conserva una version desconocida pero valida (entero positivo)", () => {
+    expect(normalizeMenuDocument({ version: 99 }).version).toBe(99);
+  });
+
+  it("usa la version actual cuando falta o es basura", () => {
+    expect(normalizeMenuDocument({}).version).toBe(MENU_SCHEMA_VERSION);
+    expect(normalizeMenuDocument({ version: 0 }).version).toBe(MENU_SCHEMA_VERSION);
+    expect(normalizeMenuDocument({ version: -1 }).version).toBe(MENU_SCHEMA_VERSION);
+    expect(normalizeMenuDocument({ version: "1" }).version).toBe(MENU_SCHEMA_VERSION);
+    expect(normalizeMenuDocument({ version: null }).version).toBe(MENU_SCHEMA_VERSION);
   });
 });
 
@@ -146,6 +158,37 @@ describe("canPublish", () => {
 
   it("acepta un borrador con al menos un bloque valido", () => {
     expect(canPublish({ draft: { blocks: [heroRaw] } })).toBeNull();
+  });
+
+  it("rechaza un hero y un footer vacios: es lo que buildDraft manda siempre en el editor", () => {
+    const draft = {
+      blocks: [
+        { type: "hero", data: { title: "", subtitle: "" } },
+        { type: "footer", data: { text: "", phone: "", address: "" } },
+      ],
+    };
+    expect(canPublish({ draft })).toBe("empty_draft");
+  });
+
+  it("acepta un hero y un footer vacios si hay ademas un bloque de categoria", () => {
+    const draft = {
+      blocks: [
+        { type: "hero", data: { title: "", subtitle: "" } },
+        catRaw("bebidas"),
+        { type: "footer", data: { text: "", phone: "", address: "" } },
+      ],
+    };
+    expect(canPublish({ draft })).toBeNull();
+  });
+
+  it("acepta un borrador con unicamente un hero que tiene titulo", () => {
+    const draft = { blocks: [{ type: "hero", data: { title: "Pizzeria", subtitle: "" } }] };
+    expect(canPublish({ draft })).toBeNull();
+  });
+
+  it("acepta un borrador con unicamente un footer que tiene telefono", () => {
+    const draft = { blocks: [{ type: "footer", data: { text: "", phone: "22334455", address: "" } }] };
+    expect(canPublish({ draft })).toBeNull();
   });
 });
 

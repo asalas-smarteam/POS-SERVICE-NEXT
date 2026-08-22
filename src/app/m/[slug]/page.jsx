@@ -80,6 +80,40 @@ function groupProductsBySize(categoryProducts, sizeOrderMap) {
   });
 }
 
+// Titulo neutro para cuando el slug no resuelve a nada publicable: no hay
+// locale en esta ruta (vive fuera de [locale]) asi que no vale la pena tirar
+// de next-intl para una sola palabra generica.
+const FALLBACK_MENU_TITLE = "Menú";
+
+// generateMetadata corre antes (y por separado) del componente de la pagina,
+// asi que repite su propia resolucion de tenant + menu. Nunca puede tirar: si
+// lo hiciera, un slug desconocido mostraria una pantalla de error 500 en vez
+// del 404 prolijo que el componente de abajo ya arma con notFound().
+export async function generateMetadata({ params }) {
+  try {
+    const { slug } = await params;
+
+    const masterConn = await connectMasterDB();
+    const tenant = await findTenantByMenuSlug(masterConn, slug);
+    if (!tenant || !hasFeature(tenant.features, "online-menu")) {
+      return { title: FALLBACK_MENU_TITLE };
+    }
+
+    const conn = await getTenantConnection(tenant.dbName);
+    const menu = await readMenuDocument(conn);
+    const heroBlock = menu.published?.blocks?.find((block) => block.type === "hero");
+    const heroData = heroBlock?.data ?? {};
+
+    const title = heroData.title || tenant.name || FALLBACK_MENU_TITLE;
+    if (heroData.subtitle) {
+      return { title, description: heroData.subtitle };
+    }
+    return { title };
+  } catch {
+    return { title: FALLBACK_MENU_TITLE };
+  }
+}
+
 export default async function PublicMenuPage({ params }) {
   const { slug } = await params;
 

@@ -1,11 +1,18 @@
 import { TenantModel } from '@/models/master/Tenant';
-import { MENU_SLUG_ERRORS, normalizeMenuSlug } from '@/lib/menu/menuSlug';
+import { MENU_SLUG_ERRORS, normalizeMenuSlug, validateMenuSlug } from '@/lib/menu/menuSlug';
 
 // Resolucion del link publico. Solo sedes activas: una sede dada de baja no
 // debe seguir sirviendo su menu.
+//
+// Se valida el formato antes de consultar: assignMenuSlug nunca guarda un
+// slug que no pase validateMenuSlug, asi que uno mal formado (largo fuera de
+// rango, mayusculas, caracteres invalidos) no puede coincidir con ningun
+// documento. Esta es la unica ruta sin sesion de toda la app y no hay rate
+// limiting en ningun lado: un slug que no puede matchear no deberia costar
+// un viaje a la base solo para confirmarlo.
 export async function findTenantByMenuSlug(masterConn, slug) {
   const normalized = normalizeMenuSlug(slug);
-  if (!normalized) {
+  if (!normalized || validateMenuSlug(normalized)) {
     return null;
   }
 

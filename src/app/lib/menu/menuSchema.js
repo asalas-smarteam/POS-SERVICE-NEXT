@@ -122,6 +122,18 @@ export function createEmptyMenu() {
   };
 }
 
+// Preserva la version guardada en vez de siempre sellar la actual: el dia que
+// exista una migracion v1 -> v2, la primera lectura de un documento v1 sin
+// migrar tiene que seguir devolviendo version 1. Si se sobreescribiera aca con
+// MENU_SCHEMA_VERSION, ese v1 se leeria como "ya en v2", y el siguiente PUT
+// (que hace read-modify-write) lo persistiria como v2 para siempre: no hay
+// forma de distinguir despues un documento migrado de uno que nunca lo fue.
+// Solo cuando el valor guardado no es un entero positivo (documento ausente,
+// corrupto o recien creado) se usa el valor actual como default.
+function resolveStoredVersion(rawVersion) {
+  return Number.isInteger(rawVersion) && rawVersion > 0 ? rawVersion : MENU_SCHEMA_VERSION;
+}
+
 export function normalizeMenuDocument(raw) {
   if (!raw) {
     return createEmptyMenu();
@@ -130,16 +142,30 @@ export function normalizeMenuDocument(raw) {
   const publishedRaw = raw.published;
 
   return {
-    version: MENU_SCHEMA_VERSION,
+    version: resolveStoredVersion(raw.version),
     draft: normalizeMenuDraft(raw.draft),
     published: publishedRaw ? normalizeMenuDraft(publishedRaw) : null,
     publishedAt: typeof raw.publishedAt === "string" ? raw.publishedAt : null,
   };
 }
 
+// Con solo contar bloques no alcanza: el editor siempre manda un hero y un
+// footer en buildDraft, aunque esten vacios, asi que un borrador "vacio" en
+// los hechos siempre tiene 2 bloques. Si canPublish solo contara, nunca
+// podria disparar 'empty_draft' y la pagina publica quedaria en blanco (los
+// bloques hero/footer sin datos renderean null) sin que el guard lo hubiera
+// evitado. Por eso se exige contenido real: una categoria (siempre referencia
+// algo), o un hero/footer con al menos un campo no vacio.
+function hasRealContent(block) {
+  if (block.type === "category") {
+    return true;
+  }
+  return Object.values(block.data).some((value) => typeof value === "string" && value.trim() !== "");
+}
+
 export function canPublish(menu) {
   const draft = normalizeMenuDraft(menu?.draft);
-  return draft.blocks.length ? null : MENU_ERRORS.EMPTY_DRAFT;
+  return draft.blocks.some(hasRealContent) ? null : MENU_ERRORS.EMPTY_DRAFT;
 }
 
 // La fecha entra por parametro para que el resultado sea determinista y testeable.

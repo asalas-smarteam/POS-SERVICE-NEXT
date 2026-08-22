@@ -66,6 +66,24 @@ export async function PUT(req, { params }) {
       return NextResponse.json({ error: slugError }, { status: 400 });
     }
 
+    // Orden deliberado: primero el borrador (base de datos de la sede),
+    // despues el slug (master), y la revalidacion al final, solo si ambas
+    // escrituras salieron bien. Antes era slug -> revalidate -> draft: si el
+    // draft fallaba despues de mover el slug, la respuesta era un 500 pero el
+    // slug publico ya habia cambiado — un QR impreso con el slug viejo queda
+    // 404 para siempre y el dueno, viendo el error, cree que no paso nada. Con
+    // este orden, si el draft falla, el slug no se toco: el dueno recarga, ve
+    // el slug de siempre y puede reintentar sin que ningun QR se rompa. Si en
+    // cambio el draft se guarda pero el slug falla (por ejemplo slug_taken),
+    // el borrador queda guardado y el slug tampoco cambio: se puede reintentar
+    // solo la parte del slug sin perder lo que ya se escribio.
+    const conn = await getTenantConnection(sede.dbName);
+    const current = await readMenuDocument(conn);
+    const saved = await writeMenuDocument(conn, {
+      ...current,
+      draft: normalizeMenuDraft(body?.draft),
+    });
+
     const assigned = await assignMenuSlug(masterConn, sede.tenantId, body.menuSlug);
     if (!assigned.ok) {
       const status = statusForSlugAssignError(assigned.error);
@@ -76,7 +94,10 @@ export async function PUT(req, { params }) {
     }
 
     // El slug viejo queda apuntando a una ruta que ya no existe: si no se
-    // revalida, sigue sirviendo el menu desde la cache.
+    // revalida, sigue sirviendo el menu desde la cache. Se revalida solo
+    // despues de que el draft y el slug quedaron escritos: revalidar antes
+    // dejaria una ruta publica "fresca" apuntando a datos que todavia podrian
+    // no haberse guardado.
     const previousSlug = sede.menuSlug || '';
     const nextSlug = normalizeMenuSlug(body.menuSlug);
     if (previousSlug && previousSlug !== nextSlug) {
@@ -84,16 +105,9 @@ export async function PUT(req, { params }) {
     }
     revalidatePath(`/m/${nextSlug}`);
 
-    const conn = await getTenantConnection(sede.dbName);
-    const current = await readMenuDocument(conn);
-    const saved = await writeMenuDocument(conn, {
-      ...current,
-      draft: normalizeMenuDraft(body?.draft),
-    });
-
     return NextResponse.json({
       tenant: sedeSummary(sede),
-      menuSlug: normalizeMenuSlug(body.menuSlug),
+      menuSlug: nextSlug,
       menu: normalizeMenuDocument(saved),
     });
   } catch (error) {
