@@ -154,6 +154,21 @@ se registran para que las decisiones sean informadas.
    un tenant. Con imágenes comprimidas a ~200 KB el costo es despreciable, pero es
    una puerta abierta.
 
+8. **El desacople de `ALL_FEATURE_KEYS` quedo a medias.** El sub-proyecto 1a
+   introdujo la marca `companyScoped` y arreglo `PROTECTED_MODULES` y
+   `ROLE_PERMISSIONS.admin`, pero `src/app/components/nav-main.jsx`,
+   `src/store/authStore.js` y `src/app/[locale]/(dashboard)/layout.jsx` siguen
+   tratando toda feature key como candidata a ruta de sede. Hoy es inocuo porque
+   `NAV_BY_ROLE` en `lib/auth/roles.js` se escribe a mano y no tiene entrada
+   `/online-menu`. La proxima feature company-scoped, o cualquier refactor de como
+   se arma el nav, reproduce la clase de bug que la marca existe para eliminar.
+
+9. **Subir `FEATURE_PRICES_SEED_VERSION` pisa los precios editados a mano.** El
+   contador es compartido por todas las filas del seed. Agregar una feature NO
+   requiere subirlo: `$setOnInsert` siembra la fila nueva con la version vigente y
+   el `$set` masivo solo alcanza filas con version menor. Subirlo es el mecanismo
+   para propagar precios cambiados a todos, y hay que usarlo a proposito.
+
 7. **Los productos no se pueden borrar.** No existe `DELETE /api/products/[id]`
    ni UI de borrado; solo `PUT`. No se agrega en este trabajo, pero condiciona el
    ciclo de vida de las imágenes del sub-proyecto 0 y hay que tenerlo en cuenta

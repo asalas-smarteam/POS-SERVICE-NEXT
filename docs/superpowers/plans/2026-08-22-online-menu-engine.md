@@ -269,7 +269,34 @@ En `messages/en.json`, dentro de `Plans.feature`:
 Run: `npm test && npx eslint --no-cache src && npm run build`
 Expected: tests PASS; ESLint con los mismos 11 problemas preexistentes (4 errores, 7 warnings) y ninguno nuevo; build `✓ Compiled successfully`.
 
-Verificación extra, que confirma que la feature nueva no ensució las derivaciones de seguridad:
+Verificación extra, que confirma que la feature nueva no ensució las derivaciones de
+seguridad. **No se puede hacer con `node` pelado**: los modulos de seguridad importan
+por el alias `@/`, que solo resuelven Next y Vitest. Se hace agregando estas tres
+aserciones al archivo de test del Step 1, que es donde deberian vivir de todos modos:
+
+```js
+import { PROTECTED_MODULES } from "@/lib/security/routeDefinitions";
+import { ROLE_PERMISSIONS } from "@/lib/security/rolePermissions";
+
+describe("las derivaciones de seguridad no se ensucian", () => {
+  it("online-menu no es una ruta protegida", () => {
+    expect(PROTECTED_MODULES).not.toContain("online-menu");
+  });
+
+  it("online-menu no aparece en ningun rol", () => {
+    for (const modules of Object.values(ROLE_PERMISSIONS)) {
+      expect(modules).not.toContain("online-menu");
+    }
+  });
+
+  it("PROTECTED_MODULES sigue conteniendo las rutas de sede reales", () => {
+    expect(PROTECTED_MODULES).toContain("orders");
+    expect(PROTECTED_MODULES).toContain("floor");
+  });
+});
+```
+
+La version original de este paso era un one-liner de `node` y no funcionaba:
 
 ```bash
 node --input-type=module -e "
