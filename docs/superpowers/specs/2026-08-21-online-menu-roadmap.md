@@ -90,6 +90,31 @@ Drag & drop del orden de bloques (`@dnd-kit`, ya instalado), variantes de diseñ
 por bloque, tema global (logo, colores, tipografía), vista previa en vivo y
 clonado del menú entre sedes.
 
+#### Referencias de presentación para el bloque de categoría
+
+El dueño del proyecto aportó cuatro menús reales de pizzería. De ellos salen tres
+patrones distintos de presentar tamaños, y el sub-proyecto 1b tiene que soportar
+elegir entre ellos por bloque:
+
+| Patrón | Cómo funciona | ¿Lo soportan los datos actuales? |
+|---|---|---|
+| **Columnas de precio** | Encabezado con los tamaños y cada plato con sus precios alineados en columnas. Un plato puede tener un solo precio. | Sí |
+| **Tabla de precios única** | Tamaños y precios salen una vez para toda la categoría; los platos se listan solo con nombre e ingredientes. | **No garantizado** |
+| **Badges por ítem** | Tarjeta con foto y descripción, más un badge por tamaño con su precio debajo. | Sí |
+
+El patrón de tabla única asume que todos los platos de la categoría cuestan lo
+mismo por tamaño. El modelo no lo garantiza: cada tamaño es un `Product` con su
+precio propio, así que dos pizzas pueden diferir en el precio de "Grande". Antes de
+ofrecer ese patrón hay que decidir qué hacer cuando los precios no son uniformes:
+deshabilitarlo, mostrar un rango, o derivar la tabla y advertir en el editor.
+
+Dos observaciones más de las referencias: las descripciones de ingredientes son
+centrales en tres de los cuatro menús, y dos usan **doble columna** en pantalla
+angosta larga. El renderizador de 1a es de una sola columna con foto de 80 px.
+
+1a implementa un solo comportamiento por defecto: si la categoría tiene `hasSizes`,
+agrupa los productos por nombre y lista una fila por tamaño. Sin selector.
+
 ### 2. Catálogo de bloques ampliado
 
 Galería, mapa, promociones, redes sociales. Puro agregar tipos sobre el esquema
