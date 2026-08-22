@@ -4,7 +4,7 @@ import { getTenantConnection } from '@/lib/db/connections';
 import { ProductModel } from '@/models/tenant/Product';
 import { getStorage } from '@/lib/storage';
 import { buildProductImageKey } from '@/lib/storage/storageKeys';
-import { ImageValidationError, validateImageBuffer } from '@/lib/storage/imageValidation';
+import { ImageValidationError, MAX_BYTES, validateImageBuffer } from '@/lib/storage/imageValidation';
 
 // Mismo patron que buildProductImageKey usa para productId: valida la forma
 // del id ANTES de tocar la base, asi un id invalido nunca llega a disparar un
@@ -61,6 +61,16 @@ export async function POST(req, { params }) {
       return NextResponse.json({ error: 'Product not found.' }, { status: 404 });
     }
 
+    // Content-Length llega antes de leer un solo byte del body. Chequearlo
+    // aqui evita materializar un body gigante en memoria solo para
+    // descubrir, recien despues de bufferearlo, que excede el limite. No
+    // reemplaza el chequeo de mas abajo: si el header falta o no es un
+    // numero, seguimos y confiamos en el tamaño real del archivo.
+    const contentLength = Number(req.headers.get('content-length'));
+    if (Number.isFinite(contentLength) && contentLength > MAX_BYTES) {
+      return NextResponse.json({ error: 'File too large' }, { status: 413 });
+    }
+
     // req.formData() rechaza (TypeError, sin .status) cualquier body que no sea
     // multipart: JSON, vacio, etc. Es un error del cliente, no del servidor.
     let formData;
@@ -73,6 +83,13 @@ export async function POST(req, { params }) {
     const file = formData.get('file');
     if (!file || typeof file.arrayBuffer !== 'function') {
       return NextResponse.json({ error: 'file is required.' }, { status: 400 });
+    }
+
+    // Mismo limite que validateImageBuffer, chequeado antes de copiar el
+    // archivo entero a un Buffer con arrayBuffer(). El Content-Length de
+    // arriba puede faltar o venir mal formado; file.size no depende de eso.
+    if (typeof file.size === 'number' && file.size > MAX_BYTES) {
+      return NextResponse.json({ error: 'File too large' }, { status: 413 });
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
@@ -88,11 +105,26 @@ export async function POST(req, { params }) {
     const stored = await storage.put(buffer, { key, contentType });
     const previous = previousImageOf(product);
 
-    const updated = await Product.findByIdAndUpdate(
-      product._id,
-      { $set: { image: { url: stored.url, pathname: stored.pathname, width, height } } },
-      { new: true, runValidators: true },
-    );
+    // Si la escritura en base falla (o el producto desaparecio entre el read
+    // y el update), el archivo recien escrito queda sin nada que lo
+    // referencie: hay que borrarlo. removeQuietly nunca lanza, asi que un
+    // fallo al limpiar no tapa el error original (o el 404).
+    let updated;
+    try {
+      updated = await Product.findByIdAndUpdate(
+        product._id,
+        { $set: { image: { url: stored.url, pathname: stored.pathname, width, height } } },
+        { new: true, runValidators: true },
+      );
+    } catch (error) {
+      await removeQuietly(storage, stored);
+      throw error;
+    }
+
+    if (!updated) {
+      await removeQuietly(storage, stored);
+      return NextResponse.json({ error: 'Product not found.' }, { status: 404 });
+    }
 
     await removeQuietly(storage, previous);
 
