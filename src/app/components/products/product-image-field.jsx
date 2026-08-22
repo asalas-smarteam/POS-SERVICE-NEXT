@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ImagePlus, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
@@ -15,14 +15,12 @@ export function ProductImageField({
 }) {
   const t = useTranslations("Products");
   const inputRef = useRef(null);
-
-  // El object URL se deriva de `file`, no se sincroniza con un estado propio:
-  // así el efecto solo limpia (revoca el blob anterior), sin llamar setState
-  // dentro del efecto.
-  const objectUrl = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
+  const [objectUrl, setObjectUrl] = useState(null);
 
   // Un object URL retiene el blob hasta que se revoca. Sin esta limpieza, cada
-  // foto que el usuario prueba y descarta queda en memoria.
+  // foto que el usuario prueba y descarta queda en memoria. El efecto solo
+  // limpia (nunca llama setState en su cuerpo); la URL se crea en el handler
+  // del evento, no durante el render.
   useEffect(() => {
     return () => {
       if (objectUrl) {
@@ -31,15 +29,24 @@ export function ProductImageField({
     };
   }, [objectUrl]);
 
-  const preview = objectUrl ?? currentUrl;
+  // Si `file` se limpia desde afuera (por ejemplo, tras un error de subida)
+  // no queda una vista previa vieja mostrándose sin su archivo pendiente.
+  const preview = file ? objectUrl ?? currentUrl : currentUrl;
 
   const handleChange = (event) => {
     const selected = event.target.files?.[0];
     if (selected) {
+      // La URL se asigna aca, en el handler, no en render ni en un efecto.
+      setObjectUrl(URL.createObjectURL(selected));
       onSelect?.(selected);
     }
     // Permite volver a elegir el mismo archivo tras quitarlo.
     event.target.value = "";
+  };
+
+  const handleRemove = () => {
+    setObjectUrl(null);
+    onRemove?.();
   };
 
   return (
@@ -79,7 +86,7 @@ export function ProductImageField({
                 variant="outline"
                 size="sm"
                 disabled={disabled}
-                onClick={() => onRemove?.()}
+                onClick={handleRemove}
               >
                 <Trash2 className="size-4" />
                 {t("removePhoto")}

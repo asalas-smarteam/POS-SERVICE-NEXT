@@ -56,7 +56,6 @@ export function ProductDialog({ open, onOpenChange, product, duplicateFrom, onSu
   const {
     ingredients,
     fetchIngredients,
-    actionLoading,
     createProduct,
     updateProduct,
     uploadProductImage,
@@ -64,7 +63,6 @@ export function ProductDialog({ open, onOpenChange, product, duplicateFrom, onSu
   } = useProductsStore((state) => ({
     ingredients: state.ingredients,
     fetchIngredients: state.fetchIngredients,
-    actionLoading: state.actionLoading,
     createProduct: state.createProduct,
     updateProduct: state.updateProduct,
     uploadProductImage: state.uploadProductImage,
@@ -91,6 +89,11 @@ export function ProductDialog({ open, onOpenChange, product, duplicateFrom, onSu
   // botón usa esta bandera propia para seguir deshabilitado durante toda la
   // secuencia y evitar un doble envío.
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Si el producto se creó pero la foto falló, el diálogo sigue abierto sin
+  // volverse "edición" (el `product` que recibió como prop sigue siendo
+  // null). Sin guardar este id, un segundo intento llamaría a createProduct
+  // otra vez y duplicaría el producto.
+  const [savedProductId, setSavedProductId] = useState(null);
 
   const isEditing = Boolean(product?._id);
   const isDuplicating = !isEditing && Boolean(duplicateFrom);
@@ -110,6 +113,7 @@ export function ProductDialog({ open, onOpenChange, product, duplicateFrom, onSu
       setIngredientSearch("");
       setImageFile(null);
       setRemoveExistingImage(false);
+      setSavedProductId(null);
       return;
     }
 
@@ -243,13 +247,17 @@ export function ProductDialog({ open, onOpenChange, product, duplicateFrom, onSu
 
     payload.description = form.description.trim();
 
-    // Bandera propia para toda la secuencia de guardado: `actionLoading` del
-    // store se apaga entre el create/update y la subida/borrado de la foto,
-    // y dejar el botón habilitado en ese hueco permite un doble envío.
+    // Un intento anterior puede haber creado el producto y fallado solo en la
+    // foto: el diálogo sigue abierto sin `product` (no es "edición" para el
+    // resto del formulario), así que se actualiza en vez de crear de nuevo.
+    const isUpdating = isEditing || Boolean(savedProductId);
+    const targetId = product?._id ?? savedProductId;
+
     setIsSubmitting(true);
-    try {
-      const result = isEditing
-        ? await updateProduct(product._id, payload)
+
+    async function runSave() {
+      const result = isUpdating
+        ? await updateProduct(targetId, payload)
         : await createProduct(payload);
 
       if (!result?.success) {
@@ -260,10 +268,14 @@ export function ProductDialog({ open, onOpenChange, product, duplicateFrom, onSu
         return;
       }
 
+      const productId = isUpdating ? targetId : result.product?._id;
+      if (!isUpdating && productId) {
+        setSavedProductId(productId);
+      }
+
       // El producto ya está guardado. Si falla la imagen no se reporta como
       // error de guardado, porque no lo es: se avisa aparte y el diálogo
       // queda abierto para poder reintentar.
-      const productId = isEditing ? product._id : result.product?._id;
       let imageError = null;
       let imageErrorStatus = null;
 
@@ -279,6 +291,9 @@ export function ProductDialog({ open, onOpenChange, product, duplicateFrom, onSu
         if (!removal.success) {
           imageError = removal.message;
           imageErrorStatus = removal.status;
+          // El borrado no ocurrió: la foto sigue existiendo en el servidor,
+          // así que el campo no debe mostrarse como si ya no la tuviera.
+          setRemoveExistingImage(false);
         }
       }
 
@@ -301,9 +316,14 @@ export function ProductDialog({ open, onOpenChange, product, duplicateFrom, onSu
       setAlert({ type: "success", message: t("savedSuccessfully") });
       onSuccess?.();
       onOpenChange?.(false);
-    } finally {
-      setIsSubmitting(false);
     }
+
+    try {
+      await runSave();
+    } catch {
+      setAlert({ type: "error", message: t("saveError") });
+    }
+    setIsSubmitting(false);
   };
 
   return (
@@ -385,7 +405,7 @@ export function ProductDialog({ open, onOpenChange, product, duplicateFrom, onSu
           <ProductImageField
             currentUrl={removeExistingImage ? null : product?.image?.url ?? null}
             file={imageFile}
-            disabled={actionLoading}
+            disabled={isSubmitting}
             onSelect={(file) => {
               setImageFile(file);
               setRemoveExistingImage(false);

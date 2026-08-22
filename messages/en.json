@@ -437,7 +437,7 @@
     "photoPending": "Will be uploaded on save",
     "photoUploadError": "The product was saved, but the photo could not be uploaded: {reason}",
     "photoTooLarge": "The product was saved, but the photo could not be uploaded: it is too large. 4 MB max.",
-    "photoUnsupportedFormat": "The product was saved, but the photo could not be uploaded: the format is not supported. Use JPG, PNG or WebP.",
+    "photoUnsupportedFormat": "The product was saved, but the photo could not be uploaded: the image is invalid. Check its format and size.",
     "noPhoto": "No photo"
   },
   "ActiveOrders": {

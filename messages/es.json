@@ -437,7 +437,7 @@
     "photoPending": "Se subirá al guardar",
     "photoUploadError": "El producto se guardó, pero la foto no se pudo subir: {reason}",
     "photoTooLarge": "El producto se guardó, pero la foto no se pudo subir: pesa demasiado. Máximo 4 MB.",
-    "photoUnsupportedFormat": "El producto se guardó, pero la foto no se pudo subir: el formato no es válido. Usa JPG, PNG o WebP.",
+    "photoUnsupportedFormat": "El producto se guardó, pero la foto no se pudo subir: la imagen no es válida. Revisa el formato y el tamaño.",
     "noPhoto": "Sin foto"
   },
   "ActiveOrders": {
