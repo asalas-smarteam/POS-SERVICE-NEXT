@@ -75,6 +75,7 @@ function normalizeBlock(raw, index) {
 export function normalizeMenuDraft(raw) {
   const source = Array.isArray(raw?.blocks) ? raw.blocks : [];
   const seenCategories = new Set();
+  const seenIds = new Set();
   const blocks = [];
 
   source.forEach((entry, index) => {
@@ -90,6 +91,21 @@ export function normalizeMenuDraft(raw) {
       }
       seenCategories.add(block.data.categoryId);
     }
+
+    // Este modulo corre sobre el body de una request arbitraria: un id
+    // repetido (explicito o coincidente con un fallback ajeno) rompe las
+    // keys de React en la pagina publica. Se reasigna, nunca se descarta el
+    // bloque por eso.
+    if (seenIds.has(block.id)) {
+      let fallbackId = `${block.type}-${index}`;
+      let attempt = 1;
+      while (seenIds.has(fallbackId)) {
+        attempt += 1;
+        fallbackId = `${block.type}-${index}-${attempt}`;
+      }
+      block.id = fallbackId;
+    }
+    seenIds.add(block.id);
 
     blocks.push(block);
   });
@@ -134,7 +150,10 @@ export function publishDraft(menu, publishedAtIso) {
     version: MENU_SCHEMA_VERSION,
     draft,
     // Copia estructural: si compartieran referencia, seguir editando el borrador
-    // mutaria lo que ya esta publicado.
+    // mutaria lo que ya esta publicado. JSON.parse(JSON.stringify(...)) es seguro
+    // aqui solo porque normalizeBlock ya redujo cada campo a string o boolean:
+    // quien toque normalizeBlock y le agregue un campo de otro tipo (Date, Map,
+    // etc.) tiene que revisar tambien esta copia.
     published: JSON.parse(JSON.stringify(draft)),
     publishedAt: publishedAtIso,
   };
@@ -157,6 +176,12 @@ export function referencedCategoryIds(blocks) {
 
 // Desactivar una categoria en ajustes la saca del menu sin tener que editar el
 // menu; una categoria borrada tampoco deja un hueco roto.
+//
+// La comparacion es estricta (=== true) y no "!== false" a proposito: asi es
+// como el propio POS decide si una categoria esta activa
+// (src/store/settingsStore.js: `categories.filter((c) => c?.active === true)`).
+// Un flag ausente, undefined o mal escrito (0, "false", etc.) no debe alcanzar
+// para publicar una categoria en una pagina publica.
 export function renderableBlocks(blocks, categoryMap) {
   const categories = categoryMap instanceof Map ? categoryMap : new Map();
 
@@ -168,6 +193,6 @@ export function renderableBlocks(blocks, categoryMap) {
       return true;
     }
     const category = categories.get(block.data.categoryId);
-    return Boolean(category) && category.active !== false;
+    return Boolean(category) && category.active === true;
   });
 }

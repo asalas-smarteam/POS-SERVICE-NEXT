@@ -74,6 +74,32 @@ describe("normalizeMenuDraft", () => {
     expect(block.id).toBe("hero-0");
   });
 
+  it("reasigna el id cuando dos bloques traen el mismo id explicito", () => {
+    const result = normalizeMenuDraft({
+      blocks: [
+        { id: "dup", type: "hero", data: {} },
+        { id: "dup", type: "footer", data: {} },
+      ],
+    });
+    const [first, second] = result.blocks;
+    expect(first.id).toBe("dup");
+    expect(second.id).toBe("footer-1");
+    expect(first.id).not.toBe(second.id);
+  });
+
+  it("reasigna el id cuando un id explicito coincide con el fallback generado de otro bloque", () => {
+    const result = normalizeMenuDraft({
+      blocks: [
+        { id: "hero-1", type: "footer", data: {} },
+        { type: "hero", data: {} },
+      ],
+    });
+    const [first, second] = result.blocks;
+    expect(first.id).toBe("hero-1");
+    expect(second.id).not.toBe("hero-1");
+    expect(second.id).not.toBe(first.id);
+  });
+
   it("tolera entradas basura", () => {
     expect(normalizeMenuDraft(null).blocks).toEqual([]);
     expect(normalizeMenuDraft({ blocks: "no soy un array" }).blocks).toEqual([]);
@@ -161,6 +187,8 @@ describe("renderableBlocks", () => {
   const categories = new Map([
     ["bebidas", { id: "bebidas", label: "Bebidas", active: true }],
     ["viejo", { id: "viejo", label: "Viejo", active: false }],
+    ["sinFlag", { id: "sinFlag", label: "Sin flag" }],
+    ["indefinida", { id: "indefinida", label: "Indefinida", active: undefined }],
   ]);
 
   it("omite los bloques invisibles", () => {
@@ -178,14 +206,33 @@ describe("renderableBlocks", () => {
     expect(renderableBlocks(blocks, categories)).toEqual([]);
   });
 
+  it("omite un bloque cuya categoria no tiene el campo active", () => {
+    const { blocks } = normalizeMenuDraft({ blocks: [catRaw("sinFlag")] });
+    expect(renderableBlocks(blocks, categories)).toEqual([]);
+  });
+
+  it("omite un bloque cuya categoria tiene active undefined", () => {
+    const { blocks } = normalizeMenuDraft({ blocks: [catRaw("indefinida")] });
+    expect(renderableBlocks(blocks, categories)).toEqual([]);
+  });
+
   it("conserva hero y footer sin importar las categorias", () => {
     const { blocks } = normalizeMenuDraft({ blocks: [heroRaw, footerRaw] });
     expect(renderableBlocks(blocks, new Map()).map((b) => b.type)).toEqual(["hero", "footer"]);
   });
 
-  it("conserva un bloque de categoria activa", () => {
-    const { blocks } = normalizeMenuDraft({ blocks: [catRaw("bebidas")] });
-    expect(renderableBlocks(blocks, categories)).toHaveLength(1);
+  it("conserva unicamente el bloque cuya categoria tiene active true", () => {
+    const { blocks } = normalizeMenuDraft({
+      blocks: [catRaw("bebidas"), catRaw("viejo"), catRaw("sinFlag"), catRaw("indefinida")],
+    });
+    expect(renderableBlocks(blocks, categories)).toEqual([
+      {
+        id: "c-bebidas",
+        type: "category",
+        visible: true,
+        data: { categoryId: "bebidas", showPhotos: true, showDescriptions: true },
+      },
+    ]);
   });
 });
 
