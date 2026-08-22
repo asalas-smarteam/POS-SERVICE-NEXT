@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getOwnerContext } from '@/lib/auth/ownerAuth';
-import { connectMasterDB } from '@/lib/db/master';
+import { requireOwnerSede } from '@/lib/auth/ownerSede';
 import { getTenantConnection } from '@/lib/db/connections';
-import { TenantModel } from '@/models/master/Tenant';
 import { UserIndexModel } from '@/models/master/UserIndex';
 import { UserModel } from '@/models/tenant/User';
 import { hashPassword } from '@/lib/auth/hash';
@@ -13,26 +11,10 @@ import { getAssignableRoles } from '@/lib/auth/roles';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// Verifica que la sede pertenezca a la empresa del dueño y devuelve su Tenant.
-async function resolveOwnerSede(masterConn, companyId, tenantId) {
-  const Tenant = TenantModel(masterConn);
-  return Tenant.findOne({
-    tenantId: String(tenantId),
-    companyId,
-    status: 'active',
-  }).lean();
-}
-
 export async function GET(req, { params }) {
   try {
-    const { companyId } = await getOwnerContext(req);
     const { tenantId } = await params;
-
-    const masterConn = await connectMasterDB();
-    const sede = await resolveOwnerSede(masterConn, companyId, tenantId);
-    if (!sede) {
-      return NextResponse.json({ error: 'Sede not available' }, { status: 403 });
-    }
+    const { sede } = await requireOwnerSede(req, tenantId);
 
     const conn = await getTenantConnection(sede.dbName);
     const User = UserModel(conn);
@@ -55,14 +37,8 @@ export async function GET(req, { params }) {
 
 export async function POST(req, { params }) {
   try {
-    const { companyId } = await getOwnerContext(req);
     const { tenantId } = await params;
-
-    const masterConn = await connectMasterDB();
-    const sede = await resolveOwnerSede(masterConn, companyId, tenantId);
-    if (!sede) {
-      return NextResponse.json({ error: 'Sede not available' }, { status: 403 });
-    }
+    const { companyId, masterConn, sede } = await requireOwnerSede(req, tenantId);
 
     const body = await req.json();
     const username = String(body?.username || '').trim();

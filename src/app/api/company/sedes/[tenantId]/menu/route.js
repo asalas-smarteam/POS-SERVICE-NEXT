@@ -1,24 +1,11 @@
 import { NextResponse } from 'next/server';
-import { getOwnerContext } from '@/lib/auth/ownerAuth';
-import { connectMasterDB } from '@/lib/db/master';
+import { revalidatePath } from 'next/cache';
+import { requireOwnerSede } from '@/lib/auth/ownerSede';
 import { getTenantConnection } from '@/lib/db/connections';
-import { TenantModel } from '@/models/master/Tenant';
-import { hasFeature } from '@/lib/features/featureRegistry';
 import { MENU_SLUG_ERRORS, normalizeMenuSlug, validateMenuSlug } from '@/lib/menu/menuSlug';
 import { normalizeMenuDraft, normalizeMenuDocument } from '@/lib/menu/menuSchema';
 import { assignMenuSlug } from '@/lib/menu/menuTenant';
 import { readMenuDocument, writeMenuDocument } from '@/lib/menu/menuSettings';
-
-// El token del dueño no lleva tenantId, asi que la pertenencia de la sede se
-// verifica siempre contra el master y nunca contra un dato del cliente.
-async function resolveOwnerSede(masterConn, companyId, tenantId) {
-  const Tenant = TenantModel(masterConn);
-  return Tenant.findOne({
-    tenantId: String(tenantId),
-    companyId,
-    status: 'active',
-  }).lean();
-}
 
 function sedeSummary(sede) {
   return {
@@ -51,17 +38,8 @@ function statusForSlugAssignError(code) {
 
 export async function GET(req, { params }) {
   try {
-    const { companyId } = await getOwnerContext(req);
     const { tenantId } = await params;
-
-    const masterConn = await connectMasterDB();
-    const sede = await resolveOwnerSede(masterConn, companyId, tenantId);
-    if (!sede) {
-      return NextResponse.json({ error: 'Sede not available' }, { status: 403 });
-    }
-    if (!hasFeature(sede.features, 'online-menu')) {
-      return NextResponse.json({ error: 'feature_not_included' }, { status: 403 });
-    }
+    const { sede } = await requireOwnerSede(req, tenantId, 'online-menu');
 
     const conn = await getTenantConnection(sede.dbName);
     const menu = await readMenuDocument(conn);
@@ -78,17 +56,8 @@ export async function GET(req, { params }) {
 
 export async function PUT(req, { params }) {
   try {
-    const { companyId } = await getOwnerContext(req);
     const { tenantId } = await params;
-
-    const masterConn = await connectMasterDB();
-    const sede = await resolveOwnerSede(masterConn, companyId, tenantId);
-    if (!sede) {
-      return NextResponse.json({ error: 'Sede not available' }, { status: 403 });
-    }
-    if (!hasFeature(sede.features, 'online-menu')) {
-      return NextResponse.json({ error: 'feature_not_included' }, { status: 403 });
-    }
+    const { masterConn, sede } = await requireOwnerSede(req, tenantId, 'online-menu');
 
     const body = await req.json().catch(() => ({}));
 
@@ -105,6 +74,15 @@ export async function PUT(req, { params }) {
         { status },
       );
     }
+
+    // El slug viejo queda apuntando a una ruta que ya no existe: si no se
+    // revalida, sigue sirviendo el menu desde la cache.
+    const previousSlug = sede.menuSlug || '';
+    const nextSlug = normalizeMenuSlug(body.menuSlug);
+    if (previousSlug && previousSlug !== nextSlug) {
+      revalidatePath(`/m/${previousSlug}`);
+    }
+    revalidatePath(`/m/${nextSlug}`);
 
     const conn = await getTenantConnection(sede.dbName);
     const current = await readMenuDocument(conn);
