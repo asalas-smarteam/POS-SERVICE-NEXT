@@ -14,7 +14,7 @@
 
 - Formatos permitidos: **JPEG, PNG, WebP**. SVG está prohibido (vector de XSS).
 - Tamaño máximo del archivo: **4 MB** (4 \* 1024 \* 1024 bytes). El tope de body de una función Vercel es ~4.5 MB.
-- Dimensiones máximas: **4000 px por lado** y **16.000.000 px totales**.
+- Dimensiones máximas: **4000 px por lado** y **12.000.000 px totales**. El tope de área es menor que 4000x4000 a propósito: si fuera igual, el chequeo no rechazaría nada que el límite por lado no rechace ya.
 - Largo máximo de `description`: **300** caracteres.
 - Compresión en cliente: máximo **1600 px** de lado largo, JPEG calidad **0.82**.
 - Variable de entorno `STORAGE_DRIVER`: valores `local` (default) o `vercel-blob`.
@@ -402,7 +402,7 @@ import { imageSize } from "image-size";
 
 export const MAX_BYTES = 4 * 1024 * 1024;
 export const MAX_SIDE = 4000;
-export const MAX_PIXELS = 16_000_000;
+export const MAX_PIXELS = 12_000_000;
 
 // El formato se decide por los bytes del archivo, nunca por la extension ni por
 // el `type` del File, que los elige el cliente. SVG queda fuera a proposito: es

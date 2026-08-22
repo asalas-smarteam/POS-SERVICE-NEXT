@@ -141,7 +141,7 @@ el cliente afirma.
 | Formatos permitidos | JPEG, PNG, WebP. |
 | SVG | **Prohibido.** Un SVG es un documento que puede contener script; servirlo desde el mismo origen es un vector de XSS. |
 | Tamaño | Máximo 4 MB. El número no es arbitrario: el body de una función serverless en Vercel tope en ~4.5 MB, así que subir más alto el límite no serviría de nada. |
-| Dimensiones | Máximo 4000 px por lado y 16 megapíxeles en total, para rechazar bombas de descompresión. |
+| Dimensiones | Máximo 4000 px por lado y 12 megapíxeles en total, para rechazar bombas de descompresión. El tope de área es deliberadamente menor que 4000x4000: un cap igual al cuadrado del lado máximo no rechazaría nada que el límite por lado no rechace ya. |
 | `width` / `height` | Se leen del archivo. Lo que reporte el cliente se ignora. |
 
 Para leer formato y dimensiones se agrega la dependencia **`image-size`**: parsea

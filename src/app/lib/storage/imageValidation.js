@@ -2,7 +2,7 @@ import { imageSize } from "image-size";
 
 export const MAX_BYTES = 4 * 1024 * 1024;
 export const MAX_SIDE = 4000;
-export const MAX_PIXELS = 16_000_000;
+export const MAX_PIXELS = 12_000_000;
 
 // El formato se decide por los bytes del archivo, nunca por la extension ni por
 // el `type` del File, que los elige el cliente. SVG queda fuera a proposito: es
@@ -67,11 +67,10 @@ export function validateImageBuffer(buffer) {
     );
   }
 
-  // >= y no >: MAX_PIXELS == MAX_SIDE al cuadrado, asi que con > este chequeo
-  // nunca se dispara si ambos lados ya pasaron el limite por lado (el maximo
-  // producto con ambos lados <= MAX_SIDE es exactamente MAX_PIXELS). Usar >=
-  // deja el chequeo operativo sin aflojar el limite por lado.
-  if (width * height >= MAX_PIXELS) {
+  // MAX_PIXELS es menor que MAX_SIDE al cuadrado a proposito: asi el chequeo
+  // rechaza imagenes de area grande (4000x4000, 3500x3500) aunque cada lado
+  // sea legal por si solo, en vez de quedar subsumido por el limite por lado.
+  if (width * height > MAX_PIXELS) {
     throw new ImageValidationError(
       `Image exceeds ${MAX_PIXELS} total pixels`,
       400
