@@ -179,6 +179,11 @@ se registran para que las decisiones sean informadas.
    un tenant. Con imágenes comprimidas a ~200 KB el costo es despreciable, pero es
    una puerta abierta.
 
+7. **Los productos no se pueden borrar.** No existe `DELETE /api/products/[id]`
+   ni UI de borrado; solo `PUT`. No se agrega en este trabajo, pero condiciona el
+   ciclo de vida de las imágenes del sub-proyecto 0 y hay que tenerlo en cuenta
+   cuando esa feature se implemente.
+
 8. **El desacople de `ALL_FEATURE_KEYS` quedo a medias.** El sub-proyecto 1a
    introdujo la marca `companyScoped` y arreglo `PROTECTED_MODULES` y
    `ROLE_PERMISSIONS.admin`, pero `src/app/components/nav-main.jsx`,
@@ -194,7 +199,3 @@ se registran para que las decisiones sean informadas.
    el `$set` masivo solo alcanza filas con version menor. Subirlo es el mecanismo
    para propagar precios cambiados a todos, y hay que usarlo a proposito.
 
-7. **Los productos no se pueden borrar.** No existe `DELETE /api/products/[id]`
-   ni UI de borrado; solo `PUT`. No se agrega en este trabajo, pero condiciona el
-   ciclo de vida de las imágenes del sub-proyecto 0 y hay que tenerlo en cuenta
-   cuando esa feature se implemente.
