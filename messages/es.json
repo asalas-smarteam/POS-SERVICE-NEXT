@@ -739,6 +739,10 @@
       "kitchen": {
         "name": "Cocina",
         "description": "Tablero de preparación y despacho"
+      },
+      "online-menu": {
+        "name": "Menú en línea",
+        "description": "Menú público con link para compartir o imprimir en un QR"
       }
     },
     "comingSoon": "Próximamente",

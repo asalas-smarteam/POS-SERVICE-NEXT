@@ -24,6 +24,10 @@ export const FEATURE_DEFINITIONS = Object.freeze([
   { key: "dashboard" },
   { key: "floor" },
   { key: "kitchen" },
+  // Modulo vendible sin ruta de sede: el editor vive en el panel del dueño y la
+  // pagina publica en /m/<slug>. Por eso no entra en PROTECTED_MODULES ni en
+  // ROLE_PERMISSIONS, que son ejes de sede.
+  { key: "online-menu", companyScoped: true },
 ]);
 
 export const ALL_FEATURE_KEYS = Object.freeze(
@@ -46,6 +50,22 @@ export const CUSTOM_REQUIRED_FEATURES = Object.freeze(
 export const SELECTABLE_FEATURE_KEYS = Object.freeze(
   ALL_FEATURE_KEYS.filter((key) => !ALWAYS_ON_FEATURES.includes(key))
 );
+
+// Features que se administran a nivel empresa y no tienen ruta de sede. Se
+// venden igual, pero no son un modulo del dashboard de una sede.
+export const COMPANY_SCOPED_FEATURES = Object.freeze(
+  FEATURE_DEFINITIONS.filter((feature) => feature.companyScoped).map((feature) => feature.key)
+);
+
+// Las que si son una ruta de sede. Es lo que deben consumir el matcher de rutas
+// protegidas y los permisos por rol: derivar de ALL_FEATURE_KEYS haria que el
+// middleware protegiera rutas que no existen.
+export const SEDE_ROUTE_FEATURE_KEYS = Object.freeze(
+  ALL_FEATURE_KEYS.filter((key) => !COMPANY_SCOPED_FEATURES.includes(key))
+);
+
+export const isCompanyScopedFeature = (key) =>
+  typeof key === "string" && COMPANY_SCOPED_FEATURES.includes(key);
 
 // Extrae la key del feature de un href de navegacion ("/orders" -> "orders",
 // "/es/kitchen/t123" -> "kitchen"). "home" es un alias historico de dashboard.

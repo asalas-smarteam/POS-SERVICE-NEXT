@@ -3,7 +3,7 @@ import { SELECTABLE_FEATURE_KEYS } from '@/lib/features/featureRegistry';
 
 // Misma semantica que PLANS_SEED_VERSION: subirla propaga los defaults, no
 // subirla deja sobrevivir los precios editados a mano.
-export const FEATURE_PRICES_SEED_VERSION = 1;
+export const FEATURE_PRICES_SEED_VERSION = 2;
 
 // Precios de arranque, pensados para que armar todo a la carta salga mas caro
 // que contratar el plan cerrado equivalente (custom completo 66 vs pro 55).
@@ -16,6 +16,7 @@ const DEFAULT_FEATURE_PRICES = [
   { key: 'dashboard', monthlyPrice: 8, pricePerExtraBranch: 3, sortOrder: 50 },
   { key: 'floor', monthlyPrice: 8, pricePerExtraBranch: 4, sortOrder: 60 },
   { key: 'kitchen', monthlyPrice: 8, pricePerExtraBranch: 4, sortOrder: 70 },
+  { key: 'online-menu', monthlyPrice: 10, pricePerExtraBranch: 4, sortOrder: 80 },
 ];
 
 const MANAGED_FIELDS = ['monthlyPrice', 'pricePerExtraBranch', 'sortOrder'];

@@ -739,6 +739,10 @@
       "kitchen": {
         "name": "Kitchen",
         "description": "Preparation and dispatch board"
+      },
+      "online-menu": {
+        "name": "Online menu",
+        "description": "Public menu with a link to share or print as a QR code"
       }
     },
     "comingSoon": "Coming soon",
