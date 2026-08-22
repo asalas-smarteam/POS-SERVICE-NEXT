@@ -61,7 +61,7 @@ export function ProductCard({ product, onSelect, onLongSelect }) {
               src={product.image.url}
               alt={product?.name ?? ""}
               fill
-              sizes="(max-width: 640px) 50vw, 20vw"
+              sizes="(max-width: 639px) 100vw, (max-width: 1023px) 50vw, (max-width: 1279px) 33vw, (max-width: 1535px) 25vw, 20vw"
               className="rounded-xl object-cover"
             />
           ) : (
