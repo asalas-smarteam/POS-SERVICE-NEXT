@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { ArrowLeft, ExternalLink, Loader2 } from "lucide-react";
 import { availableCategories, canAddType } from "@/lib/menu/menuBlockList";
+import { createAutosave } from "@/lib/menu/createAutosave";
 import { BlockCanvas } from "./block-canvas";
 import { PreviewPanel } from "./preview-panel";
 
@@ -59,7 +60,8 @@ export default function OnlineMenuEditorPage() {
   const errorText = useMemo(() => buildErrorText(t), [t]);
 
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState("idle");
+  const loadedRef = useRef(false);
   const [publishing, setPublishing] = useState(false);
   const [alert, setAlert] = useState(null);
 
@@ -109,6 +111,7 @@ export default function OnlineMenuEditorPage() {
         setPublishedAt(readPublishedAt(menuBody));
         setAlert(null);
         setLoading(false);
+        loadedRef.current = true;
       } catch {
         setAlert({ type: "error", message: t("loadError") });
         setLoading(false);
@@ -118,37 +121,58 @@ export default function OnlineMenuEditorPage() {
     loadMenu();
   }, [tenantId, t, errorText]);
 
-  const saveDraft = async () => {
-    setSaving(true);
-    setAlert(null);
-    try {
-      const res = await fetch(`/api/company/sedes/${tenantId}/menu`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ menuSlug: slug, draft: { blocks } }),
-      });
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        const code = readErrorCode(body);
-        setAlert({ type: "error", message: errorText(code, "saveError") });
-        setSaving(false);
-        return false;
-      }
-      setAlert({ type: "success", message: t("draftSaved") });
-      setSaving(false);
-      return true;
-    } catch {
-      setAlert({ type: "error", message: t("saveError") });
-      setSaving(false);
-      return false;
+  // Se crea una sola vez con el inicializador perezoso de useState: recrearlo
+  // en cada render perderia el temporizador y la cola. No se usa una ref con
+  // asignacion condicional porque eso escribe la ref durante el render, que es
+  // justamente lo que el compilador de React marca. `tenantId` sale de la ruta
+  // y no cambia sin desmontar la pagina, asi que capturarlo aca es seguro.
+  const [autosave] = useState(() =>
+    createAutosave({
+      save: async (draft) => {
+        const res = await fetch(`/api/company/sedes/${tenantId}/menu`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ draft }),
+        });
+        if (!res.ok) {
+          throw new Error("save_failed");
+        }
+      },
+      onStatusChange: setSaveStatus,
+    }),
+  );
+
+  // Cada cambio de la lista programa un guardado. El guard de la primera vez
+  // evita que el propio render inicial —el que acaba de leer del servidor—
+  // dispare un PUT que reescribiria lo mismo.
+  useEffect(() => {
+    if (!loadedRef.current) {
+      return;
     }
-  };
+    autosave.schedule({ blocks });
+  }, [blocks, autosave]);
+
+  // Aviso al cerrar la pestaña con cambios sin guardar. Es lo unico que separa
+  // "acomode el menu diez minutos" de "perdi diez minutos".
+  useEffect(() => {
+    function handleBeforeUnload(event) {
+      if (!autosave.hasPending()) {
+        return;
+      }
+      event.preventDefault();
+      event.returnValue = "";
+    }
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [autosave]);
 
   const publish = async () => {
-    // Publicar guarda primero: publicar un borrador que quedo sin guardar
-    // publicaria la version anterior, que es lo contrario de lo que el boton dice.
-    const saved = await saveDraft();
-    if (!saved) {
+    // Publicar vacia primero la cola: publicar con un cambio todavia dentro del
+    // debounce publicaria la version anterior, que es lo contrario de lo que el
+    // boton dice.
+    const flushed = await autosave.flush();
+    if (!flushed) {
       return;
     }
 
@@ -173,11 +197,36 @@ export default function OnlineMenuEditorPage() {
     }
   };
 
-  const busy = saving || publishing;
+  const saveLink = async () => {
+    setAlert(null);
+    try {
+      const res = await fetch(`/api/company/sedes/${tenantId}/menu/slug`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ menuSlug: slug }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const code = readErrorCode(body);
+        setAlert({ type: "error", message: errorText(code, "saveError") });
+        return;
+      }
+      setSlug(readMenuSlug(body));
+      setAlert({ type: "success", message: t("linkSaved") });
+    } catch {
+      setAlert({ type: "error", message: t("saveError") });
+    }
+  };
+
+  const busy = publishing;
 
   return (
     <div className="min-h-screen bg-slate-50 px-6 py-8 text-slate-900 dark:bg-[#061426] dark:text-slate-100">
       <div className="mx-auto max-w-7xl space-y-6">
+        <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-700 lg:hidden">
+          {t("narrowScreen")}
+        </p>
+
         <div className="flex items-center justify-between gap-4">
           <Link
             href={`/${locale}/admin/${companyId}`}
@@ -233,6 +282,13 @@ export default function OnlineMenuEditorPage() {
               </div>
               <p className="text-xs text-slate-500">{t("linkHint")}</p>
               <p className="text-xs font-medium text-amber-600">{t("linkWarning")}</p>
+              <button
+                type="button"
+                onClick={saveLink}
+                className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium dark:border-slate-700"
+              >
+                {t("saveLink")}
+              </button>
             </section>
 
             <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
@@ -256,15 +312,25 @@ export default function OnlineMenuEditorPage() {
                   ? t("publishedAt", { date: new Date(publishedAt).toLocaleString() })
                   : t("neverPublished")}
               </p>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={saveDraft}
-                  disabled={busy}
-                  className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium disabled:opacity-50 dark:border-slate-700"
-                >
-                  {saving ? t("saving") : t("saveDraft")}
-                </button>
+              <div className="flex items-center gap-2">
+                {saveStatus === "saving" ? (
+                  <span className="text-xs text-slate-500">{t("statusSaving")}</span>
+                ) : null}
+                {saveStatus === "saved" ? (
+                  <span className="text-xs text-emerald-600">{t("statusSaved")}</span>
+                ) : null}
+                {saveStatus === "error" ? (
+                  <span className="flex items-center gap-2 text-xs text-red-500">
+                    {t("statusError")}
+                    <button
+                      type="button"
+                      onClick={() => autosave.retry()}
+                      className="underline"
+                    >
+                      {t("retry")}
+                    </button>
+                  </span>
+                ) : null}
                 <button
                   type="button"
                   onClick={publish}
