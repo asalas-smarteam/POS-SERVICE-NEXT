@@ -798,6 +798,9 @@
     "error_slug_missing": "Definí un enlace antes de publicar.",
     "error_empty_draft": "El menú no tiene bloques para publicar.",
     "error_feature_not_included": "Esta sede no tiene el módulo de menú en línea.",
-    "error_tenant_not_found": "No se pudo encontrar la sede."
+    "error_tenant_not_found": "No se pudo encontrar la sede.",
+    "previewEmpty": "El menú todavía no tiene bloques.",
+    "previewError": "No se pudo cargar la vista previa.",
+    "previewTruncated": "La vista previa muestra los primeros 500 productos."
   }
 }

@@ -798,6 +798,9 @@
     "error_slug_missing": "Set a link before publishing.",
     "error_empty_draft": "The menu has no blocks to publish.",
     "error_feature_not_included": "This location does not have the online menu module.",
-    "error_tenant_not_found": "The location could not be found."
+    "error_tenant_not_found": "The location could not be found.",
+    "previewEmpty": "The menu has no blocks yet.",
+    "previewError": "Preview could not be loaded.",
+    "previewTruncated": "The preview shows the first 500 products."
   }
 }
