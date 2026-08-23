@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import { ArrowLeft, ExternalLink, Loader2 } from "lucide-react";
 import { availableCategories, canAddType } from "@/lib/menu/menuBlockList";
 import { BlockCanvas } from "./block-canvas";
+import { PreviewPanel } from "./preview-panel";
 
 // Los errores del servidor llegan como codigos y se traducen aca, para que el
 // servidor no imponga el idioma de la interfaz.
@@ -176,7 +177,7 @@ export default function OnlineMenuEditorPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 px-6 py-8 text-slate-900 dark:bg-[#061426] dark:text-slate-100">
-      <div className="mx-auto max-w-3xl space-y-6">
+      <div className="mx-auto max-w-7xl space-y-6">
         <div className="flex items-center justify-between gap-4">
           <Link
             href={`/${locale}/admin/${companyId}`}
@@ -234,14 +235,20 @@ export default function OnlineMenuEditorPage() {
               <p className="text-xs font-medium text-amber-600">{t("linkWarning")}</p>
             </section>
 
-            <BlockCanvas
-              blocks={blocks}
-              categoryLabels={categoryLabels}
-              availableCategoryRows={availableCategoryRows}
-              canAddHero={canAddType(blocks, "hero")}
-              canAddFooter={canAddType(blocks, "footer")}
-              onChange={setBlocks}
-            />
+            <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+              <BlockCanvas
+                blocks={blocks}
+                categoryLabels={categoryLabels}
+                availableCategoryRows={availableCategoryRows}
+                canAddHero={canAddType(blocks, "hero")}
+                canAddFooter={canAddType(blocks, "footer")}
+                onChange={setBlocks}
+              />
+              <PreviewPanel
+                previewUrl={`/${locale}/admin/${companyId}/menu/${tenantId}/preview`}
+                blocks={blocks}
+              />
+            </div>
 
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-xs text-slate-500">
