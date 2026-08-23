@@ -793,7 +793,7 @@
     "error_slug_invalid": "The link only accepts lowercase letters, numbers and hyphens, with no leading, trailing or repeated hyphens.",
     "error_slug_taken": "That link is already used by another location.",
     "error_slug_missing": "Set a link before publishing.",
-    "error_empty_draft": "The menu has no visible block with content to publish.",
+    "error_empty_draft": "The menu is empty. Add content before publishing.",
     "error_nothing_visible": "The menu has content, but none of it would show: there are hidden blocks or deactivated categories. Show at least one block with content before publishing.",
     "error_feature_not_included": "This location does not have the online menu module.",
     "error_tenant_not_found": "The location could not be found.",

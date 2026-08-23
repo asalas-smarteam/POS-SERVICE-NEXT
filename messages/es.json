@@ -793,7 +793,7 @@
     "error_slug_invalid": "El enlace solo admite minúsculas, números y guiones, sin guiones al inicio, al final ni repetidos.",
     "error_slug_taken": "Ese enlace ya está en uso por otra sede.",
     "error_slug_missing": "Definí un enlace antes de publicar.",
-    "error_empty_draft": "El menú no tiene ningún bloque visible con contenido para publicar.",
+    "error_empty_draft": "El menú está vacío. Agregá contenido antes de publicar.",
     "error_nothing_visible": "El menú tiene contenido, pero nada de eso se vería: hay bloques ocultos o categorías desactivadas. Mostrá al menos un bloque con contenido antes de publicar.",
     "error_feature_not_included": "Esta sede no tiene el módulo de menú en línea.",
     "error_tenant_not_found": "No se pudo encontrar la sede.",
