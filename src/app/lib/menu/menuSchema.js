@@ -5,12 +5,22 @@ export const MENU_SCHEMA_VERSION = 1;
 export const BLOCK_TYPES = Object.freeze(["hero", "category", "footer"]);
 
 export const MENU_ERRORS = Object.freeze({
+  // No hay nada escrito: el borrador esta vacio o son bloques en blanco.
   EMPTY_DRAFT: "empty_draft",
+  // Hay contenido, pero nada de eso llegaria a verse. Es un problema distinto
+  // y se arregla distinto (mostrar un bloque o reactivar una categoria en
+  // Ajustes), asi que lleva su propio codigo y su propio mensaje.
+  NOTHING_VISIBLE: "nothing_visible",
 });
 
 const text = (value, max) => String(value ?? "").trim().slice(0, max);
 
-const TEXT_LIMITS = Object.freeze({
+// Exportado a proposito: los `maxLength` de los inputs del editor salen de
+// aca. Si el editor repitiera los numeros, cualquier cambio en este objeto
+// dejaria a la vista previa mostrando texto que este modulo recorta despues,
+// en silencio, al guardar. Esa divergencia previa <-> menu publico es
+// exactamente lo que el diseno declara peor que no tener previa.
+export const TEXT_LIMITS = Object.freeze({
   title: 120,
   subtitle: 200,
   footerText: 300,
@@ -149,13 +159,15 @@ export function normalizeMenuDocument(raw) {
   };
 }
 
-// Con solo contar bloques no alcanza: el editor siempre manda un hero y un
-// footer en buildDraft, aunque esten vacios, asi que un borrador "vacio" en
-// los hechos siempre tiene 2 bloques. Si canPublish solo contara, nunca
-// podria disparar 'empty_draft' y la pagina publica quedaria en blanco (los
-// bloques hero/footer sin datos renderean null) sin que el guard lo hubiera
-// evitado. Por eso se exige contenido real: una categoria (siempre referencia
-// algo), o un hero/footer con al menos un campo no vacio.
+// Con solo contar bloques no alcanza, y sigue sin alcanzar ahora que el
+// editor es un lienzo: agregar una portada desde el menu "Agregar" crea un
+// bloque hero con los dos campos en blanco, y agregar un pie crea uno con los
+// tres en blanco. Un borrador asi tiene 2 bloques y no tiene nada que
+// mostrar: los componentes de hero y footer sin datos renderean null, asi que
+// publicarlo dejaria /m/<slug> sin una sola linea de contenido -o en el 404
+// de "sin bloques renderizables"- mientras el editor muestra la alerta verde
+// de "Publicado". Por eso se exige contenido real: una categoria (siempre
+// referencia algo) o un hero/footer con al menos un campo no vacio.
 function hasRealContent(block) {
   if (block.type === "category") {
     return true;
@@ -163,9 +175,39 @@ function hasRealContent(block) {
   return Object.values(block.data).some((value) => typeof value === "string" && value.trim() !== "");
 }
 
-export function canPublish(menu) {
+// Publicar tiene que negarse EXACTAMENTE cuando la pagina publica haria
+// notFound(), y la pagina publica lo decide con
+// `renderableBlocks(published.blocks, categoryMap)`. Por eso este guard usa el
+// mismo predicado en vez de reimplementar sus condiciones: dos listas de
+// condiciones que hoy coinciden son dos listas que manana divergen, y cuando
+// divergen el sintoma es que el editor dice "Publicado" en verde y todos los
+// clientes reciben un 404. Es el mismo razonamiento por el que MenuBlockList
+// filtra adentro en vez de confiar en que cada consumidor filtre igual.
+//
+// Por eso tambien el `categoryMap` es obligatorio y no opcional: sin el, un
+// llamador que se lo olvide no obtiene "no filtro categorias", obtiene "ninguna
+// categoria esta activa", que es la respuesta contraria a la segura. La ruta de
+// publicacion lo pide con getProductCategoryMap(conn), el mismo helper que usa
+// la pagina publica.
+//
+// Dos codigos y no uno porque son dos problemas que el dueno resuelve distinto:
+// EMPTY_DRAFT es "no escribiste nada" (se arregla escribiendo), NOTHING_VISIBLE
+// es "escribiste, pero lo ocultaste o desactivaste la categoria" (se arregla
+// mostrando el bloque o reactivando la categoria en Ajustes). Un solo mensaje
+// mandaria a la mitad de los casos a buscar en el lugar equivocado.
+export function canPublish(menu, categoryMap) {
   const draft = normalizeMenuDraft(menu?.draft);
-  return draft.blocks.some(hasRealContent) ? null : MENU_ERRORS.EMPTY_DRAFT;
+
+  if (!draft.blocks.some(hasRealContent)) {
+    return MENU_ERRORS.EMPTY_DRAFT;
+  }
+
+  const visible = renderableBlocks(draft.blocks, categoryMap);
+  if (!visible.some(hasRealContent)) {
+    return MENU_ERRORS.NOTHING_VISIBLE;
+  }
+
+  return null;
 }
 
 // La fecha entra por parametro para que el resultado sea determinista y testeable.

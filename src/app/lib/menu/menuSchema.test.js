@@ -148,29 +148,38 @@ describe("normalizeMenuDocument", () => {
 });
 
 describe("canPublish", () => {
+  // El mismo shape que devuelve getProductCategoryMap: id -> fila cruda de
+  // ajustes. Es lo que la ruta de publicacion le pasa y lo que la pagina
+  // publica ya usa para su notFound().
+  const catalog = new Map([
+    ["bebidas", { id: "bebidas", label: "Bebidas", active: true }],
+    ["viejo", { id: "viejo", label: "Viejo", active: false }],
+    ["sinFlag", { id: "sinFlag", label: "Sin flag" }],
+  ]);
+
   it("rechaza un borrador vacio", () => {
-    expect(canPublish(createEmptyMenu())).toBe("empty_draft");
+    expect(canPublish(createEmptyMenu(), catalog)).toBe("empty_draft");
   });
 
   it("rechaza un borrador cuyos bloques son todos invalidos", () => {
-    expect(canPublish({ draft: { blocks: [{ type: "nope" }] } })).toBe("empty_draft");
+    expect(canPublish({ draft: { blocks: [{ type: "nope" }] } }, catalog)).toBe("empty_draft");
   });
 
   it("acepta un borrador con al menos un bloque valido", () => {
-    expect(canPublish({ draft: { blocks: [heroRaw] } })).toBeNull();
+    expect(canPublish({ draft: { blocks: [heroRaw] } }, catalog)).toBeNull();
   });
 
-  it("rechaza un hero y un footer vacios: es lo que buildDraft manda siempre en el editor", () => {
+  it("rechaza un hero y un footer sin un solo campo con texto: renderean null y dejarian la pagina publica en blanco", () => {
     const draft = {
       blocks: [
         { type: "hero", data: { title: "", subtitle: "" } },
         { type: "footer", data: { text: "", phone: "", address: "" } },
       ],
     };
-    expect(canPublish({ draft })).toBe("empty_draft");
+    expect(canPublish({ draft }, catalog)).toBe("empty_draft");
   });
 
-  it("acepta un hero y un footer vacios si hay ademas un bloque de categoria", () => {
+  it("acepta un hero y un footer vacios si hay ademas un bloque de categoria activa", () => {
     const draft = {
       blocks: [
         { type: "hero", data: { title: "", subtitle: "" } },
@@ -178,17 +187,120 @@ describe("canPublish", () => {
         { type: "footer", data: { text: "", phone: "", address: "" } },
       ],
     };
-    expect(canPublish({ draft })).toBeNull();
+    expect(canPublish({ draft }, catalog)).toBeNull();
   });
 
   it("acepta un borrador con unicamente un hero que tiene titulo", () => {
     const draft = { blocks: [{ type: "hero", data: { title: "Pizzeria", subtitle: "" } }] };
-    expect(canPublish({ draft })).toBeNull();
+    expect(canPublish({ draft }, catalog)).toBeNull();
   });
 
   it("acepta un borrador con unicamente un footer que tiene telefono", () => {
     const draft = { blocks: [{ type: "footer", data: { text: "", phone: "22334455", address: "" } }] };
-    expect(canPublish({ draft })).toBeNull();
+    expect(canPublish({ draft }, catalog)).toBeNull();
+  });
+
+  // Ocultar todo y publicar publicaba "con exito" un menu que renderableBlocks
+  // deja vacio y que /m/<slug> contesta con notFound() a todos los clientes.
+  // El codigo es nothing_visible y no empty_draft: hay contenido escrito, el
+  // problema es que nada de eso se veria, y se arregla en otro lado.
+  it("rechaza con nothing_visible un borrador cuyo unico bloque de categoria esta oculto", () => {
+    const draft = { blocks: [{ ...catRaw("bebidas"), visible: false }] };
+    expect(canPublish({ draft }, catalog)).toBe("nothing_visible");
+  });
+
+  it("rechaza con nothing_visible un borrador con todos los bloques ocultos, aunque tengan contenido", () => {
+    const draft = {
+      blocks: [
+        { ...heroRaw, visible: false },
+        { ...catRaw("bebidas"), visible: false },
+        { ...footerRaw, visible: false },
+      ],
+    };
+    expect(canPublish({ draft }, catalog)).toBe("nothing_visible");
+  });
+
+  it("acepta si queda al menos un bloque visible con contenido entre varios ocultos", () => {
+    const draft = {
+      blocks: [
+        { ...heroRaw, visible: false },
+        { ...catRaw("bebidas"), visible: false },
+        footerRaw,
+      ],
+    };
+    expect(canPublish({ draft }, catalog)).toBeNull();
+  });
+
+  it("no alcanza con un bloque visible sin contenido si el unico bloque con contenido esta oculto", () => {
+    const draft = {
+      blocks: [
+        { ...heroRaw, visible: false },
+        { type: "footer", data: { text: "", phone: "", address: "" } },
+      ],
+    };
+    expect(canPublish({ draft }, catalog)).toBe("nothing_visible");
+  });
+
+  it("acepta una categoria activa visible aunque el hero con texto este oculto", () => {
+    const draft = { blocks: [{ ...heroRaw, visible: false }, catRaw("bebidas")] };
+    expect(canPublish({ draft }, catalog)).toBeNull();
+  });
+
+  // La brecha gemela de la anterior: el bloque esta visible, pero la categoria
+  // que referencia se desactivo o se borro en Ajustes. renderableBlocks la
+  // descarta, la pagina publica hace notFound(), y hasta ahora publicar decia
+  // que todo habia salido bien. El guard usa el mismo predicado justamente para
+  // que no puedan divergir.
+  it("rechaza un borrador cuyo unico bloque referencia una categoria desactivada", () => {
+    const draft = { blocks: [catRaw("viejo")] };
+    expect(canPublish({ draft }, catalog)).toBe("nothing_visible");
+  });
+
+  it("rechaza un borrador cuyo unico bloque referencia una categoria que ya no existe", () => {
+    const draft = { blocks: [catRaw("fantasma")] };
+    expect(canPublish({ draft }, catalog)).toBe("nothing_visible");
+  });
+
+  it("rechaza un borrador cuyo unico bloque referencia una categoria sin el flag active", () => {
+    const draft = { blocks: [catRaw("sinFlag")] };
+    expect(canPublish({ draft }, catalog)).toBe("nothing_visible");
+  });
+
+  it("rechaza cuando todas las categorias del menu estan desactivadas y el hero esta en blanco", () => {
+    const draft = {
+      blocks: [
+        { type: "hero", data: { title: "", subtitle: "" } },
+        catRaw("viejo"),
+        catRaw("fantasma"),
+      ],
+    };
+    expect(canPublish({ draft }, catalog)).toBe("nothing_visible");
+  });
+
+  it("acepta si el hero visible tiene texto aunque su unica categoria este desactivada", () => {
+    const draft = { blocks: [heroRaw, catRaw("viejo")] };
+    expect(canPublish({ draft }, catalog)).toBeNull();
+  });
+
+  it("acepta si queda una categoria activa entre varias desactivadas", () => {
+    const draft = { blocks: [catRaw("viejo"), catRaw("bebidas"), catRaw("sinFlag")] };
+    expect(canPublish({ draft }, catalog)).toBeNull();
+  });
+
+  // Un borrador sin nada escrito sigue siendo empty_draft aunque el mapa este
+  // completo: los dos codigos no se pisan.
+  it("distingue empty_draft de nothing_visible con el mismo catalogo", () => {
+    expect(canPublish({ draft: { blocks: [] } }, catalog)).toBe("empty_draft");
+    expect(canPublish({ draft: { blocks: [{ ...heroRaw, visible: false }] } }, catalog)).toBe(
+      "nothing_visible",
+    );
+  });
+
+  // El mapa es obligatorio, y olvidarlo tiene que fallar hacia el lado seguro:
+  // sin catalogo ninguna categoria puede probarse activa, asi que un menu de
+  // puras categorias se rechaza en vez de publicarse a ciegas.
+  it("sin categoryMap rechaza un menu de puras categorias en vez de aprobarlo", () => {
+    expect(canPublish({ draft: { blocks: [catRaw("bebidas")] } })).toBe("nothing_visible");
   });
 });
 
