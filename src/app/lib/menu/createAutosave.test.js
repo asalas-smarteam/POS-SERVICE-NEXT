@@ -388,3 +388,69 @@ describe("createAutosave — ronda de arreglo 1", () => {
     });
   });
 });
+
+// Ronda de arreglo 2: la re-revision confirmo los cuatro hallazgos de la
+// ronda 1 como resueltos, pero encontro una rotura nueva dentro de ese mismo
+// arreglo: el reencadenado de trabajo pendiente tras un cancel() colgaba del
+// callback de finally() sin que flush() lo esperara.
+describe("createAutosave — ronda de arreglo 2", () => {
+  it("flush() no resuelve mientras el guardado que reemplaza a uno cancelado sigue en vuelo", async () => {
+    const { save, calls } = deferredSaver();
+    const autosave = createAutosave({ save, delay: 1500 });
+
+    autosave.schedule({ n: 1 });
+    await vi.advanceTimersByTimeAsync(1500); // save({n:1}) en vuelo
+    autosave.cancel();
+    autosave.schedule({ n: 2 });
+
+    const flushed = autosave.flush();
+    let settled = false;
+    flushed.then(() => {
+      settled = true;
+    });
+
+    // El guardado huerfano ({n:1}) llega tarde: no puede ser lo que destrabe
+    // flush(), porque ya no representa el estado vigente.
+    calls[0].resolve();
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(calls).toHaveLength(2);
+    expect(calls[1].payload).toEqual({ n: 2 });
+    // El guardado real que SI importa ({n:2}) sigue sin resolver: flush() no
+    // puede haber terminado todavia.
+    expect(settled).toBe(false);
+
+    calls[1].resolve();
+    await expect(flushed).resolves.toBe(true);
+    expect(settled).toBe(true);
+  });
+
+  it("un start() reentrante durante el prologo sincronico devuelve una promesa real, no null", async () => {
+    const { save, calls } = deferredSaver();
+    const retryResults = [];
+    let fired = false;
+    const autosave = createAutosave({
+      save,
+      delay: 1500,
+      onStatusChange: (s) => {
+        if (s === "saving" && !fired) {
+          fired = true;
+          // Esto es lo que en la ronda 1 podia devolver `null` en vez de una
+          // promesa: retry() llama a start() reentrante, dentro del propio
+          // prologo sincronico de la cadena que dispara este callback.
+          retryResults.push(autosave.retry());
+        }
+      },
+    });
+
+    autosave.schedule({ n: 1 });
+    await vi.advanceTimersByTimeAsync(1500);
+
+    expect(retryResults).toHaveLength(1);
+    expect(retryResults[0]).toBeInstanceOf(Promise);
+    expect(calls).toHaveLength(1); // sigue habiendo un solo guardado real
+
+    calls[0].resolve();
+    await expect(retryResults[0]).resolves.toBe(true);
+  });
+});

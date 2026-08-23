@@ -10,22 +10,33 @@
 // solo contra un endpoint que falla no lo arregla, esconde el problema, y en
 // una perdida de red convierte cada cambio en un pedido mas.
 //
-// Ronda de arreglo 1 (revision posterior): `cancel()` marcaba el estado como
-// "idle" pero no invalidaba la cadena que ya estaba en vuelo. Cuando esa
-// promesa vieja terminaba -resuelta o rechazada, no importa- seguia
-// escribiendo sobre las mismas variables compartidas y resucitaba un estado
-// que ya se habia descartado. La solucion es un numero de generacion: cada
-// `cancel()` lo avanza, y una cadena que llega al final (o al catch) en una
-// generacion distinta a la vigente no toca nada del estado compartido.
+// Ronda de arreglo 1: cancel() marcaba el estado como "idle" pero no
+// invalidaba la cadena que ya estaba en vuelo. Cuando esa promesa vieja
+// terminaba -resuelta o rechazada, no importa- seguia escribiendo sobre las
+// mismas variables compartidas y resucitaba un estado que ya se habia
+// descartado. La solucion es un numero de generacion: cada cancel() lo
+// avanza, y una cadena que llega al final (o al catch) en una generacion
+// distinta a la vigente no toca nada del estado compartido.
 //
-// De paso aparecio un segundo problema: `start()` recien marcaba el candado
-// de "guardando" (la variable `inFlight`) despues de que `runChain` ya habia
-// corrido su prologo sincronico -el que llama a `setStatus("saving")`-, asi
-// que una reentrada sincronica (por ejemplo un `retry()` disparado desde el
-// propio `onStatusChange`) todavia veia el candado abierto y arrancaba una
-// segunda cadena real. Ahora el candado (`saving`) se reserva de forma
-// sincronica antes de invocar `runChain`, asi que ninguna reentrada alcanza a
-// colarse.
+// Ronda de arreglo 2: la primera version de ese arreglo reencadenaba el
+// trabajo que quedaba pendiente tras una cancelacion desde el callback de
+// finally(), sin que nadie lo esperara. Eso rompia a flush(): la promesa que
+// flush() espera (inFlight) se resolvia en cuanto la cadena vieja terminaba,
+// ANTES de que el guardado nuevo -disparado por afuera, en el finally-
+// terminara. flush() devolvia true con un save real todavia viajando. Ahora
+// start() es una unica funcion asincronica: si al terminar la cadena queda
+// trabajo pendiente, lo relanza con "await start()" DENTRO de la misma
+// promesa que ya se le entrego al que llamo. Nadie que este esperando esa
+// promesa puede ver un resultado antes de que toda la cadena -incluida
+// cualquier continuacion- haya terminado de verdad.
+//
+// De paso, esto resuelve el otro problema que traia el diseño anterior: como
+// la promesa de retorno (inFlight) se reserva de forma sincronica antes de
+// tocar runChain, una reentrada durante el prologo sincronico (por ejemplo un
+// retry() disparado desde el propio onStatusChange) recibe esa promesa real
+// en vez de null -antes violaba el contrato retry(): Promise<boolean>-. Y
+// como la continuacion vive dentro del mismo await, no queda ninguna promesa
+// "sin dueño" que pudiera generar un rechazo sin manejar.
 export function createAutosave({ save, delay = 1500, onStatusChange } = {}) {
   let timer = null;
   let pending = null;
@@ -55,9 +66,9 @@ export function createAutosave({ save, delay = 1500, onStatusChange } = {}) {
   };
 
   // Un guardado en vuelo solo cuenta si pertenece a la generacion vigente. Uno
-  // que quedo huerfano por un `cancel()` sigue corriendo de verdad (no se
-  // puede abortar un `fetch` que no expone AbortController), pero para el
-  // resto del modulo ya no representa trabajo pendiente.
+  // que quedo huerfano por un cancel() sigue corriendo de verdad (no se puede
+  // abortar un fetch que no expone AbortController), pero para el resto del
+  // modulo ya no representa trabajo pendiente.
   const isSavingCurrentGeneration = () =>
     saving && inFlightGeneration === generation;
 
@@ -115,23 +126,41 @@ export function createAutosave({ save, delay = 1500, onStatusChange } = {}) {
     const myGeneration = generation;
     inFlightGeneration = myGeneration;
 
-    const promise = runChain(myGeneration).finally(() => {
-      saving = false;
-      if (inFlightGeneration === myGeneration) {
-        inFlightGeneration = null;
-      }
-      if (inFlight === promise) {
-        inFlight = null;
-      }
+    // La promesa se crea y se publica en inFlight de forma sincronica, antes
+    // de que runChain corra una sola linea. Asi, cualquier reentrada que
+    // ocurra durante el prologo sincronico de runChain (el tramo hasta el
+    // primer await save(...)) encuentra el candado (saving) ya cerrado y una
+    // promesa de verdad para devolver -nunca null.
+    let resolvePromise;
+    const promise = new Promise((resolve) => {
+      resolvePromise = resolve;
+    });
+    inFlight = promise;
+
+    (async () => {
+      let result = await runChain(myGeneration).finally(() => {
+        saving = false;
+        if (inFlightGeneration === myGeneration) {
+          inFlightGeneration = null;
+        }
+      });
+
       // Si quedo trabajo pendiente de la generacion vigente -incluso por una
       // cancelacion de por medio mientras esta cadena seguia en vuelo-, nadie
       // mas lo va a disparar: el debounce que lo iba a hacer ya se consumio.
+      // Se relanza y se espera ACA, dentro de la misma promesa que ya se le
+      // entrego a quien llamo a start(): quien este esperando (flush(), por
+      // ejemplo) tiene que ver terminar tambien esta continuacion, no solo la
+      // cadena original.
       if (hasPendingPayload && !failed) {
-        start();
+        result = await start();
+      } else if (inFlight === promise) {
+        inFlight = null;
       }
-    });
 
-    inFlight = promise;
+      resolvePromise(result);
+    })();
+
     return promise;
   }
 
@@ -173,7 +202,7 @@ export function createAutosave({ save, delay = 1500, onStatusChange } = {}) {
     async retry() {
       if (!failed && !hasPendingPayload && !isSavingCurrentGeneration()) {
         // No hubo error ni quedo nada sin guardar: no hay nada que reintentar.
-        // Resolver `true` es correcto ("no quedo nada sin guardar"), pero sin
+        // Resolver true es correcto ("no quedo nada sin guardar"), pero sin
         // tocar el status ni llamar a save -si no, un doble clic en
         // "reintentar" apagaria un cartel de error que ni siquiera existe, o
         // pintaria "guardado" sin haber guardado nada.
