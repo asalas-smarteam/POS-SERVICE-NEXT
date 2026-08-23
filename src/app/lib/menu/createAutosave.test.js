@@ -425,7 +425,16 @@ describe("createAutosave — ronda de arreglo 2", () => {
     expect(settled).toBe(true);
   });
 
-  it("un start() reentrante durante el prologo sincronico devuelve una promesa real, no null", async () => {
+  it("un retry() reentrante durante el prologo sincronico espera al guardado real y no resuelve antes de tiempo (no null)", async () => {
+    // Nota sobre esta aserción (ronda 3): `toBeInstanceOf(Promise)` sobre el
+    // valor de retorno NO detecta el bug de la ronda 1, porque retry() es
+    // `async` y por eso SIEMPRE devuelve una Promise, incluso cuando por
+    // adentro start() devolvia `null` (retry() haria `return null;`, y una
+    // funcion async que retorna un valor no-thenable sencillamente resuelve
+    // su propia promesa con ese valor). Lo que sí distingue el bug es CUÁNDO
+    // resuelve: con el bug, resolvía casi al instante (a `null`), sin
+    // esperar el guardado real; arreglado, se queda pendiente hasta que el
+    // guardado real (deduplicado, un solo `calls[...]`) termina.
     const { save, calls } = deferredSaver();
     const retryResults = [];
     let fired = false;
@@ -435,9 +444,8 @@ describe("createAutosave — ronda de arreglo 2", () => {
       onStatusChange: (s) => {
         if (s === "saving" && !fired) {
           fired = true;
-          // Esto es lo que en la ronda 1 podia devolver `null` en vez de una
-          // promesa: retry() llama a start() reentrante, dentro del propio
-          // prologo sincronico de la cadena que dispara este callback.
+          // retry() llama a start() reentrante, dentro del propio prologo
+          // sincronico de la cadena que dispara este callback.
           retryResults.push(autosave.retry());
         }
       },
@@ -447,10 +455,143 @@ describe("createAutosave — ronda de arreglo 2", () => {
     await vi.advanceTimersByTimeAsync(1500);
 
     expect(retryResults).toHaveLength(1);
-    expect(retryResults[0]).toBeInstanceOf(Promise);
     expect(calls).toHaveLength(1); // sigue habiendo un solo guardado real
 
+    let settled = false;
+    let settledValue;
+    retryResults[0].then((value) => {
+      settled = true;
+      settledValue = value;
+    });
+
+    // Antes de que el guardado real resuelva, la promesa reentrante todavia
+    // tiene que seguir viva.
+    await vi.advanceTimersByTimeAsync(0);
+    expect(settled).toBe(false);
+
     calls[0].resolve();
-    await expect(retryResults[0]).resolves.toBe(true);
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(settled).toBe(true);
+    expect(settledValue).toBe(true);
+  });
+});
+
+// Ronda de arreglo 3: runChain atrapa los rechazos de save(), pero no los
+// throws de setStatus() -que llama a onStatusChange, codigo del consumidor.
+// Un throw ahi hacia rechazar runChain; como el IIFE de start() no tenia
+// try/catch, la promesa publicada en inFlight quedaba pendiente para siempre
+// (nunca se llamaba a resolvePromise) y el IIFE generaba un rechazo sin
+// manejar. Afecta justo a flush() ("antes de publicar", "antes de cerrar la
+// pestaña") y a retry().
+describe("createAutosave — ronda de arreglo 3", () => {
+  it("un onStatusChange que lanza en 'saved' no cuelga flush() ni deja un rechazo sin manejar", async () => {
+    const { save, calls } = deferredSaver();
+    const boom = new Error("boom-saved");
+    const autosave = createAutosave({
+      save,
+      delay: 1500,
+      onStatusChange: (s) => {
+        if (s === "saved") {
+          throw boom;
+        }
+      },
+    });
+
+    const unhandled = [];
+    const onUnhandledRejection = (reason) => unhandled.push(reason);
+    process.on("unhandledRejection", onUnhandledRejection);
+
+    try {
+      autosave.schedule({ n: 1 });
+      const flushed = autosave.flush();
+
+      let settled = false;
+      let settledValue;
+      flushed.then(
+        (value) => {
+          settled = true;
+          settledValue = value;
+        },
+        (error) => {
+          settled = true;
+          settledValue = error;
+        },
+      );
+
+      await vi.advanceTimersByTimeAsync(0); // flush() no espera el debounce
+      expect(calls).toHaveLength(1);
+
+      calls[0].resolve();
+      await vi.advanceTimersByTimeAsync(0);
+
+      // No puede quedar colgado -ni rechazado-: el autoguardado no depende de
+      // que el indicador de la UI se dibuje bien.
+      expect(settled).toBe(true);
+      expect(settledValue).toBe(true);
+      expect(autosave.getStatus()).toBe("saved");
+      expect(autosave.hasPending()).toBe(false);
+    } finally {
+      process.off("unhandledRejection", onUnhandledRejection);
+    }
+
+    expect(unhandled).toHaveLength(0);
+  });
+
+  it("un onStatusChange que lanza en 'saving' no cuelga retry() ni deja un rechazo sin manejar", async () => {
+    const { save, calls } = deferredSaver();
+    const boom = new Error("boom-saving");
+    let throwOnSaving = false;
+    const autosave = createAutosave({
+      save,
+      delay: 1500,
+      onStatusChange: (s) => {
+        if (s === "saving" && throwOnSaving) {
+          throw boom;
+        }
+      },
+    });
+
+    const unhandled = [];
+    const onUnhandledRejection = (reason) => unhandled.push(reason);
+    process.on("unhandledRejection", onUnhandledRejection);
+
+    try {
+      autosave.schedule({ n: 1 });
+      await vi.advanceTimersByTimeAsync(1500);
+      calls[0].reject(new Error("red caida"));
+      await vi.advanceTimersByTimeAsync(0);
+      expect(autosave.getStatus()).toBe("error");
+
+      throwOnSaving = true;
+      const retried = autosave.retry();
+
+      let settled = false;
+      let settledValue;
+      retried.then(
+        (value) => {
+          settled = true;
+          settledValue = value;
+        },
+        (error) => {
+          settled = true;
+          settledValue = error;
+        },
+      );
+
+      await vi.advanceTimersByTimeAsync(0);
+      expect(calls).toHaveLength(2); // reintento el payload que fallo
+
+      calls[1].resolve();
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(settled).toBe(true);
+      expect(settledValue).toBe(true);
+      expect(autosave.getStatus()).toBe("saved");
+    } finally {
+      process.off("unhandledRejection", onUnhandledRejection);
+    }
+
+    expect(unhandled).toHaveLength(0);
   });
 });

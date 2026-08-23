@@ -28,15 +28,27 @@
 // trabajo pendiente, lo relanza con "await start()" DENTRO de la misma
 // promesa que ya se le entrego al que llamo. Nadie que este esperando esa
 // promesa puede ver un resultado antes de que toda la cadena -incluida
-// cualquier continuacion- haya terminado de verdad.
+// cualquier continuacion- haya terminado de verdad. De paso, como esa promesa
+// se reserva de forma sincronica antes de tocar runChain, una reentrada
+// durante el prologo sincronico (por ejemplo un retry() disparado desde el
+// propio onStatusChange) recibe esa promesa real en vez de null.
 //
-// De paso, esto resuelve el otro problema que traia el diseño anterior: como
-// la promesa de retorno (inFlight) se reserva de forma sincronica antes de
-// tocar runChain, una reentrada durante el prologo sincronico (por ejemplo un
-// retry() disparado desde el propio onStatusChange) recibe esa promesa real
-// en vez de null -antes violaba el contrato retry(): Promise<boolean>-. Y
-// como la continuacion vive dentro del mismo await, no queda ninguna promesa
-// "sin dueño" que pudiera generar un rechazo sin manejar.
+// Ronda de arreglo 3: runChain atrapa los errores de save(), pero no
+// atrapaba los de setStatus() -que llama a onStatusChange, codigo del
+// consumidor-. Si onStatusChange throweaba, runChain rechazaba, y como el
+// IIFE de start() no tenia try/catch, la promesa publicada en inFlight se
+// quedaba pendiente para siempre (resolvePromise nunca se llamaba) y el IIFE
+// generaba un rechazo sin manejar. Dos capas de arreglo:
+//   1) La raiz: setStatus aisla la llamada a onStatusChange en su propio
+//      try/catch. El autoguardado no puede depender de que el indicador de
+//      la UI se dibuje bien; un throw ahi no tiene que poder tumbar la
+//      maquina de guardado. Con esto, runChain no deberia poder rechazar
+//      nunca por esta via.
+//   2) Defensa en profundidad: aunque la raiz este cerrada, el cuerpo del
+//      IIFE de start() esta en un try/catch que garantiza que la promesa
+//      publicada SIEMPRE se asiente -resuelta o rechazada, nunca colgada- y
+//      que ningun rechazo quede sin manejar, por si algun otro camino
+//      inesperado (no necesariamente onStatusChange) llega a tirar.
 export function createAutosave({ save, delay = 1500, onStatusChange } = {}) {
   let timer = null;
   let pending = null;
@@ -54,7 +66,12 @@ export function createAutosave({ save, delay = 1500, onStatusChange } = {}) {
     }
     status = next;
     if (onStatusChange) {
-      onStatusChange(next);
+      try {
+        onStatusChange(next);
+      } catch {
+        // Se ignora a proposito: es codigo del consumidor (el indicador de
+        // la UI), y un fallo ahi no puede romper la maquina de guardado.
+      }
     }
   };
 
@@ -132,33 +149,51 @@ export function createAutosave({ save, delay = 1500, onStatusChange } = {}) {
     // primer await save(...)) encuentra el candado (saving) ya cerrado y una
     // promesa de verdad para devolver -nunca null.
     let resolvePromise;
-    const promise = new Promise((resolve) => {
+    let rejectPromise;
+    const promise = new Promise((resolve, reject) => {
       resolvePromise = resolve;
+      rejectPromise = reject;
     });
     inFlight = promise;
 
     (async () => {
-      let result = await runChain(myGeneration).finally(() => {
+      try {
+        let result = await runChain(myGeneration).finally(() => {
+          saving = false;
+          if (inFlightGeneration === myGeneration) {
+            inFlightGeneration = null;
+          }
+        });
+
+        // Si quedo trabajo pendiente de la generacion vigente -incluso por una
+        // cancelacion de por medio mientras esta cadena seguia en vuelo-, nadie
+        // mas lo va a disparar: el debounce que lo iba a hacer ya se consumio.
+        // Se relanza y se espera ACA, dentro de la misma promesa que ya se le
+        // entrego a quien llamo a start(): quien este esperando (flush(), por
+        // ejemplo) tiene que ver terminar tambien esta continuacion, no solo la
+        // cadena original.
+        if (hasPendingPayload && !failed) {
+          result = await start();
+        } else if (inFlight === promise) {
+          inFlight = null;
+        }
+
+        resolvePromise(result);
+      } catch (error) {
+        // Defensa en profundidad: con setStatus() aislando a onStatusChange,
+        // runChain no deberia poder rechazar nunca. Pero si algo igual revienta
+        // aca -un bug futuro, no necesariamente onStatusChange-, la promesa
+        // publicada tiene que enterarse: no puede quedar colgada para siempre
+        // ni dejar un rechazo sin manejar.
         saving = false;
         if (inFlightGeneration === myGeneration) {
           inFlightGeneration = null;
         }
-      });
-
-      // Si quedo trabajo pendiente de la generacion vigente -incluso por una
-      // cancelacion de por medio mientras esta cadena seguia en vuelo-, nadie
-      // mas lo va a disparar: el debounce que lo iba a hacer ya se consumio.
-      // Se relanza y se espera ACA, dentro de la misma promesa que ya se le
-      // entrego a quien llamo a start(): quien este esperando (flush(), por
-      // ejemplo) tiene que ver terminar tambien esta continuacion, no solo la
-      // cadena original.
-      if (hasPendingPayload && !failed) {
-        result = await start();
-      } else if (inFlight === promise) {
-        inFlight = null;
+        if (inFlight === promise) {
+          inFlight = null;
+        }
+        rejectPromise(error);
       }
-
-      resolvePromise(result);
     })();
 
     return promise;
