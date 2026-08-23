@@ -10,7 +10,12 @@ export const MENU_ERRORS = Object.freeze({
 
 const text = (value, max) => String(value ?? "").trim().slice(0, max);
 
-const TEXT_LIMITS = Object.freeze({
+// Exportado a proposito: los `maxLength` de los inputs del editor salen de
+// aca. Si el editor repitiera los numeros, cualquier cambio en este objeto
+// dejaria a la vista previa mostrando texto que este modulo recorta despues,
+// en silencio, al guardar. Esa divergencia previa <-> menu publico es
+// exactamente lo que el diseno declara peor que no tener previa.
+export const TEXT_LIMITS = Object.freeze({
   title: 120,
   subtitle: 200,
   footerText: 300,
@@ -149,13 +154,15 @@ export function normalizeMenuDocument(raw) {
   };
 }
 
-// Con solo contar bloques no alcanza: el editor siempre manda un hero y un
-// footer en buildDraft, aunque esten vacios, asi que un borrador "vacio" en
-// los hechos siempre tiene 2 bloques. Si canPublish solo contara, nunca
-// podria disparar 'empty_draft' y la pagina publica quedaria en blanco (los
-// bloques hero/footer sin datos renderean null) sin que el guard lo hubiera
-// evitado. Por eso se exige contenido real: una categoria (siempre referencia
-// algo), o un hero/footer con al menos un campo no vacio.
+// Con solo contar bloques no alcanza, y sigue sin alcanzar ahora que el
+// editor es un lienzo: agregar una portada desde el menu "Agregar" crea un
+// bloque hero con los dos campos en blanco, y agregar un pie crea uno con los
+// tres en blanco. Un borrador asi tiene 2 bloques y no tiene nada que
+// mostrar: los componentes de hero y footer sin datos renderean null, asi que
+// publicarlo dejaria /m/<slug> sin una sola linea de contenido -o en el 404
+// de "sin bloques renderizables"- mientras el editor muestra la alerta verde
+// de "Publicado". Por eso se exige contenido real: una categoria (siempre
+// referencia algo) o un hero/footer con al menos un campo no vacio.
 function hasRealContent(block) {
   if (block.type === "category") {
     return true;
@@ -163,9 +170,24 @@ function hasRealContent(block) {
   return Object.values(block.data).some((value) => typeof value === "string" && value.trim() !== "");
 }
 
+// Y ademas visible. Antes del lienzo el editor no podia expresar
+// `visible: false`, asi que mirar solo el contenido alcanzaba; hoy ocultar un
+// bloque es un boton de un clic. Sin este filtro, ocultar el unico bloque con
+// contenido publicaba "con exito" un menu cuyo renderableBlocks queda vacio y
+// cuya pagina publica responde notFound() a todos los clientes, sin aviso en
+// ninguna capa.
+//
+// Lo que este guard NO puede ver es si la categoria referenciada sigue activa:
+// eso vive en los ajustes de la sede, no en el documento del menu. Un menu de
+// una sola categoria desactivada todavia publica y todavia da 404; el editor lo
+// avisa con categoryInactiveWarning en la fila.
+function isPublishable(block) {
+  return block.visible !== false && hasRealContent(block);
+}
+
 export function canPublish(menu) {
   const draft = normalizeMenuDraft(menu?.draft);
-  return draft.blocks.some(hasRealContent) ? null : MENU_ERRORS.EMPTY_DRAFT;
+  return draft.blocks.some(isPublishable) ? null : MENU_ERRORS.EMPTY_DRAFT;
 }
 
 // La fecha entra por parametro para que el resultado sea determinista y testeable.

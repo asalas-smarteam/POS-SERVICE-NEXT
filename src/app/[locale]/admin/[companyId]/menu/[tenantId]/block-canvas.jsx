@@ -29,7 +29,15 @@ import { BlockRow } from "./block-row";
 const menuTriggerId = "add-block-trigger";
 const menuId = "add-block-menu";
 
-export function BlockCanvas({ blocks, categoryLabels, availableCategoryRows, canAddHero, canAddFooter, onChange }) {
+export function BlockCanvas({
+  blocks,
+  categoryLabels,
+  categoriesFailed,
+  availableCategoryRows,
+  canAddHero,
+  canAddFooter,
+  onChange,
+}) {
   const t = useTranslations("OnlineMenu");
   const [expandedId, setExpandedId] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -126,7 +134,18 @@ export function BlockCanvas({ blocks, categoryLabels, availableCategoryRows, can
   // descartar ese bloque en silencio en el menu publico. No se borra el
   // bloque -eso perderia la configuracion si el dueno reactiva la
   // categoria- pero la fila tiene que avisar en vez de mostrarse normal.
+  //
+  // Salvo cuando la lista de categorias directamente no cargo: ahi
+  // categoryLabels esta vacio por un fallo de red o del endpoint, no porque
+  // el dueno haya desactivado nada, y este aviso -que es la unica senal que
+  // distingue "la categoria se desactivo" de "no cargaron las categorias"-
+  // marcaria TODAS las filas con un diagnostico falso sobre el estado de sus
+  // ajustes. En ese caso calla, y el aviso de carga fallida de mas abajo dice
+  // la verdad una sola vez.
   const warningFor = (block) => {
+    if (categoriesFailed) {
+      return null;
+    }
     if (block.type !== "category") {
       return null;
     }
@@ -134,6 +153,19 @@ export function BlockCanvas({ blocks, categoryLabels, availableCategoryRows, can
       return null;
     }
     return t("categoryInactiveWarning");
+  };
+
+  // El menu "Agregar" queda vacio por tres motivos distintos y el dueno
+  // necesita saber cual: no hay categorias activas, ya estan todas puestas, o
+  // no las pudimos leer.
+  const emptyCategoriesText = () => {
+    if (categoriesFailed) {
+      return t("categoriesLoadFailed");
+    }
+    if (categoryLabels.size === 0) {
+      return t("noActiveCategories");
+    }
+    return t("noCategoriesLeft");
   };
 
   const add = (type, data) => {
@@ -202,9 +234,7 @@ export function BlockCanvas({ blocks, categoryLabels, availableCategoryRows, can
                 {t("addCategoryGroup")}
               </p>
               {availableCategoryRows.length === 0 ? (
-                <p className="px-2 py-1.5 text-xs text-slate-400">
-                  {categoryLabels.size === 0 ? t("noActiveCategories") : t("noCategoriesLeft")}
-                </p>
+                <p className="px-2 py-1.5 text-xs text-slate-400">{emptyCategoriesText()}</p>
               ) : (
                 availableCategoryRows.map((category) => (
                   <button
@@ -222,6 +252,15 @@ export function BlockCanvas({ blocks, categoryLabels, availableCategoryRows, can
           ) : null}
         </div>
       </div>
+
+      {categoriesFailed ? (
+        <p
+          role="status"
+          className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-700 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-400"
+        >
+          {t("categoriesLoadFailed")}
+        </p>
+      ) : null}
 
       {blocks.length === 0 ? (
         <p className="py-6 text-center text-sm text-slate-400">{t("noBlocks")}</p>

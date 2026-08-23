@@ -159,6 +159,10 @@ El mismo techo de 500 productos que usa la página pública. Al alcanzarlo,
 `truncated: true` y la previa lo dice en un cartel. Una previa recortada que no
 avisa es una previa que miente.
 
+Pero el techo **no recorta el mismo conjunto en las dos vistas**, y eso no se
+puede arreglar dentro de 1b‑1 sin cambiar la estrategia de consulta. Ver
+"Deuda para 1b‑2".
+
 ### Endpoints de guardado
 
 `PUT /api/company/sedes/[tenantId]/menu` hoy hace dos cosas: guarda el borrador
@@ -309,6 +313,39 @@ más caro de lo previsto al implementarlo.
 **Paleta lateral de categorías disponibles.** Tres columnas obligan a pantalla
 ancha sí o sí y a diseñar un modo angosto aparte. El botón "Agregar" cubre el
 mismo caso con menos superficie.
+
+## Deuda para 1b‑2
+
+**El techo de 500 productos recorta conjuntos distintos en la previa y en el
+menú público.**
+
+La página pública (`src/app/m/[slug]/page.jsx`) consulta solo
+`referencedCategoryIds(blocks)` con `.limit(500)`: su techo se aplica sobre los
+productos de las categorías que el menú realmente usa. El endpoint de la previa
+(`.../menu/preview-data/route.js`) consulta **todas** las categorías activas con
+`.limit(501)`: su techo se aplica sobre un conjunto más grande, ordenado por
+nombre.
+
+Con 800 productos repartidos en 8 categorías activas de las cuales el menú usa
+2, el público muestra los ~150 de esas dos y la previa muestra los que caigan en
+los primeros 500 por nombre entre las ocho. La previa puede quedar con secciones
+incompletas que el menú público sirve enteras.
+
+Traer todas las categorías activas es deliberado y no se cambia en 1b‑1: es lo
+que evita un refetch —y un salto de la previa— cada vez que se agrega una
+categoría al lienzo. Lo que 1b‑1 sí corrige es el cartel, que describía una
+truncación que no es la que sufre el menú: ahora dice explícitamente que la
+previa carga los primeros 500 por nombre entre todas las categorías activas y
+que puede faltarle productos que el menú público sí muestra.
+
+Opciones para 1b‑2, ninguna evaluada todavía:
+
+- Consultar por categoría con un techo por categoría, y cachear por categoría en
+  el cliente: agregar una categoría pide solo la suya, sin refetch del resto.
+- Mantener la consulta amplia pero calcular `truncated` por categoría, para que
+  el cartel diga cuáles quedaron incompletas en vez de hablar del total.
+- Subir el techo de la previa y aceptar el costo, si se mide que 500 es
+  conservador de más.
 
 ## Riesgos
 

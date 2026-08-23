@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { MenuBlockList } from "@/components/menu/menu-blocks";
 import { createMenuPriceFormatter } from "@/lib/menu/menuFormat";
+import { renderableBlocks } from "@/lib/menu/menuSchema";
 
 const READY_MESSAGE = "menu-preview-ready";
 const BLOCKS_MESSAGE = "menu-preview-blocks";
@@ -106,6 +107,21 @@ export default function MenuPreviewPage() {
     [data],
   );
 
+  // El estado vacio se decide DESPUES de filtrar, con el mismo renderableBlocks
+  // que aplica MenuBlockList adentro. Decidirlo sobre `blocks` (la lista sin
+  // filtrar) hacia que con todos los bloques ocultos hubiera blocks.length > 0
+  // y por lo tanto ni el aviso ni contenido: una pagina en blanco, justo en el
+  // caso en que el dueno mas necesita entender que oculto todo.
+  const visibleBlocks = useMemo(
+    () => renderableBlocks(blocks, categoryMap),
+    [blocks, categoryMap],
+  );
+
+  // Y solo cuenta como vacio si los datos ya llegaron: con `data` en null el
+  // categoryMap esta vacio, todo bloque de categoria se filtra, y un menu que
+  // solo tiene categorias se leeria como "sin bloques" durante la carga.
+  const isEmpty = data !== null && visibleBlocks.length === 0;
+
   if (failed) {
     return (
       <main className="mx-auto min-h-screen max-w-2xl bg-white p-6 text-neutral-500">
@@ -121,7 +137,7 @@ export default function MenuPreviewPage() {
           {t("previewTruncated")}
         </p>
       ) : null}
-      {blocks.length === 0 ? (
+      {isEmpty ? (
         <p className="px-5 py-16 text-center text-sm text-neutral-400">{t("previewEmpty")}</p>
       ) : (
         <MenuBlockList

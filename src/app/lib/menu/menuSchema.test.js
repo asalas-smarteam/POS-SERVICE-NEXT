@@ -160,7 +160,7 @@ describe("canPublish", () => {
     expect(canPublish({ draft: { blocks: [heroRaw] } })).toBeNull();
   });
 
-  it("rechaza un hero y un footer vacios: es lo que buildDraft manda siempre en el editor", () => {
+  it("rechaza un hero y un footer sin un solo campo con texto: renderean null y dejarian la pagina publica en blanco", () => {
     const draft = {
       blocks: [
         { type: "hero", data: { title: "", subtitle: "" } },
@@ -188,6 +188,50 @@ describe("canPublish", () => {
 
   it("acepta un borrador con unicamente un footer que tiene telefono", () => {
     const draft = { blocks: [{ type: "footer", data: { text: "", phone: "22334455", address: "" } }] };
+    expect(canPublish({ draft })).toBeNull();
+  });
+
+  // Ocultar todo y publicar publicaba "con exito" un menu que renderableBlocks
+  // deja vacio y que /m/<slug> contesta con notFound() a todos los clientes.
+  it("rechaza un borrador cuyo unico bloque de categoria esta oculto", () => {
+    const draft = { blocks: [{ ...catRaw("bebidas"), visible: false }] };
+    expect(canPublish({ draft })).toBe("empty_draft");
+  });
+
+  it("rechaza un borrador con todos los bloques ocultos, aunque tengan contenido", () => {
+    const draft = {
+      blocks: [
+        { ...heroRaw, visible: false },
+        { ...catRaw("bebidas"), visible: false },
+        { ...footerRaw, visible: false },
+      ],
+    };
+    expect(canPublish({ draft })).toBe("empty_draft");
+  });
+
+  it("acepta si queda al menos un bloque visible con contenido entre varios ocultos", () => {
+    const draft = {
+      blocks: [
+        { ...heroRaw, visible: false },
+        { ...catRaw("bebidas"), visible: false },
+        footerRaw,
+      ],
+    };
+    expect(canPublish({ draft })).toBeNull();
+  });
+
+  it("no alcanza con un bloque visible sin contenido si el unico bloque con contenido esta oculto", () => {
+    const draft = {
+      blocks: [
+        { ...heroRaw, visible: false },
+        { type: "footer", data: { text: "", phone: "", address: "" } },
+      ],
+    };
+    expect(canPublish({ draft })).toBe("empty_draft");
+  });
+
+  it("acepta una categoria visible aunque el hero con texto este oculto", () => {
+    const draft = { blocks: [{ ...heroRaw, visible: false }, catRaw("bebidas")] };
     expect(canPublish({ draft })).toBeNull();
   });
 });

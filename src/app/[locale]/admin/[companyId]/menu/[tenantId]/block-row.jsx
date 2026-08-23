@@ -1,12 +1,27 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useTranslations } from "next-intl";
 import { ChevronDown, Eye, EyeOff, GripVertical, Trash2 } from "lucide-react";
+import { TEXT_LIMITS } from "@/lib/menu/menuSchema";
 
 const inputClass =
   "w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-transparent";
+
+// Los maxLength de mas abajo salen de TEXT_LIMITS, nunca escritos a mano aca:
+// normalizeMenuDraft recorta a esos mismos numeros al guardar y el autoguardado
+// descarta el cuerpo de la respuesta, asi que un maxLength duplicado que se
+// quede viejo dejaria al dueno viendo en la previa un pie de 350 caracteres que
+// el menu publico sirve con 300, sin aviso en ninguna capa.
+
+// Ventana de gracia del borrado en dos pasos. Quitar un bloque ya no se puede
+// deshacer recargando: el autoguardado persiste la lista sin el bloque 1500 ms
+// despues, con el titulo y el subtitulo que el dueno acababa de tipear adentro.
+// Un segundo clic explicito es la red minima; el temporizador la devuelve sola
+// para que la fila no quede armada esperando un clic distraido.
+const MS_TO_CONFIRM_REMOVE = 4000;
 
 function HeroFields({ data, onPatch }) {
   const t = useTranslations("OnlineMenu");
@@ -16,12 +31,14 @@ function HeroFields({ data, onPatch }) {
         value={data.title}
         onChange={(event) => onPatch({ title: event.target.value })}
         placeholder={t("heroTitleField")}
+        maxLength={TEXT_LIMITS.title}
         className={inputClass}
       />
       <input
         value={data.subtitle}
         onChange={(event) => onPatch({ subtitle: event.target.value })}
         placeholder={t("heroSubtitleField")}
+        maxLength={TEXT_LIMITS.subtitle}
         className={inputClass}
       />
     </div>
@@ -36,18 +53,21 @@ function FooterFields({ data, onPatch }) {
         value={data.text}
         onChange={(event) => onPatch({ text: event.target.value })}
         placeholder={t("footerTextField")}
+        maxLength={TEXT_LIMITS.footerText}
         className={inputClass}
       />
       <input
         value={data.address}
         onChange={(event) => onPatch({ address: event.target.value })}
         placeholder={t("footerAddressField")}
+        maxLength={TEXT_LIMITS.address}
         className={inputClass}
       />
       <input
         value={data.phone}
         onChange={(event) => onPatch({ phone: event.target.value })}
         placeholder={t("footerPhoneField")}
+        maxLength={TEXT_LIMITS.phone}
         className={inputClass}
       />
     </div>
@@ -83,8 +103,33 @@ export function BlockRow({ block, title, warning, expanded, onToggleExpand, onPa
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: block.id,
   });
+  const [confirmingRemove, setConfirmingRemove] = useState(false);
 
   const hidden = block.visible === false;
+
+  // El temporizador vive en un efecto y no en el handler: asi se limpia solo al
+  // desmontar la fila (quitar el bloque desmonta este componente) y no queda un
+  // setTimeout apuntando a un setState de un componente que ya no existe.
+  useEffect(() => {
+    if (!confirmingRemove) {
+      return undefined;
+    }
+    const timer = setTimeout(() => setConfirmingRemove(false), MS_TO_CONFIRM_REMOVE);
+    return () => clearTimeout(timer);
+  }, [confirmingRemove]);
+
+  const handleRemove = () => {
+    if (!confirmingRemove) {
+      setConfirmingRemove(true);
+      return;
+    }
+    setConfirmingRemove(false);
+    onRemove();
+  };
+
+  // El nombre accesible arranca con el mismo texto que se ve ("¿Seguro?") para
+  // no romper "label in name": quien dicta por voz lee el boton y lo nombra.
+  const removeConfirmLabel = `${t("removeBlockConfirmShort")} ${t("removeBlockConfirm")}: ${title}`;
 
   return (
     <li
@@ -130,13 +175,23 @@ export function BlockRow({ block, title, warning, expanded, onToggleExpand, onPa
           {hidden ? <Eye className="size-4" /> : <EyeOff className="size-4" />}
         </button>
 
+        {/*
+          Un solo <button> en las dos fases, no dos ramas de un ternario: si el
+          elemento cambiara, React desmontaria el que tiene el foco y el segundo
+          clic seria imposible con teclado (el foco se cae al body). Mismo tipo y
+          misma posicion = mismo nodo del DOM = el foco sobrevive al primer clic.
+        */}
         <button
           type="button"
-          onClick={onRemove}
-          aria-label={t("removeBlock")}
-          className="p-1 text-slate-400 hover:text-red-500"
+          onClick={handleRemove}
+          aria-label={confirmingRemove ? removeConfirmLabel : t("removeBlock")}
+          className={
+            confirmingRemove
+              ? "rounded border border-red-500 px-2 py-0.5 text-xs font-semibold text-red-500"
+              : "p-1 text-slate-400 hover:text-red-500"
+          }
         >
-          <Trash2 className="size-4" />
+          {confirmingRemove ? t("removeBlockConfirmShort") : <Trash2 className="size-4" />}
         </button>
       </div>
 
