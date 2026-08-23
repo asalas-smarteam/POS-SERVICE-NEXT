@@ -9,11 +9,9 @@ import { referencedCategoryIds, renderableBlocks } from "@/lib/menu/menuSchema";
 import { getProductCategoryMap } from "@/lib/tenant/categorySettings";
 import { getSystemSettings } from "@/lib/tenant/systemSettings";
 import { getProductSizeOrderMap } from "@/lib/tenant/productSizeSettings";
-import { formatCurrencyAmount } from "@/lib/formatCurrencyAmount";
-import { defaultLocale } from "../../../../i18n";
-import { CategoryBlock, FooterBlock, HeroBlock, SizedCategoryBlock } from "./menu-blocks";
+import { MenuBlockList } from "@/components/menu/menu-blocks";
+import { createMenuPriceFormatter } from "@/lib/menu/menuFormat";
 import { MAX_MENU_PRODUCTS } from "@/lib/menu/menuLimits";
-import { groupProductsBySize } from "@/lib/menu/groupProductsBySize";
 
 // Cacheada un minuto. Los precios cambian en el modulo de productos, no al
 // publicar el menu, asi que revalidar solo al publicar dejaria precios viejos
@@ -141,51 +139,17 @@ export default async function PublicMenuPage({ params }) {
     });
   }
 
-  const formatPrice = (amount) =>
-    formatCurrencyAmount(amount, settings?.currency, defaultLocale);
+  const formatPrice = createMenuPriceFormatter(settings?.currency);
 
   return (
     <main className="mx-auto min-h-screen max-w-2xl bg-white text-neutral-900">
-      {blocks.map((block) => {
-        if (block.type === "hero") {
-          return <HeroBlock key={block.id} data={block.data} />;
-        }
-
-        if (block.type === "footer") {
-          return <FooterBlock key={block.id} data={block.data} />;
-        }
-
-        const category = categoryMap.get(block.data.categoryId);
-        const categoryProducts = productsByCategory.get(block.data.categoryId) ?? [];
-
-        // El agrupado por talle es presentacional: lo decide el flag
-        // `hasSizes` de la categoria (el mismo que usa el resto del POS),
-        // no un campo nuevo del bloque. Una categoria sin talles se sigue
-        // renderando plana, exactamente como antes.
-        if (category?.hasSizes) {
-          return (
-            <SizedCategoryBlock
-              key={block.id}
-              label={category?.label ?? ""}
-              dishes={groupProductsBySize(categoryProducts, sizeOrderMap)}
-              showPhotos={block.data.showPhotos}
-              showDescriptions={block.data.showDescriptions}
-              formatPrice={formatPrice}
-            />
-          );
-        }
-
-        return (
-          <CategoryBlock
-            key={block.id}
-            label={category?.label ?? ""}
-            products={categoryProducts}
-            showPhotos={block.data.showPhotos}
-            showDescriptions={block.data.showDescriptions}
-            formatPrice={formatPrice}
-          />
-        );
-      })}
+      <MenuBlockList
+        blocks={blocks}
+        categoryMap={categoryMap}
+        productsByCategory={productsByCategory}
+        sizeOrderMap={sizeOrderMap}
+        formatPrice={formatPrice}
+      />
     </main>
   );
 }

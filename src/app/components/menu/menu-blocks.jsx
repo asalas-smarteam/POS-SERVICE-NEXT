@@ -1,4 +1,6 @@
 import Image from "next/image";
+import { renderableBlocks } from "@/lib/menu/menuSchema";
+import { groupProductsBySize } from "@/lib/menu/groupProductsBySize";
 
 export function HeroBlock({ data }) {
   if (!data.title && !data.subtitle) {
@@ -124,4 +126,64 @@ export function FooterBlock({ data }) {
       ) : null}
     </footer>
   );
+}
+
+// Despacho bloque -> componente. Vive aca y no en la pagina publica porque la
+// vista previa del editor renderiza exactamente esto: si hubiera dos copias
+// del despacho, la previa mostraria algo distinto de lo que el visitante ve el
+// dia que alguien toque una sola de las dos.
+//
+// El filtrado con renderableBlocks va adentro, no afuera: ocultar un bloque y
+// desactivar una categoria tienen que comportarse igual en la previa que en el
+// menu publico sin que cada consumidor tenga que acordarse de filtrar. La
+// pagina publica igual llama a renderableBlocks por su cuenta, porque necesita
+// la lista filtrada antes de renderizar (para armar la consulta de productos y
+// para su notFound de menu sin contenido visible); que se calcule dos veces es
+// irrelevante al lado de que las dos vistas filtren distinto.
+export function MenuBlockList({
+  blocks,
+  categoryMap,
+  productsByCategory,
+  sizeOrderMap,
+  formatPrice,
+}) {
+  return renderableBlocks(blocks, categoryMap).map((block) => {
+    if (block.type === "hero") {
+      return <HeroBlock key={block.id} data={block.data} />;
+    }
+
+    if (block.type === "footer") {
+      return <FooterBlock key={block.id} data={block.data} />;
+    }
+
+    const category = categoryMap.get(block.data.categoryId);
+    const categoryProducts = productsByCategory.get(block.data.categoryId) ?? [];
+
+    // El agrupado por talle es presentacional: lo decide el flag `hasSizes` de
+    // la categoria (el mismo que usa el resto del POS), no un campo nuevo del
+    // bloque. Una categoria sin talles se sigue renderando plana.
+    if (category?.hasSizes) {
+      return (
+        <SizedCategoryBlock
+          key={block.id}
+          label={category?.label ?? ""}
+          dishes={groupProductsBySize(categoryProducts, sizeOrderMap)}
+          showPhotos={block.data.showPhotos}
+          showDescriptions={block.data.showDescriptions}
+          formatPrice={formatPrice}
+        />
+      );
+    }
+
+    return (
+      <CategoryBlock
+        key={block.id}
+        label={category?.label ?? ""}
+        products={categoryProducts}
+        showPhotos={block.data.showPhotos}
+        showDescriptions={block.data.showDescriptions}
+        formatPrice={formatPrice}
+      />
+    );
+  });
 }
