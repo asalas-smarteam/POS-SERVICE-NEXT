@@ -25,6 +25,15 @@ const errorStatus = (error) => {
 const errorMessage = (status, error) =>
   status === 500 ? 'Failed to process product image' : error.message;
 
+// Enmascarar hacia el cliente es correcto; enmascarar sin registrar deja el
+// motivo real en ninguna parte. Un STORAGE_DRIVER mal configurado se veia como
+// "la foto no sube" en el navegador y como un 500 sin causa en los logs de la
+// plataforma, porque el mensaje que lo nombraba moria en este catch. Solo se
+// registra para 500: los 400/403/404/413 ya viajan con su motivo al cliente.
+const logMaskedError = (method, error) => {
+  console.error(`[products/image] ${method} fallo con un error interno:`, error);
+};
+
 // Un borrado fallido deja un huerfano; abortar la operacion dejaria al producto
 // apuntando a un archivo que ya no queremos. El huerfano es el menor de los dos
 // males, asi que se registra y se sigue.
@@ -131,6 +140,9 @@ export async function POST(req, { params }) {
     return NextResponse.json(updated);
   } catch (error) {
     const status = errorStatus(error);
+    if (status === 500) {
+      logMaskedError('POST', error);
+    }
     return NextResponse.json({ error: errorMessage(status, error) }, { status });
   }
 }
@@ -169,6 +181,9 @@ export async function DELETE(req, { params }) {
     return NextResponse.json(updated);
   } catch (error) {
     const status = errorStatus(error);
+    if (status === 500) {
+      logMaskedError('DELETE', error);
+    }
     return NextResponse.json({ error: errorMessage(status, error) }, { status });
   }
 }
