@@ -86,9 +86,21 @@ Spec: `2026-08-22-online-menu-engine-design.md`
 
 ### 1b. Editor visual
 
-Drag & drop del orden de bloques (`@dnd-kit`, ya instalado), variantes de diseño
-por bloque, tema global (logo, colores, tipografía), vista previa en vivo y
-clonado del menú entre sedes.
+Cinco subsistemas que no dependen entre sí, así que se cortan en cuatro
+sub-proyectos con su propio spec y plan cada uno:
+
+| | Qué incluye | Estado |
+|---|---|---|
+| **1b‑1 Lienzo** | Lista real de bloques, drag & drop, ocultar/quitar/agregar, vista previa en vivo | `2026-08-22-online-menu-canvas-design.md` |
+| **1b‑2 Presentación** | Las variantes de la tabla de abajo, doble columna, y el problema de los precios no uniformes | pendiente |
+| **1b‑3 Tema** | Logo por sede (subida nueva sobre el adaptador de storage), colores, tipografía | pendiente |
+| **1b‑4 Clonado** | Copiar el menú de una sede al resto | pendiente |
+
+1b‑1 va primero porque es prerrequisito de los otros tres: hoy el editor no
+tiene un modelo de bloques, tiene tres formularios, y `buildDraft()` reconstruye
+la lista con portada primera y pie último. Y 1b‑3 no es "agregar un selector de
+color": `menu-blocks.jsx` tiene la paleta escrita a mano (`text-neutral-900`),
+así que primero hay que hacer que el renderizador acepte un tema.
 
 #### Referencias de presentación para el bloque de categoría
 
