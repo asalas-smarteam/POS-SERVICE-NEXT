@@ -5,9 +5,8 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { ArrowLeft, ExternalLink, Loader2 } from "lucide-react";
-
-const EMPTY_HERO = { title: "", subtitle: "" };
-const EMPTY_FOOTER = { text: "", phone: "", address: "" };
+import { availableCategories, canAddType } from "@/lib/menu/menuBlockList";
+import { BlockCanvas } from "./block-canvas";
 
 // Los errores del servidor llegan como codigos y se traducen aca, para que el
 // servidor no imponga el idioma de la interfaz.
@@ -48,32 +47,6 @@ function readCategoriesList(categoryBody) {
   return Array.isArray(list) ? list : [];
 }
 
-function pickHero(blocks) {
-  const heroBlock = blocks.find((b) => b.type === "hero");
-  return heroBlock ? { ...EMPTY_HERO, ...heroBlock.data } : EMPTY_HERO;
-}
-
-function pickFooter(blocks) {
-  const footerBlock = blocks.find((b) => b.type === "footer");
-  return footerBlock ? { ...EMPTY_FOOTER, ...footerBlock.data } : EMPTY_FOOTER;
-}
-
-function buildCategoryRows(activeCategories, blocks) {
-  const categoryBlocks = blocks.filter((b) => b.type === "category");
-  return activeCategories.map((category) => {
-    const index = categoryBlocks.findIndex((b) => b.data.categoryId === category.id);
-    const block = index >= 0 ? categoryBlocks[index] : null;
-    return {
-      id: category.id,
-      label: category.label || category.id,
-      included: Boolean(block),
-      order: index >= 0 ? index + 1 : activeCategories.length,
-      showPhotos: block ? block.data.showPhotos : true,
-      showDescriptions: block ? block.data.showDescriptions : true,
-    };
-  });
-}
-
 export default function OnlineMenuEditorPage() {
   const t = useTranslations("OnlineMenu");
   const params = useParams();
@@ -90,10 +63,18 @@ export default function OnlineMenuEditorPage() {
   const [alert, setAlert] = useState(null);
 
   const [slug, setSlug] = useState("");
-  const [hero, setHero] = useState(EMPTY_HERO);
-  const [footer, setFooter] = useState(EMPTY_FOOTER);
-  const [categories, setCategories] = useState([]);
+  const [blocks, setBlocks] = useState([]);
+  const [categoryRows, setCategoryRows] = useState([]);
   const [publishedAt, setPublishedAt] = useState(null);
+
+  const categoryLabels = useMemo(
+    () => new Map(categoryRows.map((category) => [category.id, category.label])),
+    [categoryRows],
+  );
+  const availableCategoryRows = useMemo(
+    () => availableCategories(blocks, categoryRows),
+    [blocks, categoryRows],
+  );
 
   // La carga vive dentro del propio efecto (no en un useCallback aparte): un
   // useCallback llamado desde un efecto dispara la regla set-state-in-effect
@@ -120,13 +101,11 @@ export default function OnlineMenuEditorPage() {
 
         const categoryBody = await categoriesRes.json().catch(() => ({}));
         const activeCategories = readCategoriesList(categoryBody);
-        const blocks = readMenuBlocks(menuBody);
 
         setSlug(readMenuSlug(menuBody));
-        setHero(pickHero(blocks));
-        setFooter(pickFooter(blocks));
+        setBlocks(readMenuBlocks(menuBody));
+        setCategoryRows(activeCategories);
         setPublishedAt(readPublishedAt(menuBody));
-        setCategories(buildCategoryRows(activeCategories, blocks));
         setAlert(null);
         setLoading(false);
       } catch {
@@ -138,26 +117,6 @@ export default function OnlineMenuEditorPage() {
     loadMenu();
   }, [tenantId, t, errorText]);
 
-  const buildDraft = () => ({
-    blocks: [
-      { id: "hero", type: "hero", visible: true, data: hero },
-      ...categories
-        .filter((category) => category.included)
-        .sort((a, b) => a.order - b.order)
-        .map((category) => ({
-          id: `category-${category.id}`,
-          type: "category",
-          visible: true,
-          data: {
-            categoryId: category.id,
-            showPhotos: category.showPhotos,
-            showDescriptions: category.showDescriptions,
-          },
-        })),
-      { id: "footer", type: "footer", visible: true, data: footer },
-    ],
-  });
-
   const saveDraft = async () => {
     setSaving(true);
     setAlert(null);
@@ -165,7 +124,7 @@ export default function OnlineMenuEditorPage() {
       const res = await fetch(`/api/company/sedes/${tenantId}/menu`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ menuSlug: slug, draft: buildDraft() }),
+        body: JSON.stringify({ menuSlug: slug, draft: { blocks } }),
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -275,117 +234,14 @@ export default function OnlineMenuEditorPage() {
               <p className="text-xs font-medium text-amber-600">{t("linkWarning")}</p>
             </section>
 
-            <section className="space-y-3 rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-[#0c1f30]">
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-                {t("heroTitle")}
-              </h2>
-              <input
-                value={hero.title}
-                onChange={(event) => setHero({ ...hero, title: event.target.value })}
-                placeholder={t("heroTitleField")}
-                className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-transparent"
-              />
-              <input
-                value={hero.subtitle}
-                onChange={(event) => setHero({ ...hero, subtitle: event.target.value })}
-                placeholder={t("heroSubtitleField")}
-                className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-transparent"
-              />
-            </section>
-
-            <section className="space-y-3 rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-[#0c1f30]">
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-                {t("categoriesTitle")}
-              </h2>
-              <p className="text-xs text-slate-500">{t("categoriesHint")}</p>
-              {categories.length === 0 ? (
-                <p className="text-sm text-slate-400">{t("noCategories")}</p>
-              ) : (
-                <ul className="space-y-2">
-                  {categories.map((category, index) => (
-                    <li
-                      key={category.id}
-                      className="flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 px-3 py-2 dark:border-slate-800"
-                    >
-                      <label className="flex items-center gap-2 text-sm font-medium">
-                        <input
-                          type="checkbox"
-                          checked={category.included}
-                          onChange={(event) => {
-                            const next = [...categories];
-                            next[index] = { ...category, included: event.target.checked };
-                            setCategories(next);
-                          }}
-                        />
-                        {category.label}
-                      </label>
-                      <label className="flex items-center gap-1 text-xs text-slate-500">
-                        {t("order")}
-                        <input
-                          type="number"
-                          min="1"
-                          value={category.order}
-                          onChange={(event) => {
-                            const next = [...categories];
-                            next[index] = { ...category, order: Number(event.target.value) || 1 };
-                            setCategories(next);
-                          }}
-                          className="w-16 rounded-md border border-slate-300 px-2 py-1 dark:border-slate-700 dark:bg-transparent"
-                        />
-                      </label>
-                      <label className="flex items-center gap-1 text-xs text-slate-500">
-                        <input
-                          type="checkbox"
-                          checked={category.showPhotos}
-                          onChange={(event) => {
-                            const next = [...categories];
-                            next[index] = { ...category, showPhotos: event.target.checked };
-                            setCategories(next);
-                          }}
-                        />
-                        {t("showPhotos")}
-                      </label>
-                      <label className="flex items-center gap-1 text-xs text-slate-500">
-                        <input
-                          type="checkbox"
-                          checked={category.showDescriptions}
-                          onChange={(event) => {
-                            const next = [...categories];
-                            next[index] = { ...category, showDescriptions: event.target.checked };
-                            setCategories(next);
-                          }}
-                        />
-                        {t("showDescriptions")}
-                      </label>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
-
-            <section className="space-y-3 rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-[#0c1f30]">
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-                {t("footerTitle")}
-              </h2>
-              <input
-                value={footer.text}
-                onChange={(event) => setFooter({ ...footer, text: event.target.value })}
-                placeholder={t("footerTextField")}
-                className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-transparent"
-              />
-              <input
-                value={footer.address}
-                onChange={(event) => setFooter({ ...footer, address: event.target.value })}
-                placeholder={t("footerAddressField")}
-                className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-transparent"
-              />
-              <input
-                value={footer.phone}
-                onChange={(event) => setFooter({ ...footer, phone: event.target.value })}
-                placeholder={t("footerPhoneField")}
-                className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-transparent"
-              />
-            </section>
+            <BlockCanvas
+              blocks={blocks}
+              categoryLabels={categoryLabels}
+              availableCategoryRows={availableCategoryRows}
+              canAddHero={canAddType(blocks, "hero")}
+              canAddFooter={canAddType(blocks, "footer")}
+              onChange={setBlocks}
+            />
 
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-xs text-slate-500">

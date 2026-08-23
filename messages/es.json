@@ -801,6 +801,22 @@
     "error_tenant_not_found": "No se pudo encontrar la sede.",
     "previewEmpty": "El menú todavía no tiene bloques.",
     "previewError": "No se pudo cargar la vista previa.",
-    "previewTruncated": "La vista previa muestra los primeros 500 productos."
+    "previewTruncated": "La vista previa muestra los primeros 500 productos.",
+    "blocksTitle": "Bloques",
+    "blocksHint": "Arrastrá para cambiar el orden. Solo los bloques visibles aparecen en el menú público.",
+    "noBlocks": "Todavía no hay bloques. Agregá una portada o una categoría.",
+    "addBlock": "Agregar",
+    "addHero": "Portada",
+    "addFooter": "Pie",
+    "addCategoryGroup": "Categorías",
+    "noCategoriesLeft": "Todas las categorías activas ya están en el menú.",
+    "blockHero": "Portada",
+    "blockFooter": "Pie",
+    "dragHandle": "Arrastrar bloque",
+    "hideBlock": "Ocultar bloque",
+    "showBlock": "Mostrar bloque",
+    "removeBlock": "Quitar bloque",
+    "expandBlock": "Abrir o cerrar los campos del bloque",
+    "hiddenBadge": "Oculto"
   }
 }

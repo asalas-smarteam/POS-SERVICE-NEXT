@@ -801,6 +801,22 @@
     "error_tenant_not_found": "The location could not be found.",
     "previewEmpty": "The menu has no blocks yet.",
     "previewError": "Preview could not be loaded.",
-    "previewTruncated": "The preview shows the first 500 products."
+    "previewTruncated": "The preview shows the first 500 products.",
+    "blocksTitle": "Blocks",
+    "blocksHint": "Drag to reorder. Only visible blocks show up on the public menu.",
+    "noBlocks": "No blocks yet. Add a header or a category.",
+    "addBlock": "Add",
+    "addHero": "Header",
+    "addFooter": "Footer",
+    "addCategoryGroup": "Categories",
+    "noCategoriesLeft": "Every active category is already in the menu.",
+    "blockHero": "Header",
+    "blockFooter": "Footer",
+    "dragHandle": "Drag block",
+    "hideBlock": "Hide block",
+    "showBlock": "Show block",
+    "removeBlock": "Remove block",
+    "expandBlock": "Open or close the block fields",
+    "hiddenBadge": "Hidden"
   }
 }
