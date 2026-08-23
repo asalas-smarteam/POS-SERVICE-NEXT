@@ -5,7 +5,12 @@ export const MENU_SCHEMA_VERSION = 1;
 export const BLOCK_TYPES = Object.freeze(["hero", "category", "footer"]);
 
 export const MENU_ERRORS = Object.freeze({
+  // No hay nada escrito: el borrador esta vacio o son bloques en blanco.
   EMPTY_DRAFT: "empty_draft",
+  // Hay contenido, pero nada de eso llegaria a verse. Es un problema distinto
+  // y se arregla distinto (mostrar un bloque o reactivar una categoria en
+  // Ajustes), asi que lleva su propio codigo y su propio mensaje.
+  NOTHING_VISIBLE: "nothing_visible",
 });
 
 const text = (value, max) => String(value ?? "").trim().slice(0, max);
@@ -170,24 +175,39 @@ function hasRealContent(block) {
   return Object.values(block.data).some((value) => typeof value === "string" && value.trim() !== "");
 }
 
-// Y ademas visible. Antes del lienzo el editor no podia expresar
-// `visible: false`, asi que mirar solo el contenido alcanzaba; hoy ocultar un
-// bloque es un boton de un clic. Sin este filtro, ocultar el unico bloque con
-// contenido publicaba "con exito" un menu cuyo renderableBlocks queda vacio y
-// cuya pagina publica responde notFound() a todos los clientes, sin aviso en
-// ninguna capa.
+// Publicar tiene que negarse EXACTAMENTE cuando la pagina publica haria
+// notFound(), y la pagina publica lo decide con
+// `renderableBlocks(published.blocks, categoryMap)`. Por eso este guard usa el
+// mismo predicado en vez de reimplementar sus condiciones: dos listas de
+// condiciones que hoy coinciden son dos listas que manana divergen, y cuando
+// divergen el sintoma es que el editor dice "Publicado" en verde y todos los
+// clientes reciben un 404. Es el mismo razonamiento por el que MenuBlockList
+// filtra adentro en vez de confiar en que cada consumidor filtre igual.
 //
-// Lo que este guard NO puede ver es si la categoria referenciada sigue activa:
-// eso vive en los ajustes de la sede, no en el documento del menu. Un menu de
-// una sola categoria desactivada todavia publica y todavia da 404; el editor lo
-// avisa con categoryInactiveWarning en la fila.
-function isPublishable(block) {
-  return block.visible !== false && hasRealContent(block);
-}
-
-export function canPublish(menu) {
+// Por eso tambien el `categoryMap` es obligatorio y no opcional: sin el, un
+// llamador que se lo olvide no obtiene "no filtro categorias", obtiene "ninguna
+// categoria esta activa", que es la respuesta contraria a la segura. La ruta de
+// publicacion lo pide con getProductCategoryMap(conn), el mismo helper que usa
+// la pagina publica.
+//
+// Dos codigos y no uno porque son dos problemas que el dueno resuelve distinto:
+// EMPTY_DRAFT es "no escribiste nada" (se arregla escribiendo), NOTHING_VISIBLE
+// es "escribiste, pero lo ocultaste o desactivaste la categoria" (se arregla
+// mostrando el bloque o reactivando la categoria en Ajustes). Un solo mensaje
+// mandaria a la mitad de los casos a buscar en el lugar equivocado.
+export function canPublish(menu, categoryMap) {
   const draft = normalizeMenuDraft(menu?.draft);
-  return draft.blocks.some(isPublishable) ? null : MENU_ERRORS.EMPTY_DRAFT;
+
+  if (!draft.blocks.some(hasRealContent)) {
+    return MENU_ERRORS.EMPTY_DRAFT;
+  }
+
+  const visible = renderableBlocks(draft.blocks, categoryMap);
+  if (!visible.some(hasRealContent)) {
+    return MENU_ERRORS.NOTHING_VISIBLE;
+  }
+
+  return null;
 }
 
 // La fecha entra por parametro para que el resultado sea determinista y testeable.

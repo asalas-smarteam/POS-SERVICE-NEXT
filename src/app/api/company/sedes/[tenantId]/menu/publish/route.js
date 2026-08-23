@@ -4,6 +4,7 @@ import { requireOwnerSede } from '@/lib/auth/ownerSede';
 import { getTenantConnection } from '@/lib/db/connections';
 import { canPublish, publishDraft } from '@/lib/menu/menuSchema';
 import { readMenuDocument, writeMenuDocument } from '@/lib/menu/menuSettings';
+import { getProductCategoryMap } from '@/lib/tenant/categorySettings';
 
 export async function POST(req, { params }) {
   try {
@@ -15,9 +16,17 @@ export async function POST(req, { params }) {
     }
 
     const conn = await getTenantConnection(sede.dbName);
-    const current = await readMenuDocument(conn);
 
-    const blocked = canPublish(current);
+    // El mapa de categorias sale del mismo helper que usa la pagina publica
+    // (src/app/m/[slug]/page.jsx). canPublish decide con renderableBlocks, o
+    // sea con exactamente el predicado que decide el notFound() de alla: sin
+    // el mapa, publicar aprobaria menus que el publico contesta con 404.
+    const [current, categoryMap] = await Promise.all([
+      readMenuDocument(conn),
+      getProductCategoryMap(conn),
+    ]);
+
+    const blocked = canPublish(current, categoryMap);
     if (blocked) {
       return NextResponse.json({ error: blocked }, { status: 400 });
     }
