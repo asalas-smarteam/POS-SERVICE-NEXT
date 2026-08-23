@@ -810,6 +810,8 @@
     "addFooter": "Pie",
     "addCategoryGroup": "Categorías",
     "noCategoriesLeft": "Todas las categorías activas ya están en el menú.",
+    "noActiveCategories": "Esta sede no tiene categorías activas.",
+    "categoryInactiveWarning": "Esta categoría ya no está activa. No va a aparecer en el menú público.",
     "blockHero": "Portada",
     "blockFooter": "Pie",
     "dragHandle": "Arrastrar bloque",

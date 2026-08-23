@@ -78,7 +78,7 @@ function CategoryFields({ data, onPatch }) {
   );
 }
 
-export function BlockRow({ block, title, expanded, onToggleExpand, onPatch, onToggleVisible, onRemove }) {
+export function BlockRow({ block, title, warning, expanded, onToggleExpand, onPatch, onToggleVisible, onRemove }) {
   const t = useTranslations("OnlineMenu");
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: block.id,
@@ -90,15 +90,15 @@ export function BlockRow({ block, title, expanded, onToggleExpand, onPatch, onTo
     <li
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`rounded-lg border bg-white dark:bg-[#0c1f30] ${
-        isDragging ? "border-blue-400 shadow-lg" : "border-slate-200 dark:border-slate-800"
+      className={`relative rounded-lg border bg-white dark:bg-[#0c1f30] ${
+        isDragging ? "z-10 border-blue-400 shadow-lg" : "border-slate-200 dark:border-slate-800"
       } ${hidden ? "opacity-50" : ""}`}
     >
       <div className="flex items-center gap-2 px-2 py-2">
         <button
           type="button"
           className="cursor-grab touch-none p-1 text-slate-400"
-          aria-label={t("dragHandle")}
+          aria-label={`${t("dragHandle")}: ${title}`}
           {...attributes}
           {...listeners}
         >
@@ -108,17 +108,17 @@ export function BlockRow({ block, title, expanded, onToggleExpand, onPatch, onTo
         <button
           type="button"
           onClick={onToggleExpand}
-          aria-label={t("expandBlock")}
           aria-expanded={expanded}
           className="flex flex-1 items-center gap-2 text-left text-sm font-medium"
         >
-          <ChevronDown className={`size-4 text-slate-400 ${expanded ? "" : "-rotate-90"}`} />
-          {title}
+          <ChevronDown aria-hidden="true" className={`size-4 text-slate-400 ${expanded ? "" : "-rotate-90"}`} />
+          <span>{title}</span>
           {hidden ? (
             <span className="rounded bg-slate-200 px-1.5 py-0.5 text-[10px] uppercase text-slate-600 dark:bg-slate-700 dark:text-slate-300">
               {t("hiddenBadge")}
             </span>
           ) : null}
+          <span className="sr-only">{t("expandBlock")}</span>
         </button>
 
         <button
@@ -127,7 +127,7 @@ export function BlockRow({ block, title, expanded, onToggleExpand, onPatch, onTo
           aria-label={hidden ? t("showBlock") : t("hideBlock")}
           className="p-1 text-slate-400 hover:text-slate-600"
         >
-          {hidden ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+          {hidden ? <Eye className="size-4" /> : <EyeOff className="size-4" />}
         </button>
 
         <button
@@ -139,6 +139,12 @@ export function BlockRow({ block, title, expanded, onToggleExpand, onPatch, onTo
           <Trash2 className="size-4" />
         </button>
       </div>
+
+      {warning ? (
+        <p className="border-t border-amber-300 bg-amber-50 px-3 py-1.5 text-xs text-amber-700 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-400">
+          {warning}
+        </p>
+      ) : null}
 
       {expanded ? (
         <div className="border-t border-slate-200 px-3 py-3 dark:border-slate-800">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   closestCenter,
   DndContext,
@@ -26,10 +26,73 @@ import {
 } from "@/lib/menu/menuBlockList";
 import { BlockRow } from "./block-row";
 
+const menuTriggerId = "add-block-trigger";
+const menuId = "add-block-menu";
+
 export function BlockCanvas({ blocks, categoryLabels, availableCategoryRows, canAddHero, canAddFooter, onChange }) {
   const t = useTranslations("OnlineMenu");
   const [expandedId, setExpandedId] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const menuContainerRef = useRef(null);
+  const menuTriggerRef = useRef(null);
+
+  const closeMenu = () => {
+    setMenuOpen(false);
+    const trigger = menuTriggerRef.current;
+    if (trigger) {
+      trigger.focus();
+    }
+  };
+
+  // El menu "Agregar" es un popover casero, no un componente de UI con su
+  // propio manejo de foco: sin este efecto se queda abierto al hacer click
+  // afuera o al apretar Escape, y el foco se pierde en el body al elegir un
+  // item (el boton clickeado se desmonta con el resto del menu). Los
+  // handlers cierran y reenfocan en linea, sin llamar a closeMenu de arriba,
+  // para no tener que listar esa funcion (nueva en cada render) como
+  // dependencia del efecto.
+  useEffect(() => {
+    if (!menuOpen) {
+      return undefined;
+    }
+
+    function closeAndRefocus() {
+      setMenuOpen(false);
+      const trigger = menuTriggerRef.current;
+      if (trigger) {
+        trigger.focus();
+      }
+    }
+
+    function handlePointerDown(event) {
+      const container = menuContainerRef.current;
+      const clickedInside = container && container.contains(event.target);
+      if (!clickedInside) {
+        closeAndRefocus();
+      }
+    }
+
+    function handleKeyDown(event) {
+      if (event.key === "Escape") {
+        closeAndRefocus();
+      }
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [menuOpen]);
+
+  const toggleMenu = () => {
+    if (menuOpen) {
+      closeMenu();
+      return;
+    }
+    setMenuOpen(true);
+  };
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -56,9 +119,33 @@ export function BlockCanvas({ blocks, categoryLabels, availableCategoryRows, can
     return categoryLabels.get(block.data.categoryId) || block.data.categoryId;
   };
 
+  // Una categoria puede desactivarse o borrarse en Ajustes despues de que su
+  // bloque ya esta en el menu. categoryLabels solo trae categorias activas
+  // (ver el comentario en el endpoint /menu/categories), asi que un
+  // categoryId ausente ahi es la senal de que renderableBlocks va a
+  // descartar ese bloque en silencio en el menu publico. No se borra el
+  // bloque -eso perderia la configuracion si el dueno reactiva la
+  // categoria- pero la fila tiene que avisar en vez de mostrarse normal.
+  const warningFor = (block) => {
+    if (block.type !== "category") {
+      return null;
+    }
+    if (categoryLabels.has(block.data.categoryId)) {
+      return null;
+    }
+    return t("categoryInactiveWarning");
+  };
+
   const add = (type, data) => {
-    setMenuOpen(false);
     onChange(addBlock(blocks, type, data));
+    closeMenu();
+  };
+
+  const remove = (blockId) => {
+    onChange(removeBlock(blocks, blockId));
+    if (expandedId === blockId) {
+      setExpandedId(null);
+    }
   };
 
   return (
@@ -71,19 +158,30 @@ export function BlockCanvas({ blocks, categoryLabels, availableCategoryRows, can
           <p className="text-xs text-slate-500">{t("blocksHint")}</p>
         </div>
 
-        <div className="relative">
+        <div className="relative" ref={menuContainerRef}>
           <button
+            ref={menuTriggerRef}
             type="button"
-            onClick={() => setMenuOpen(!menuOpen)}
+            id={menuTriggerId}
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
+            aria-controls={menuId}
+            onClick={toggleMenu}
             className="flex items-center gap-1 rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium dark:border-slate-700"
           >
             <Plus className="size-4" /> {t("addBlock")}
           </button>
 
           {menuOpen ? (
-            <div className="absolute right-0 z-20 mt-1 w-56 rounded-lg border border-slate-200 bg-white p-1 shadow-lg dark:border-slate-700 dark:bg-[#0c1f30]">
+            <div
+              id={menuId}
+              role="menu"
+              aria-labelledby={menuTriggerId}
+              className="absolute right-0 z-20 mt-1 w-56 rounded-lg border border-slate-200 bg-white p-1 shadow-lg dark:border-slate-700 dark:bg-[#0c1f30]"
+            >
               <button
                 type="button"
+                role="menuitem"
                 disabled={!canAddHero}
                 onClick={() => add("hero")}
                 className="block w-full rounded px-2 py-1.5 text-left text-sm hover:bg-slate-100 disabled:opacity-40 dark:hover:bg-slate-800"
@@ -92,6 +190,7 @@ export function BlockCanvas({ blocks, categoryLabels, availableCategoryRows, can
               </button>
               <button
                 type="button"
+                role="menuitem"
                 disabled={!canAddFooter}
                 onClick={() => add("footer")}
                 className="block w-full rounded px-2 py-1.5 text-left text-sm hover:bg-slate-100 disabled:opacity-40 dark:hover:bg-slate-800"
@@ -103,12 +202,15 @@ export function BlockCanvas({ blocks, categoryLabels, availableCategoryRows, can
                 {t("addCategoryGroup")}
               </p>
               {availableCategoryRows.length === 0 ? (
-                <p className="px-2 py-1.5 text-xs text-slate-400">{t("noCategoriesLeft")}</p>
+                <p className="px-2 py-1.5 text-xs text-slate-400">
+                  {categoryLabels.size === 0 ? t("noActiveCategories") : t("noCategoriesLeft")}
+                </p>
               ) : (
                 availableCategoryRows.map((category) => (
                   <button
                     key={category.id}
                     type="button"
+                    role="menuitem"
                     onClick={() => add("category", { categoryId: category.id })}
                     className="block w-full rounded px-2 py-1.5 text-left text-sm hover:bg-slate-100 dark:hover:bg-slate-800"
                   >
@@ -140,11 +242,12 @@ export function BlockCanvas({ blocks, categoryLabels, availableCategoryRows, can
                   key={block.id}
                   block={block}
                   title={titleFor(block)}
+                  warning={warningFor(block)}
                   expanded={expandedId === block.id}
                   onToggleExpand={() => setExpandedId(expandedId === block.id ? null : block.id)}
                   onPatch={(patch) => onChange(updateBlockData(blocks, block.id, patch))}
                   onToggleVisible={() => onChange(toggleBlockVisibility(blocks, block.id))}
-                  onRemove={() => onChange(removeBlock(blocks, block.id))}
+                  onRemove={() => remove(block.id)}
                 />
               ))}
             </ul>

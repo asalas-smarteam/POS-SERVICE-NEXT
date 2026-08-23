@@ -810,6 +810,8 @@
     "addFooter": "Footer",
     "addCategoryGroup": "Categories",
     "noCategoriesLeft": "Every active category is already in the menu.",
+    "noActiveCategories": "This location has no active categories.",
+    "categoryInactiveWarning": "This category is no longer active. It will not show up on the public menu.",
     "blockHero": "Header",
     "blockFooter": "Footer",
     "dragHandle": "Drag block",
