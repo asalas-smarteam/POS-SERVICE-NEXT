@@ -241,3 +241,150 @@ describe("createAutosave", () => {
     expect(seen).toEqual(["pending", "saving", "saved"]);
   });
 });
+
+// Ronda de arreglo 1: la revision encontro un Critical y tres Important, cada
+// uno con un caso reproducible verificado corriendo el codigo viejo. Estos
+// tests fijan el comportamiento correcto para que no vuelvan a colarse.
+describe("createAutosave — ronda de arreglo 1", () => {
+  describe("Critical: cancel() no invalidaba la cadena en vuelo", () => {
+    it("un rechazo tardio despues de cancel no reencola el payload cancelado ni revive el estado", async () => {
+      const { save, calls } = deferredSaver();
+      const autosave = createAutosave({ save, delay: 1500 });
+
+      autosave.schedule({ n: 1 });
+      await vi.advanceTimersByTimeAsync(1500); // save({n:1}) en vuelo
+      autosave.cancel();
+      expect(autosave.getStatus()).toBe("idle");
+
+      calls[0].reject(new Error("red caida"));
+      await vi.advanceTimersByTimeAsync(0);
+
+      // El payload cancelado no puede resucitar en "error" ni volver a la cola.
+      expect(autosave.getStatus()).toBe("idle");
+      expect(autosave.hasPending()).toBe(false);
+
+      // Confirmacion adicional: un guardado nuevo manda el payload nuevo, no
+      // reenvia por atras el {n:1} que quedo huerfano.
+      autosave.schedule({ n: 2 });
+      await vi.advanceTimersByTimeAsync(1500);
+
+      expect(calls).toHaveLength(2);
+      expect(calls[1].payload).toEqual({ n: 2 });
+    });
+
+    it("un exito tardio despues de cancel no revive el estado a saved", async () => {
+      const { save, calls } = deferredSaver();
+      const autosave = createAutosave({ save, delay: 1500 });
+
+      autosave.schedule({ n: 1 });
+      await vi.advanceTimersByTimeAsync(1500); // save({n:1}) en vuelo
+      autosave.cancel();
+
+      calls[0].resolve();
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(autosave.getStatus()).toBe("idle");
+      expect(autosave.hasPending()).toBe(false);
+    });
+
+    it("cancelar con un guardado en vuelo deja hasPending y getStatus consistentes de inmediato", async () => {
+      const { save, calls } = deferredSaver();
+      const autosave = createAutosave({ save, delay: 1500 });
+
+      autosave.schedule({ n: 1 });
+      await vi.advanceTimersByTimeAsync(1500); // save({n:1}) en vuelo, todavia sin resolver
+
+      autosave.cancel();
+
+      // No hay que esperar a que la promesa vieja resuelva: cancelar tiene que
+      // dejar el estado consistente ya mismo.
+      expect(autosave.getStatus()).toBe("idle");
+      expect(autosave.hasPending()).toBe(false);
+    });
+  });
+
+  describe("Important: la garantia de 'uno en vuelo' se podia romper por reentrada", () => {
+    it("un retry() disparado desde onStatusChange durante el cambio a saving no crea una segunda cadena real", async () => {
+      const { save, calls } = deferredSaver();
+      let fired = false;
+      const autosave = createAutosave({
+        save,
+        delay: 1500,
+        onStatusChange: (s) => {
+          if (s === "saving" && !fired) {
+            fired = true;
+            autosave.retry();
+          }
+        },
+      });
+
+      autosave.schedule({ n: 1 });
+      await vi.advanceTimersByTimeAsync(1500); // dispara start(), retry() reentra durante setStatus("saving")
+      expect(calls).toHaveLength(1);
+
+      autosave.schedule({ n: 2 });
+      await vi.advanceTimersByTimeAsync(1500);
+
+      // Solo un guardado real en vuelo: el segundo no se manda hasta que el
+      // primero (todavia sin resolver) termine.
+      expect(calls).toHaveLength(1);
+    });
+  });
+
+  describe("Important: schedule() durante saving degradaba el estado a pending", () => {
+    it("programar un cambio mientras hay un guardado en vuelo mantiene el estado en saving", async () => {
+      const { save, calls } = deferredSaver();
+      const seen = [];
+      const autosave = createAutosave({
+        save,
+        delay: 1500,
+        onStatusChange: (s) => seen.push(s),
+      });
+
+      autosave.schedule({ n: 1 });
+      await vi.advanceTimersByTimeAsync(1500); // save({n:1}) en vuelo
+      expect(autosave.getStatus()).toBe("saving");
+
+      autosave.schedule({ n: 2 });
+      expect(autosave.getStatus()).toBe("saving"); // no tiene que bajar a "pending"
+
+      calls[0].resolve();
+      await vi.advanceTimersByTimeAsync(1500);
+      calls[1].resolve();
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(seen).toEqual(["pending", "saving", "saved"]);
+    });
+  });
+
+  describe("Important: retry() sin nada pendiente reportaba exito sin haber guardado nunca", () => {
+    it("retry() sin error y sin cambios pendientes no llama a save ni pinta saved", async () => {
+      const { save, calls } = deferredSaver();
+      const autosave = createAutosave({ save, delay: 1500 });
+
+      await expect(autosave.retry()).resolves.toBe(true);
+
+      expect(calls).toHaveLength(0);
+      expect(autosave.getStatus()).toBe("idle");
+    });
+
+    it("retry() despues de cancel() en estado de error tampoco guarda ni pinta saved", async () => {
+      const { save, calls } = deferredSaver();
+      const autosave = createAutosave({ save, delay: 1500 });
+
+      autosave.schedule({ n: 1 });
+      await vi.advanceTimersByTimeAsync(1500);
+      calls[0].reject(new Error("red caida"));
+      await vi.advanceTimersByTimeAsync(0);
+      expect(autosave.getStatus()).toBe("error");
+
+      autosave.cancel();
+      expect(autosave.getStatus()).toBe("idle");
+
+      await expect(autosave.retry()).resolves.toBe(true);
+
+      expect(calls).toHaveLength(1); // ningun guardado nuevo
+      expect(autosave.getStatus()).toBe("idle");
+    });
+  });
+});
