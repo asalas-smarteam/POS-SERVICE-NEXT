@@ -60,15 +60,35 @@ export default function OnlineMenuEditorPage() {
   const errorText = useMemo(() => buildErrorText(t), [t]);
 
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [saveStatus, setSaveStatus] = useState("idle");
-  const loadedRef = useRef(false);
   const [publishing, setPublishing] = useState(false);
+  const [savingLink, setSavingLink] = useState(false);
   const [alert, setAlert] = useState(null);
 
   const [slug, setSlug] = useState("");
+  // El slug que ya confirmó el servidor (por la carga o por "Guardar
+  // enlace"), distinto del valor en edicion de `slug`. El link "Ver menú
+  // público" de la cabecera usa este, nunca el del input: si usara `slug`,
+  // escribir un enlace nuevo que despues falla por slug_taken dejaria ese
+  // link apuntando al menu de otra sede antes de que nadie lo confirmara.
+  const [confirmedSlug, setConfirmedSlug] = useState("");
   const [blocks, setBlocks] = useState([]);
   const [categoryRows, setCategoryRows] = useState([]);
   const [publishedAt, setPublishedAt] = useState(null);
+
+  // Guarda la referencia exacta del array de bloques que acabamos de fijar
+  // nosotros mismos (el `[]` inicial del mount, o el que trae la carga del
+  // servidor), para que el efecto de autoguardado de mas abajo lo reconozca
+  // por identidad y no lo autoguarde como si fuera una edicion del dueno. Un
+  // booleano tipo "yaCargue" no alcanza aca: React 19 batchea el
+  // setBlocks(loadedBlocks) junto con el resto de los setState de la carga,
+  // asi que para cuando ese efecto vuelve a correr el booleano ya estaria en
+  // true y no bloquearia nada. Comparar por identidad de array si funciona,
+  // porque nunca lo tocamos salvo cuando nosotros mismos acabamos de
+  // asignarlo.
+  const skipAutosaveBlocksRef = useRef(blocks);
 
   const categoryLabels = useMemo(
     () => new Map(categoryRows.map((category) => [category.id, category.label])),
@@ -88,6 +108,7 @@ export default function OnlineMenuEditorPage() {
   useEffect(() => {
     async function loadMenu() {
       setLoading(true);
+      setLoadFailed(false);
       try {
         const [menuRes, categoriesRes] = await Promise.all([
           fetch(`/api/company/sedes/${tenantId}/menu`),
@@ -99,27 +120,36 @@ export default function OnlineMenuEditorPage() {
           const code = readErrorCode(menuBody);
           setAlert({ type: "error", message: errorText(code, "loadError") });
           setLoading(false);
+          setLoadFailed(true);
           return;
         }
 
         const categoryBody = await categoriesRes.json().catch(() => ({}));
         const activeCategories = readCategoriesList(categoryBody);
+        const loadedSlug = readMenuSlug(menuBody);
+        const loadedBlocks = readMenuBlocks(menuBody);
 
-        setSlug(readMenuSlug(menuBody));
-        setBlocks(readMenuBlocks(menuBody));
+        // Se fija antes de setBlocks, con la misma referencia: es lo que el
+        // efecto de autoguardado de mas abajo va a comparar para saber que
+        // este cambio de `blocks` vino de la carga, no del dueno.
+        skipAutosaveBlocksRef.current = loadedBlocks;
+
+        setSlug(loadedSlug);
+        setConfirmedSlug(loadedSlug);
+        setBlocks(loadedBlocks);
         setCategoryRows(activeCategories);
         setPublishedAt(readPublishedAt(menuBody));
         setAlert(null);
         setLoading(false);
-        loadedRef.current = true;
       } catch {
         setAlert({ type: "error", message: t("loadError") });
         setLoading(false);
+        setLoadFailed(true);
       }
     }
 
     loadMenu();
-  }, [tenantId, t, errorText]);
+  }, [tenantId, t, errorText, loadAttempt]);
 
   // Se crea una sola vez con el inicializador perezoso de useState: recrearlo
   // en cada render perderia el temporizador y la cola. No se usa una ref con
@@ -142,11 +172,13 @@ export default function OnlineMenuEditorPage() {
     }),
   );
 
-  // Cada cambio de la lista programa un guardado. El guard de la primera vez
-  // evita que el propio render inicial —el que acaba de leer del servidor—
-  // dispare un PUT que reescribiria lo mismo.
+  // Cada cambio de bloques programa un guardado, salvo el que llega de
+  // nosotros mismos (el `[]` del mount o el `setBlocks` de la carga): ese
+  // valor ya esta en el servidor, autoguardarlo seria reescribir lo mismo.
+  // Ver el comentario de skipAutosaveBlocksRef mas arriba para el porque de
+  // comparar por identidad en vez de con un booleano.
   useEffect(() => {
-    if (!loadedRef.current) {
+    if (blocks === skipAutosaveBlocksRef.current) {
       return;
     }
     autosave.schedule({ blocks });
@@ -168,16 +200,24 @@ export default function OnlineMenuEditorPage() {
   }, [autosave]);
 
   const publish = async () => {
-    // Publicar vacia primero la cola: publicar con un cambio todavia dentro del
-    // debounce publicaria la version anterior, que es lo contrario de lo que el
-    // boton dice.
-    const flushed = await autosave.flush();
-    if (!flushed) {
-      return;
-    }
-
+    // El "en vuelo" arranca aca, antes del flush, no despues: flush() puede
+    // ser un round trip completo, y si `busy` no lo cubre un segundo click
+    // manda un segundo POST /publish mientras el primero todavia viaja.
     setPublishing(true);
     try {
+      // Publicar vacia primero la cola: publicar con un cambio todavia dentro
+      // del debounce publicaria la version anterior, que es lo contrario de
+      // lo que el boton dice. flush() esta dentro de este try: es una
+      // promesa ajena (de createAutosave) y puede rechazar por su defensa en
+      // profundidad; sin el try ese rechazo quedaria sin manejar y el click
+      // moriria en silencio.
+      const flushed = await autosave.flush();
+      if (!flushed) {
+        setAlert({ type: "error", message: t("saveError") });
+        setPublishing(false);
+        return;
+      }
+
       const res = await fetch(`/api/company/sedes/${tenantId}/menu/publish`, {
         method: "POST",
       });
@@ -199,6 +239,7 @@ export default function OnlineMenuEditorPage() {
 
   const saveLink = async () => {
     setAlert(null);
+    setSavingLink(true);
     try {
       const res = await fetch(`/api/company/sedes/${tenantId}/menu/slug`, {
         method: "PUT",
@@ -209,12 +250,17 @@ export default function OnlineMenuEditorPage() {
       if (!res.ok) {
         const code = readErrorCode(body);
         setAlert({ type: "error", message: errorText(code, "saveError") });
+        setSavingLink(false);
         return;
       }
-      setSlug(readMenuSlug(body));
+      const savedSlug = readMenuSlug(body);
+      setSlug(savedSlug);
+      setConfirmedSlug(savedSlug);
       setAlert({ type: "success", message: t("linkSaved") });
+      setSavingLink(false);
     } catch {
       setAlert({ type: "error", message: t("saveError") });
+      setSavingLink(false);
     }
   };
 
@@ -234,9 +280,9 @@ export default function OnlineMenuEditorPage() {
           >
             <ArrowLeft className="size-4" /> {t("backToPanel")}
           </Link>
-          {slug ? (
+          {confirmedSlug ? (
             <a
-              href={`/m/${slug}`}
+              href={`/m/${confirmedSlug}`}
               target="_blank"
               rel="noreferrer"
               className="flex items-center gap-1 text-sm font-medium text-blue-500 hover:underline"
@@ -252,7 +298,26 @@ export default function OnlineMenuEditorPage() {
           <p className="flex items-center gap-2 text-slate-400">
             <Loader2 className="size-4 animate-spin" /> {t("loading")}
           </p>
-        ) : (
+        ) : null}
+
+        {!loading && loadFailed ? (
+          <>
+            {alert ? (
+              <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-500">
+                {alert.message}
+              </div>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => setLoadAttempt((attempt) => attempt + 1)}
+              className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium dark:border-slate-700"
+            >
+              {t("retry")}
+            </button>
+          </>
+        ) : null}
+
+        {!loading && !loadFailed ? (
           <>
             {alert ? (
               <div
@@ -285,9 +350,10 @@ export default function OnlineMenuEditorPage() {
               <button
                 type="button"
                 onClick={saveLink}
-                className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium dark:border-slate-700"
+                disabled={savingLink || busy}
+                className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium disabled:opacity-50 dark:border-slate-700"
               >
-                {t("saveLink")}
+                {savingLink ? t("statusSaving") : t("saveLink")}
               </button>
             </section>
 
@@ -342,7 +408,7 @@ export default function OnlineMenuEditorPage() {
               </div>
             </div>
           </>
-        )}
+        ) : null}
       </div>
     </div>
   );
