@@ -46,9 +46,14 @@
 //      nunca por esta via.
 //   2) Defensa en profundidad: aunque la raiz este cerrada, el cuerpo del
 //      IIFE de start() esta en un try/catch que garantiza que la promesa
-//      publicada SIEMPRE se asiente -resuelta o rechazada, nunca colgada- y
-//      que ningun rechazo quede sin manejar, por si algun otro camino
-//      inesperado (no necesariamente onStatusChange) llega a tirar.
+//      publicada SIEMPRE se asiente -resuelta o rechazada, nunca colgada- por
+//      si algun otro camino inesperado (no necesariamente onStatusChange)
+//      llega a tirar. Lo que NO garantiza, y las tres versiones anteriores de
+//      este comentario afirmaban de mas, es que ese rechazo tenga siempre
+//      dueno: el start() que dispara el debounce en schedule() descarta la
+//      promesa que devuelve, asi que por ese unico camino un rechazo queda
+//      sin manejar. Se deja documentado y no cerrado: la causa raiz conocida
+//      esta cubierta por (1), y este modulo ya lleva tres rondas de arreglo.
 export function createAutosave({ save, delay = 1500, onStatusChange } = {}) {
   let timer = null;
   let pending = null;
