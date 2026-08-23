@@ -347,6 +347,55 @@ Opciones para 1b‑2, ninguna evaluada todavía:
 - Subir el techo de la previa y aceptar el costo, si se mide que 500 es
   conservador de más.
 
+### Otros hallazgos diferidos durante la ejecución
+
+Salieron de las revisiones por tarea y de la revisión final de la rama. Ninguno
+bloquea el merge; se registran acá porque el registro de ejecución no sobrevive
+al cierre del sub-proyecto.
+
+**Un menú ya publicado no se entera de que quedó en 404.** El guard de
+publicación ahora usa el mismo predicado que la página pública, así que nadie
+puede *publicar* hacia un 404. Pero si una categoría se desactiva **después** de
+publicar, y era la única del menú, el público empieza a dar 404 y el dueño no se
+entera hasta que entra al editor. Detectarlo pide revisar los menús publicados
+contra los ajustes vigentes: un chequeo de fondo, o un aviso al cargar el editor.
+
+**`nothing_visible` no dice qué bloque es el culpable.** Entre ese mensaje y el
+aviso por fila de categoría inactiva el dueño llega, pero enumerar los bloques
+implicados exigiría devolver detalle estructurado en vez de un código de error, y
+eso cambia el contrato que comparte todo el módulo.
+
+**La previa muestra blanco, no el texto de vacío, mientras carga.** El estado
+vacío exige que los datos ya hayan llegado, para no anunciar "vacío" cuando lo
+que falta es el catálogo. El precio es una ventana en blanco al abrir.
+
+**Por debajo de `lg` la página se queda sin `h1`**, porque el encabezado entró al
+contenedor que se oculta.
+
+**Nada llama a `autosave.cancel()` al desmontar.** El temporizador sobrevive y el
+`PUT` sale igual, lo cual probablemente sea lo deseable —salva el último cambio—
+pero no está escrito en ninguna parte y `cancel()` quedó sin usar fuera de sus
+tests.
+
+**El estado `pending` del autoguardado no se pinta.** Durante los 1500 ms en que
+los cambios sí están sin guardar, el indicador queda en blanco. Es lo que este
+spec pidió, y es el hueco que deja.
+
+**El menú "Agregar" tiene `role="menu"` sin navegación por flechas** ni roving
+tabindex. Cierra por clic afuera y por Escape y devuelve el foco, pero el patrón
+ARIA completo pide más.
+
+**La escritura del borrador no es atómica.** `PUT .../menu` hace
+read-modify-write y `writeMenuDocument` reemplaza el documento entero. Con dos
+pestañas del mismo editor abiertas, un autoguardado puede pisar el `published`
+de la otra. La cola de uno de `createAutosave` solo protege dentro de una pestaña.
+
+**El editor no tiene pruebas automatizadas.** El repo corre Vitest en
+`environment: "node"`, sin jsdom ni testing-library, así que los componentes de
+interfaz de este sub-proyecto se verificaron por inspección, lint, compilador y
+build. Los 13 puntos de verificación manual cubren el resto. Montar un entorno de
+DOM es un trabajo propio, no un arreglo.
+
 ## Riesgos
 
 - **`postMessage` sin validar origen.** Es la falla clásica de este patrón y va
