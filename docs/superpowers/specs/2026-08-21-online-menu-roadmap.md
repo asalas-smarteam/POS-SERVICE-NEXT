@@ -92,7 +92,7 @@ sub-proyectos con su propio spec y plan cada uno:
 | | Qué incluye | Estado |
 |---|---|---|
 | **1b‑1 Lienzo** | Lista real de bloques, drag & drop, ocultar/quitar/agregar, vista previa en vivo | `2026-08-22-online-menu-canvas-design.md` |
-| **1b‑2 Presentación** | Las variantes de la tabla de abajo, doble columna, y el problema de los precios no uniformes | pendiente |
+| **1b‑2 Presentación** | Las variantes de la tabla de abajo, doble columna, y el problema de los precios no uniformes | `2026-08-28-online-menu-presentation-design.md` |
 | **1b‑3 Tema** | Logo por sede (subida nueva sobre el adaptador de storage), colores, tipografía | pendiente |
 | **1b‑4 Clonado** | Copiar el menú de una sede al resto | pendiente |
 
@@ -116,9 +116,12 @@ elegir entre ellos por bloque:
 
 El patrón de tabla única asume que todos los platos de la categoría cuestan lo
 mismo por tamaño. El modelo no lo garantiza: cada tamaño es un `Product` con su
-precio propio, así que dos pizzas pueden diferir en el precio de "Grande". Antes de
-ofrecer ese patrón hay que decidir qué hacer cuando los precios no son uniformes:
-deshabilitarlo, mostrar un rango, o derivar la tabla y advertir en el editor.
+precio propio, así que dos pizzas pueden diferir en el precio de "Grande".
+
+**Decidido en 1b‑2** (`2026-08-28-online-menu-presentation-design.md`): la tabla
+lleva el precio más frecuente de cada tamaño y los platos que se salen de eso
+llevan el suyo en su renglón. Si las excepciones son mayoría, el bloque cae a
+columnas de precio. Ninguna rama muestra un precio que el plato no tiene.
 
 Dos observaciones más de las referencias: las descripciones de ingredientes son
 centrales en tres de los cuatro menús, y dos usan **doble columna** en pantalla
