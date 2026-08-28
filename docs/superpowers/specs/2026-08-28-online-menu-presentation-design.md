@@ -117,12 +117,21 @@ de condiciones que hoy coinciden son dos listas que mañana divergen.
 
 ```
 buildSizePriceTable(dishes, sizeOrderMap) -> {
-  sizes,       // [{ sizeId, label, price }] en el orden del ajuste; la tabla
-  rows,        // platos que calzan: [{ id, name, description, image }]
-  exceptions,  // [{ id, name, description, image, sizes: [{ sizeId, label, price }] }]
-  fellBack,    // boolean
+  sizes,     // [{ sizeId, label, price }] en el orden del ajuste; la tabla
+  dishes,    // en el ORDEN RECIBIDO: { id, name, description, image, sizes, isException }
+  fellBack,  // boolean
 }
 ```
+
+Los platos salen en una sola lista con su bandera, y no partidos en `rows` y
+`exceptions`, para que el renderizador no tenga que volver a intercalarlos: dos
+listas obligarían a mostrar las excepciones agrupadas al final, y eso reordena el
+menú del dueño por un detalle de precios.
+
+El módulo expone además `sizeColumnsOf(dishes, sizeOrderMap)` → `[{ sizeId,
+label }]`, los talles que resuelven y aparecen en al menos un plato, en el orden
+del ajuste. Es el encabezado de `priceColumns`, donde no hay piso de mayoría ni
+precio común: solo columnas.
 
 1. El universo de tamaños son los `sizeId` que **resuelven** en `sizeOrderMap`,
    en el orden del ajuste. Un producto cuyo tamaño fue borrado o desactivado no
@@ -140,8 +149,18 @@ buildSizePriceTable(dishes, sizeOrderMap) -> {
    que la tiene es la única excepción, que es la respuesta correcta.
 3. Un plato **calza** si tiene exactamente los tamaños de la tabla, todos al
    precio de la tabla, y ningún tamaño sin resolver.
-4. Todo lo demás es **excepción**, y lleva sus propios precios en su renglón, con
-   el mismo formato que usa `priceColumns`.
+4. Todo lo demás es **excepción**, y lleva sus propios precios en su renglón,
+   como pares `etiqueta ₡precio` debajo del nombre. No en columnas alineadas con
+   la tabla: un plato que es excepción justamente por tener otros talles no
+   tiene columnas con las cuales alinearse.
+
+**Los talles que no resuelven en el ajuste no participan de ninguna
+presentación tabular.** No hay etiqueta con la cual encabezar su columna, y dos
+talles borrados distintos colisionarían en la misma celda. Su precio igual se
+muestra, suelto y sin etiqueta, junto al nombre del plato — que es lo que
+`SizedCategoryBlock` ya hace hoy con `label: ""`. Perder un precio de un menú
+público es peor que mostrarlo sin etiqueta; mostrarlo bajo la etiqueta de otro
+talle sería lo único peor que las dos cosas.
 5. Si la tabla quedó sin tamaños, o si las excepciones superan a los platos que
    calzan, `fellBack` es `true` y el bloque se renderiza como `priceColumns`.
 
