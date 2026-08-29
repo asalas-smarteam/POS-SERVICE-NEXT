@@ -32,8 +32,15 @@ export function groupProductsBySize(categoryProducts, sizeOrderMap) {
       name,
       description: first.description,
       image: first.image,
+      // `id` es el del producto y sirve de key de React; `sizeId` es la
+      // identidad del talle, y va en null cuando no resuelve en el ajuste
+      // (borrado o desactivado). Se resuelve aca y no en el consumidor para que
+      // nadie tenga que volver a consultar sizeOrderMap solo para saber si
+      // puede confiar en la etiqueta: null y label "" cuentan la misma
+      // historia, y salen del mismo lugar.
       sizes: sorted.map((product) => ({
         id: product.id,
+        sizeId: sizeOrderMap.has(product.sizeId) ? product.sizeId : null,
         label: sizeOrderMap.get(product.sizeId)?.label ?? "",
         price: product.price,
       })),

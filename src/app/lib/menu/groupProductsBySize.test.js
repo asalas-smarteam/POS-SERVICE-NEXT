@@ -34,8 +34,8 @@ describe("groupProductsBySize", () => {
     expect(result).toHaveLength(1);
     expect(result[0].name).toBe("Margarita");
     expect(result[0].sizes).toEqual([
-      { id: "b", label: "Pequeña", price: 1000 },
-      { id: "a", label: "Mediana", price: 2000 },
+      { id: "b", sizeId: "s1", label: "Pequeña", price: 1000 },
+      { id: "a", sizeId: "s2", label: "Mediana", price: 2000 },
     ]);
   });
 
@@ -69,8 +69,8 @@ describe("groupProductsBySize", () => {
     );
 
     expect(result[0].sizes).toEqual([
-      { id: "b", label: "Pequeña", price: 1000 },
-      { id: "a", label: "", price: 1000 },
+      { id: "b", sizeId: "s1", label: "Pequeña", price: 1000 },
+      { id: "a", sizeId: null, label: "", price: 1000 },
     ]);
   });
 
@@ -94,5 +94,35 @@ describe("groupProductsBySize", () => {
     );
 
     expect(result.map((dish) => dish.name)).toEqual(["Margarita", "Napolitana"]);
+  });
+
+  it("emite el sizeId de cada talle que resuelve en el ajuste", () => {
+    const result = groupProductsBySize(
+      [
+        product({ id: "a", sizeId: "s3", price: 3000 }),
+        product({ id: "b", sizeId: "s1", price: 1000 }),
+      ],
+      sizeOrder,
+    );
+
+    expect(result[0].sizes.map((size) => size.sizeId)).toEqual(["s1", "s3"]);
+  });
+
+  // Sin identidad de talle no se puede agrupar por talle. El precio igual se
+  // muestra -perder un precio de un menu publico es peor que mostrarlo sin
+  // etiqueta- pero el consumidor tiene que poder distinguirlo, y para eso
+  // alcanza con este null: no hace falta que vuelva a consultar sizeOrderMap.
+  it("deja el sizeId en null cuando el talle no resuelve", () => {
+    const result = groupProductsBySize([product({ sizeId: "borrado" })], sizeOrder);
+
+    expect(result[0].sizes).toEqual([
+      { id: "p1", sizeId: null, label: "", price: 1000 },
+    ]);
+  });
+
+  it("deja el sizeId en null cuando el producto no tiene talle", () => {
+    const result = groupProductsBySize([product({ sizeId: null })], sizeOrder);
+
+    expect(result[0].sizes[0].sizeId).toBeNull();
   });
 });
