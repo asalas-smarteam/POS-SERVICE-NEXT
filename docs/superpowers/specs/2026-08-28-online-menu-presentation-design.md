@@ -339,6 +339,76 @@ layout.
 idea: la lista plana con foto cubre el caso, y agregar tarjetas grandes o lista
 compacta duplicaría el catálogo sin que ningún menú de referencia lo pida.
 
+## Hallazgos diferidos durante la ejecución
+
+Salieron de las revisiones por tarea y de la revisión final de la rama. La
+revisión final los trió: ninguno de éstos bloquea el merge. Se registran acá
+porque el registro de ejecución no sobrevive al cierre del sub-proyecto.
+
+**El único punto de la rama sin red automatizada es `splitDishPrices`.** Es la
+función de `category-blocks.jsx` donde apareció el único hallazgo Crítico de toda
+la ejecución: un `new Map()` construido desde una lista con claves repetidas se
+queda con la última y descarta el resto en silencio, y las claves repetidas son
+un caso real porque `groupProductsBySize` fusiona los platos por nombre
+recortado. Vive dentro de un componente, y los componentes de este repo no tienen
+pruebas. Un refactor futuro que la simplifique de vuelta a un
+`new Map(dish.sizes.map(...))` reintroduce el mismo Crítico y pasa las 203
+pruebas, el lint, el build y el compilador de React. La única red que queda es el
+comentario que está arriba de la función.
+
+**El techo de 500 productos ahora también puede cambiar la presentación.** El
+aviso del editor se calcula sobre los productos que devuelve `preview-data`
+—500 por nombre entre todas las categorías activas— mientras el menú público
+consulta solo las categorías referenciadas, con su propio techo. Con más de 500
+productos, el conjunto de platos de una misma categoría puede diferir entre los
+dos lados, y entonces `fellBack` puede dar distinto: el dueño ve la tabla y el
+visitante ve columnas. La restricción número uno se sostiene igual —cada lado
+corre la regla sobre sus propios platos, así que nadie ve un precio ajeno— y el
+cartel de truncado se enciende exactamente en el caso afectado. Es la asimetría
+que este spec difiere, ampliada.
+
+**Accesibilidad pendiente en `PriceColumnsBlock`.** La celda de un talle que el
+plato no tiene renderiza cadena vacía: visualmente se lee como "no disponible",
+para un lector de pantalla es silencio indistinguible de un fallo. Y la tabla no
+tiene `caption` asociado al `h2` de la sección.
+
+**Dos avisos del editor no consultan el estado del bloque.** `warningFor` no mira
+`block.visible`, así que un bloque oculto —que `renderableBlocks` descarta antes
+de llegar al renderizador— igual recibe avisos. Y mientras `previewData` es
+`null` (durante la carga, o con `preview-data` caído), el conjunto de bloques
+caídos está vacío, así que el checkbox de dos columnas se ofrece aunque el
+renderizador vaya a degradar el bloque. Las dos son la misma clase de limitación:
+el editor decide con lo que tiene a mano.
+
+**El banner de categorías caídas no nombra todo lo que apaga.** Con
+`/menu/categories` fallando, `hasSizes` llega falso a toda fila y el selector de
+Presentación desaparece de todos los paneles. El texto del banner menciona los
+nombres y el aviso de categoría inactiva, no el selector.
+
+**Costo por tecla.** El `postMessage` al iframe reserializa la carga útil entera
+—hasta 500 productos— en cada cambio de bloques, o sea en cada tecla al editar
+la portada o el pie. Y el aviso vuelve a agrupar los productos de cada categoría
+con tabla en cada una de esas teclas. Son milisegundos con catálogos reales; vale
+medirlo si alguno se acerca al techo.
+
+**Menores de implementación.** El piso de mayoría de `buildSizePriceTable` cuenta
+filas y no platos distintos, lo que un plato con el mismo talle dos veces infla
+—se demostró que la consecuencia es nula, porque un talle que entra solo por esa
+inflación deja a la mayoría sin calzar y `fellBack` lo tumba igual. La guarda
+`tableIds.length > 0` es inalcanzable. `sizeColumnsOf` y `buildSizePriceTable`
+repiten el patrón de recolectar talles resueltos y ordenarlos. La comparación
+posicional de talles no está probada, aunque degrada en la dirección segura: si
+el orden del productor cambiara, los platos pasarían a excepción y mostrarían sus
+propios precios. `SizeTableBlock` tiene una guarda muerta que además tiraría con
+`table` en null, inalcanzable desde su único llamador. Y en la rama de una
+columna, el `className` del contenedor de foto quedó con las mismas clases de
+Tailwind en distinto orden, lo que no cambia el CSS computado.
+
+**Una frase de este spec quedó imprecisa.** Donde dice que un menú viejo "sale
+byte por byte igual", lo correcto es que **renderiza idéntico**: el orden de los
+tokens en un atributo `class` cambió. La decisión de no subir
+`MENU_SCHEMA_VERSION` se apoya en el render, no en el texto del HTML.
+
 ## Riesgos
 
 **El fetch que sube al editor toca el handshake de 1b‑1.** Es código que costó
