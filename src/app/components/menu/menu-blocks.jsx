@@ -141,6 +141,7 @@ export function MenuBlockList({
           dishes={dishes}
           showPhotos={block.data.showPhotos}
           showDescriptions={block.data.showDescriptions}
+          columns={block.data.columns}
           formatPrice={formatPrice}
         />
       );
@@ -153,6 +154,7 @@ export function MenuBlockList({
         products={categoryProducts}
         showPhotos={block.data.showPhotos}
         showDescriptions={block.data.showDescriptions}
+        columns={block.data.columns}
         formatPrice={formatPrice}
       />
     );

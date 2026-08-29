@@ -4,26 +4,43 @@ import Image from "next/image";
 // parte que crece con cada variante de presentacion, y el despacho es la parte
 // que tiene que seguir siendo legible de una sola mirada.
 
-export function CategoryBlock({ label, products, showPhotos, showDescriptions, formatPrice }) {
+export function CategoryBlock({
+  label,
+  products,
+  showPhotos,
+  showDescriptions,
+  columns,
+  formatPrice,
+}) {
   if (!products.length) {
     return null;
   }
+
+  // Los menus de referencia que usan doble columna son papel angosto y alto, la
+  // misma proporcion que un celular, asi que no hay breakpoint: dos columnas es
+  // dos columnas desde 390px. Con foto encendida la foto baja de 80 a 56px, que
+  // es lo que deja lugar al nombre en la mitad de un celular.
+  const twoUp = columns === 2;
 
   return (
     <section className="px-5 py-8">
       <h2 className="mb-4 text-lg font-semibold uppercase tracking-wide text-neutral-900">
         {label}
       </h2>
-      <ul className="space-y-4">
+      <ul className={twoUp ? "grid grid-cols-2 gap-x-4 gap-y-4" : "space-y-4"}>
         {products.map((product) => (
           <li key={product.id} className="flex gap-4">
             {showPhotos && product.image?.url ? (
-              <div className="relative size-20 shrink-0 overflow-hidden rounded-lg bg-neutral-100">
+              <div
+                className={`relative shrink-0 overflow-hidden rounded-lg bg-neutral-100 ${
+                  twoUp ? "size-14" : "size-20"
+                }`}
+              >
                 <Image
                   src={product.image.url}
                   alt={product.name}
                   fill
-                  sizes="80px"
+                  sizes={twoUp ? "56px" : "80px"}
                   className="object-cover"
                 />
               </div>
@@ -48,26 +65,39 @@ export function CategoryBlock({ label, products, showPhotos, showDescriptions, f
 
 // Categorias con talles: un plato, varias filas de talle+precio debajo, en
 // vez de repetir el plato una vez por talle (ver el agrupado en page.jsx).
-export function SizedCategoryBlock({ label, dishes, showPhotos, showDescriptions, formatPrice }) {
+export function SizedCategoryBlock({
+  label,
+  dishes,
+  showPhotos,
+  showDescriptions,
+  columns,
+  formatPrice,
+}) {
   if (!dishes.length) {
     return null;
   }
+
+  const twoUp = columns === 2;
 
   return (
     <section className="px-5 py-8">
       <h2 className="mb-4 text-lg font-semibold uppercase tracking-wide text-neutral-900">
         {label}
       </h2>
-      <ul className="space-y-5">
+      <ul className={twoUp ? "grid grid-cols-2 gap-x-4 gap-y-5" : "space-y-5"}>
         {dishes.map((dish) => (
           <li key={dish.id} className="flex gap-4">
             {showPhotos && dish.image?.url ? (
-              <div className="relative size-20 shrink-0 overflow-hidden rounded-lg bg-neutral-100">
+              <div
+                className={`relative shrink-0 overflow-hidden rounded-lg bg-neutral-100 ${
+                  twoUp ? "size-14" : "size-20"
+                }`}
+              >
                 <Image
                   src={dish.image.url}
                   alt={dish.name}
                   fill
-                  sizes="80px"
+                  sizes={twoUp ? "56px" : "80px"}
                   className="object-cover"
                 />
               </div>
