@@ -95,12 +95,30 @@ export function SizedCategoryBlock({ label, dishes, showPhotos, showDescriptions
   );
 }
 
-// Los talles que no resuelven en el ajuste no pueden tener columna ni celda
-// propia: no hay etiqueta para encabezarla, y dos talles borrados distintos
-// colisionarian en el mismo lugar. Su precio se muestra suelto junto al nombre
-// del plato. Perder un precio de un menu publico es peor que mostrarlo sin
-// etiqueta, y es lo que SizedCategoryBlock ya hacia con label vacio.
-const looseSizesOf = (dish) => dish.sizes.filter((size) => !size.sizeId);
+// Un Map indexado por sizeId descarta en silencio cualquier entrada repetida
+// -se queda con la ultima-, y groupProductsBySize agrupa solo por nombre
+// recortado (no hay indice unico sobre categoria+nombre+talle en Product), asi
+// que dos productos distintos con el mismo nombre y el mismo talle SI pueden
+// llegar aca. Sumale los talles que no resuelven en el ajuste, que tampoco
+// pueden tener columna propia (no hay etiqueta para encabezarla, y dos talles
+// borrados distintos colisionarian en el mismo lugar). Partir los precios del
+// plato en una sola pasada es la unica forma de que ninguno de los dos casos
+// desaparezca: lo que no consigue celda se muestra suelto junto al nombre.
+// Perder un precio de un menu publico es peor que mostrarlo sin etiqueta.
+function splitDishPrices(dish) {
+  const inColumns = new Map();
+  const loose = [];
+
+  for (const size of dish.sizes) {
+    if (size.sizeId && !inColumns.has(size.sizeId)) {
+      inColumns.set(size.sizeId, size.price);
+    } else {
+      loose.push(size);
+    }
+  }
+
+  return { inColumns, loose };
+}
 
 function SizePricePair({ size, formatPrice }) {
   return (
@@ -140,29 +158,27 @@ export function PriceColumnsBlock({ label, dishes, sizeColumns, showDescriptions
           </thead>
           <tbody>
             {dishes.map((dish) => {
-              const priceBySize = new Map(
-                dish.sizes.filter((size) => size.sizeId).map((size) => [size.sizeId, size.price]),
-              );
+              const { inColumns, loose } = splitDishPrices(dish);
 
               return (
                 <tr key={dish.id} className="border-b border-neutral-100 align-top">
-                  <td className="py-2 pr-3">
+                  <th scope="row" className="py-2 pr-3 text-left font-normal">
                     <p className="font-medium text-neutral-900">{dish.name}</p>
                     {showDescriptions && dish.description ? (
                       <p className="mt-0.5 text-xs text-neutral-500">{dish.description}</p>
                     ) : null}
-                    {looseSizesOf(dish).map((size) => (
+                    {loose.map((size) => (
                       <p key={size.id} className="mt-0.5 text-xs">
                         <SizePricePair size={size} formatPrice={formatPrice} />
                       </p>
                     ))}
-                  </td>
+                  </th>
                   {sizeColumns.map((size) => (
                     <td
                       key={size.sizeId}
                       className="py-2 pl-3 text-right font-semibold text-neutral-900 tabular-nums"
                     >
-                      {priceBySize.has(size.sizeId) ? formatPrice(priceBySize.get(size.sizeId)) : ""}
+                      {inColumns.has(size.sizeId) ? formatPrice(inColumns.get(size.sizeId)) : ""}
                     </td>
                   ))}
                 </tr>
