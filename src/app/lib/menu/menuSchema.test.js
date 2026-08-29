@@ -60,7 +60,13 @@ describe("normalizeMenuDraft", () => {
       id: "c-postres",
       type: "category",
       visible: true,
-      data: { categoryId: "postres", showPhotos: true, showDescriptions: true },
+      data: {
+        categoryId: "postres",
+        showPhotos: true,
+        showDescriptions: true,
+        variant: "sizeRows",
+        columns: 1,
+      },
     });
   });
 
@@ -385,7 +391,13 @@ describe("renderableBlocks", () => {
         id: "c-bebidas",
         type: "category",
         visible: true,
-        data: { categoryId: "bebidas", showPhotos: true, showDescriptions: true },
+        data: {
+          categoryId: "bebidas",
+          showPhotos: true,
+          showDescriptions: true,
+          variant: "sizeRows",
+          columns: 1,
+        },
       },
     ]);
   });
@@ -394,5 +406,58 @@ describe("renderableBlocks", () => {
 describe("BLOCK_TYPES", () => {
   it("son exactamente los tres del alcance de 1a", () => {
     expect([...BLOCK_TYPES]).toEqual(["hero", "category", "footer"]);
+  });
+});
+
+describe("normalizeMenuDraft: variant y columns", () => {
+  const categoryBlock = (data) => ({
+    blocks: [{ id: "b1", type: "category", data: { categoryId: "pizzas", ...data } }],
+  });
+
+  // Es la garantia de compatibilidad entera de esta rama: un menu publicado
+  // antes de 1b-2 no tiene estos campos y tiene que renderizar identico.
+  it("un bloque sin variant ni columns recibe los defaults que reproducen el render actual", () => {
+    const { blocks } = normalizeMenuDraft(categoryBlock({}));
+
+    expect(blocks[0].data.variant).toBe("sizeRows");
+    expect(blocks[0].data.columns).toBe(1);
+  });
+
+  it("conserva una variante valida", () => {
+    const { blocks } = normalizeMenuDraft(categoryBlock({ variant: "sizeTable" }));
+
+    expect(blocks[0].data.variant).toBe("sizeTable");
+  });
+
+  it("cae al default con una variante desconocida", () => {
+    const { blocks } = normalizeMenuDraft(categoryBlock({ variant: "tarjetas" }));
+
+    expect(blocks[0].data.variant).toBe("sizeRows");
+  });
+
+  it("acepta columns 2", () => {
+    const { blocks } = normalizeMenuDraft(categoryBlock({ columns: 2 }));
+
+    expect(blocks[0].data.columns).toBe(2);
+  });
+
+  // Este modulo corre sobre el body de una request arbitraria. Solo el numero 2
+  // vale: la cadena "2", un 3 o un booleano caen a una columna, que es la
+  // presentacion que ya existia y por lo tanto la respuesta segura.
+  it("cualquier otro valor de columns cae a 1", () => {
+    for (const value of ["2", 3, 0, -1, true, null, undefined, {}]) {
+      const { blocks } = normalizeMenuDraft(categoryBlock({ columns: value }));
+      expect(blocks[0].data.columns).toBe(1);
+    }
+  });
+
+  it("los bloques hero y footer no ganan campos de presentacion", () => {
+    const { blocks } = normalizeMenuDraft({
+      blocks: [
+        { id: "h", type: "hero", data: { title: "Hola", variant: "sizeTable", columns: 2 } },
+      ],
+    });
+
+    expect(blocks[0].data).toEqual({ title: "Hola", subtitle: "" });
   });
 });
