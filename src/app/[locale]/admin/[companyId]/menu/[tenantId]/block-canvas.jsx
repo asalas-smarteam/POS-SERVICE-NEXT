@@ -33,6 +33,8 @@ export function BlockCanvas({
   blocks,
   categoryLabels,
   categoriesFailed,
+  sizedCategoryIds,
+  fallbackBlockIds,
   availableCategoryRows,
   canAddHero,
   canAddFooter,
@@ -149,10 +151,15 @@ export function BlockCanvas({
     if (block.type !== "category") {
       return null;
     }
-    if (categoryLabels.has(block.data.categoryId)) {
-      return null;
+    if (!categoryLabels.has(block.data.categoryId)) {
+      return t("categoryInactiveWarning");
     }
-    return t("categoryInactiveWarning");
+    // El aviso de categoria inactiva gana: un bloque que no va a aparecer en el
+    // menu publico no necesita que ademas le expliquen como se veria.
+    if (fallbackBlockIds.has(block.id)) {
+      return t("sizeTableFallbackWarning");
+    }
+    return null;
   };
 
   // El menu "Agregar" queda vacio por tres motivos distintos y el dueno
@@ -282,6 +289,7 @@ export function BlockCanvas({
                   block={block}
                   title={titleFor(block)}
                   warning={warningFor(block)}
+                  hasSizes={sizedCategoryIds.has(block.data.categoryId)}
                   expanded={expandedId === block.id}
                   onToggleExpand={() => setExpandedId(expandedId === block.id ? null : block.id)}
                   onPatch={(patch) => onChange(updateBlockData(blocks, block.id, patch))}

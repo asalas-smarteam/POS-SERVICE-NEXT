@@ -6,6 +6,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { useTranslations } from "next-intl";
 import { ChevronDown, Eye, EyeOff, GripVertical, Trash2 } from "lucide-react";
 import { TEXT_LIMITS } from "@/lib/menu/menuSchema";
+import { normalizeVariant, supportsColumns, variantsForCategory } from "@/lib/menu/menuVariants";
 
 const inputClass =
   "w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-transparent";
@@ -74,31 +75,74 @@ function FooterFields({ data, onPatch }) {
   );
 }
 
-function CategoryFields({ data, onPatch }) {
+function CategoryFields({ data, hasSizes, onPatch }) {
   const t = useTranslations("OnlineMenu");
+  const variant = normalizeVariant(data.variant);
+  const variants = variantsForCategory(hasSizes);
+
   return (
-    <div className="flex flex-wrap gap-4">
-      <label className="flex items-center gap-2 text-xs text-slate-500">
-        <input
-          type="checkbox"
-          checked={data.showPhotos}
-          onChange={(event) => onPatch({ showPhotos: event.target.checked })}
-        />
-        {t("showPhotos")}
-      </label>
-      <label className="flex items-center gap-2 text-xs text-slate-500">
-        <input
-          type="checkbox"
-          checked={data.showDescriptions}
-          onChange={(event) => onPatch({ showDescriptions: event.target.checked })}
-        />
-        {t("showDescriptions")}
-      </label>
+    <div className="space-y-3">
+      <div className="flex flex-wrap gap-4">
+        <label className="flex items-center gap-2 text-xs text-slate-500">
+          <input
+            type="checkbox"
+            checked={data.showPhotos}
+            onChange={(event) => onPatch({ showPhotos: event.target.checked })}
+          />
+          {t("showPhotos")}
+        </label>
+        <label className="flex items-center gap-2 text-xs text-slate-500">
+          <input
+            type="checkbox"
+            checked={data.showDescriptions}
+            onChange={(event) => onPatch({ showDescriptions: event.target.checked })}
+          />
+          {t("showDescriptions")}
+        </label>
+        {/*
+          El control se esconde en priceColumns en vez de ofrecerse e ignorarse
+          despues: esa variante alinea los precios a lo ancho de la seccion y
+          partida en dos se vuelve ilegible. El valor guardado no se toca, asi
+          que volver a otra variante lo devuelve como estaba.
+        */}
+        {supportsColumns(variant) ? (
+          <label className="flex items-center gap-2 text-xs text-slate-500">
+            <input
+              type="checkbox"
+              checked={data.columns === 2}
+              onChange={(event) => onPatch({ columns: event.target.checked ? 2 : 1 })}
+            />
+            {t("twoColumns")}
+          </label>
+        ) : null}
+      </div>
+
+      {/*
+        Sin talles no hay nada que elegir: las cuatro variantes se distinguen
+        justamente por como muestran los talles, y el renderizador despacha esa
+        categoria plana sin mirar la variante.
+      */}
+      {variants.length > 0 ? (
+        <label className="block text-xs text-slate-500">
+          {t("variantLabel")}
+          <select
+            value={variant}
+            onChange={(event) => onPatch({ variant: event.target.value })}
+            className={`${inputClass} mt-1`}
+          >
+            {variants.map((id) => (
+              <option key={id} value={id}>
+                {t(`variant_${id}`)}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : null}
     </div>
   );
 }
 
-export function BlockRow({ block, title, warning, expanded, onToggleExpand, onPatch, onToggleVisible, onRemove }) {
+export function BlockRow({ block, title, warning, hasSizes, expanded, onToggleExpand, onPatch, onToggleVisible, onRemove }) {
   const t = useTranslations("OnlineMenu");
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: block.id,
@@ -205,7 +249,9 @@ export function BlockRow({ block, title, warning, expanded, onToggleExpand, onPa
         <div className="border-t border-slate-200 px-3 py-3 dark:border-slate-800">
           {block.type === "hero" ? <HeroFields data={block.data} onPatch={onPatch} /> : null}
           {block.type === "footer" ? <FooterFields data={block.data} onPatch={onPatch} /> : null}
-          {block.type === "category" ? <CategoryFields data={block.data} onPatch={onPatch} /> : null}
+          {block.type === "category" ? (
+            <CategoryFields data={block.data} hasSizes={hasSizes} onPatch={onPatch} />
+          ) : null}
         </div>
       ) : null}
     </li>

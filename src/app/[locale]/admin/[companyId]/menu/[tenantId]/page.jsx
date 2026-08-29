@@ -7,6 +7,9 @@ import { useTranslations } from "next-intl";
 import { ArrowLeft, ExternalLink, Loader2 } from "lucide-react";
 import { availableCategories, canAddType } from "@/lib/menu/menuBlockList";
 import { createAutosave } from "@/lib/menu/createAutosave";
+import { groupProductsBySize } from "@/lib/menu/groupProductsBySize";
+import { buildPreviewMaps } from "@/lib/menu/previewMaps";
+import { buildSizePriceTable } from "@/lib/menu/sizePriceTable";
 import { BlockCanvas } from "./block-canvas";
 import { PreviewPanel } from "./preview-panel";
 
@@ -133,6 +136,46 @@ export default function OnlineMenuEditorPage() {
     () => availableCategories(blocks, categoryRows),
     [blocks, categoryRows],
   );
+
+  const sizedCategoryIds = useMemo(
+    () => new Set(categoryRows.filter((row) => row.hasSizes).map((row) => row.id)),
+    [categoryRows],
+  );
+
+  // Los mapas se memoizan aparte de fallbackBlockIds a proposito: `blocks`
+  // cambia con cada tecla que el dueno escribe en un titulo, y si el armado de
+  // los mapas viviera adentro del memo de abajo, cada tecla reagruparia hasta
+  // 500 productos para responder una pregunta que solo depende de los precios.
+  const previewMaps = useMemo(() => buildPreviewMaps(previewData), [previewData]);
+
+  // El aviso lo decide el MISMO modulo que renderiza la previa y el menu
+  // publico. Reimplementar la condicion aca -aunque diera lo mismo hoy- es
+  // exactamente la divergencia que este modulo ya pago dos veces: el editor
+  // diria una cosa y el visitante veria otra, sin error en ninguna capa.
+  const fallbackBlockIds = useMemo(() => {
+    const ids = new Set();
+    if (!previewData) {
+      return ids;
+    }
+
+    const maps = previewMaps;
+
+    for (const block of blocks) {
+      if (block.type !== "category" || block.data.variant !== "sizeTable") {
+        continue;
+      }
+      if (!sizedCategoryIds.has(block.data.categoryId)) {
+        continue;
+      }
+      const products = maps.productsByCategory.get(block.data.categoryId) ?? [];
+      const dishes = groupProductsBySize(products, maps.sizeOrderMap);
+      if (buildSizePriceTable(dishes, maps.sizeOrderMap).fellBack) {
+        ids.add(block.id);
+      }
+    }
+
+    return ids;
+  }, [previewData, previewMaps, blocks, sizedCategoryIds]);
 
   // La carga vive dentro del propio efecto (no en un useCallback aparte): un
   // useCallback llamado desde un efecto dispara la regla set-state-in-effect
@@ -423,6 +466,8 @@ export default function OnlineMenuEditorPage() {
                   blocks={blocks}
                   categoryLabels={categoryLabels}
                   categoriesFailed={categoriesFailed}
+                  sizedCategoryIds={sizedCategoryIds}
+                  fallbackBlockIds={fallbackBlockIds}
                   availableCategoryRows={availableCategoryRows}
                   canAddHero={canAddType(blocks, "hero")}
                   canAddFooter={canAddType(blocks, "footer")}
