@@ -1067,7 +1067,16 @@ Y reemplazar la rama `if (category?.hasSizes)` por:
     // publicar y en ese momento la eleccion del dueno tiene que valer.
     if (category?.hasSizes) {
       const dishes = groupProductsBySize(categoryProducts, sizeOrderMap);
-      const variant = block.data.variant;
+      const table =
+        block.data.variant === "sizeTable" ? buildSizePriceTable(dishes, sizeOrderMap) : null;
+
+      // La caida no es una excepcion que se maneje aparte: es la misma decision
+      // que el editor le muestra al dueno, tomada por el mismo modulo. Se
+      // resuelve aca, en una variable, y no con un return adentro de la rama de
+      // sizeTable, para que abajo haya UNA sola rama de priceColumns. Dos ramas
+      // identicas son dos ramas que manana divergen, y la que divergiria es la
+      // que ve el visitante.
+      const variant = table?.fellBack ? "priceColumns" : block.data.variant;
 
       if (variant === "priceColumns") {
         return (
@@ -1083,25 +1092,6 @@ Y reemplazar la rama `if (category?.hasSizes)` por:
       }
 
       if (variant === "sizeTable") {
-        const table = buildSizePriceTable(dishes, sizeOrderMap);
-
-        // La caida no es una excepcion que se maneje aparte: es la misma
-        // decision que el editor le muestra al dueno, tomada por el mismo
-        // modulo. Si aca se reimplementara la condicion, la previa y el aviso
-        // podrian decir una cosa y el menu publico mostrar otra.
-        if (table.fellBack) {
-          return (
-            <PriceColumnsBlock
-              key={block.id}
-              label={category.label ?? ""}
-              dishes={dishes}
-              sizeColumns={sizeColumnsOf(dishes, sizeOrderMap)}
-              showDescriptions={block.data.showDescriptions}
-              formatPrice={formatPrice}
-            />
-          );
-        }
-
         return (
           <SizeTableBlock
             key={block.id}
@@ -1893,6 +1883,12 @@ Y junto a los otros `useMemo`:
     [categoryRows],
   );
 
+  // Los mapas se memoizan aparte de fallbackBlockIds a proposito: `blocks`
+  // cambia con cada tecla que el dueno escribe en un titulo, y si el armado de
+  // los mapas viviera adentro del memo de abajo, cada tecla reagruparia hasta
+  // 500 productos para responder una pregunta que solo depende de los precios.
+  const previewMaps = useMemo(() => buildPreviewMaps(previewData), [previewData]);
+
   // El aviso lo decide el MISMO modulo que renderiza la previa y el menu
   // publico. Reimplementar la condicion aca -aunque diera lo mismo hoy- es
   // exactamente la divergencia que este modulo ya pago dos veces: el editor
@@ -1903,7 +1899,7 @@ Y junto a los otros `useMemo`:
       return ids;
     }
 
-    const maps = buildPreviewMaps(previewData);
+    const maps = previewMaps;
 
     for (const block of blocks) {
       if (block.type !== "category" || block.data.variant !== "sizeTable") {
@@ -1920,7 +1916,7 @@ Y junto a los otros `useMemo`:
     }
 
     return ids;
-  }, [previewData, blocks, sizedCategoryIds]);
+  }, [previewData, previewMaps, blocks, sizedCategoryIds]);
 ```
 
 Y pasarlos al lienzo:
