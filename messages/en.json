@@ -798,7 +798,7 @@
     "error_feature_not_included": "This location does not have the online menu module.",
     "error_tenant_not_found": "The location could not be found.",
     "previewEmpty": "The menu has no visible blocks yet.",
-    "previewError": "Preview could not be loaded.",
+    "previewLoadFailed": "The location's products could not be loaded, so the preview is empty. Retry to load it again; the menu you are building was not lost.",
     "previewTruncated": "This location has more than 500 products. The preview only loads the first 500 by name across every active category, so it may be missing products the public menu does show.",
     "previewTitle": "Preview",
     "previewPhone": "Phone",

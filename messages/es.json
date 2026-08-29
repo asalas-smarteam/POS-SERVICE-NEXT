@@ -798,7 +798,7 @@
     "error_feature_not_included": "Esta sede no tiene el módulo de menú en línea.",
     "error_tenant_not_found": "No se pudo encontrar la sede.",
     "previewEmpty": "El menú no tiene ningún bloque visible todavía.",
-    "previewError": "No se pudo cargar la vista previa.",
+    "previewLoadFailed": "No se pudieron cargar los productos de la sede, así que la vista previa está vacía. Reintentá para volver a cargarla; el menú que estás armando no se perdió.",
     "previewTruncated": "Esta sede tiene más de 500 productos. La vista previa carga solo los primeros 500 por nombre entre todas las categorías activas, así que puede faltarle productos que el menú público sí muestra.",
     "previewTitle": "Vista previa",
     "previewPhone": "Celular",

@@ -8,10 +8,11 @@ const READY_MESSAGE = "menu-preview-ready";
 const BLOCKS_MESSAGE = "menu-preview-blocks";
 const PHONE_WIDTH = 390;
 
-export function PreviewPanel({ previewUrl, blocks }) {
+export function PreviewPanel({ previewUrl, blocks, data, failed }) {
   const t = useTranslations("OnlineMenu");
   const frameRef = useRef(null);
   const blocksRef = useRef(blocks);
+  const dataRef = useRef(data);
   const [phone, setPhone] = useState(false);
 
   const send = useCallback(() => {
@@ -21,7 +22,7 @@ export function PreviewPanel({ previewUrl, blocks }) {
     }
     // Nunca '*': el destino es siempre este mismo origen.
     frame.contentWindow.postMessage(
-      { type: BLOCKS_MESSAGE, blocks: blocksRef.current },
+      { type: BLOCKS_MESSAGE, blocks: blocksRef.current, data: dataRef.current },
       window.location.origin,
     );
   }, []);
@@ -45,16 +46,18 @@ export function PreviewPanel({ previewUrl, blocks }) {
     return () => window.removeEventListener("message", handleMessage);
   }, [send]);
 
-  // Sincroniza la ref y reenvia, en ese orden y en el mismo efecto. La lista
-  // viaja por una ref ademas del estado porque el listener de "listo" y el
-  // handler de "load" se registran una sola vez y necesitan leer la version mas
-  // reciente sin volver a suscribirse. La asignacion va dentro de un efecto y no
-  // en el cuerpo del componente: escribir una ref durante el render es
-  // justamente lo que el compilador de React marca.
+  // Sincroniza las refs y reenvia, en ese orden y en el mismo efecto. Los
+  // datos viajan por una ref ademas del estado, igual que blocks, porque el
+  // listener de "listo" y el handler de "load" se registran una sola vez y
+  // necesitan leer la version mas reciente sin volver a suscribirse. La
+  // asignacion va dentro de un efecto y no en el cuerpo del componente:
+  // escribir una ref durante el render es justamente lo que el compilador de
+  // React marca.
   useEffect(() => {
     blocksRef.current = blocks;
+    dataRef.current = data;
     send();
-  }, [blocks, send]);
+  }, [blocks, data, send]);
 
   return (
     <section className="space-y-2">
@@ -89,6 +92,15 @@ export function PreviewPanel({ previewUrl, blocks }) {
           </button>
         </div>
       </div>
+
+      {failed ? (
+        <p
+          role="status"
+          className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-700 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-400"
+        >
+          {t("previewLoadFailed")}
+        </p>
+      ) : null}
 
       <div className="flex justify-center overflow-hidden rounded-xl border border-slate-200 bg-slate-100 p-2 dark:border-slate-800 dark:bg-slate-900">
         <iframe

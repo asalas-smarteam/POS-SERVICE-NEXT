@@ -49,6 +49,28 @@ function readCategoriesList(categoryBody) {
   return Array.isArray(list) ? list : [];
 }
 
+function readPreviewData(body) {
+  const source = body || {};
+  return {
+    categories: Array.isArray(source.categories) ? source.categories : [],
+    products: Array.isArray(source.products) ? source.products : [],
+    sizes: Array.isArray(source.sizes) ? source.sizes : [],
+    currency: source.currency || null,
+    truncated: source.truncated === true,
+  };
+}
+
+// Un ternario resolviendo esto adentro del try de loadMenu es justo lo que el
+// compilador de React no soporta ahi (ver la nota de mas arriba): con el
+// bloque condicional en la linea, dejaba a todo el componente sin compilar.
+// Esta funcion lo saca del try dejando solo una llamada plana.
+function resolvePreviewData(previewOk, previewBody) {
+  if (!previewOk) {
+    return null;
+  }
+  return readPreviewData(previewBody);
+}
+
 export default function OnlineMenuEditorPage() {
   const t = useTranslations("OnlineMenu");
   const params = useParams();
@@ -84,6 +106,12 @@ export default function OnlineMenuEditorPage() {
   // diagnostico.
   const [categoriesFailed, setCategoriesFailed] = useState(false);
   const [publishedAt, setPublishedAt] = useState(null);
+  const [previewData, setPreviewData] = useState(null);
+  // Un fallo de preview-data no aborta la carga, por el mismo motivo que el de
+  // /menu/categories: el menu ya vino y el dueno puede seguir acomodando
+  // bloques. Lo que no puede es quedarse sin explicacion de por que la previa
+  // esta vacia, y para eso existe este flag.
+  const [previewFailed, setPreviewFailed] = useState(false);
 
   // Guarda la referencia exacta del array de bloques que acabamos de fijar
   // nosotros mismos (el `[]` inicial del mount, o el que trae la carga del
@@ -117,9 +145,10 @@ export default function OnlineMenuEditorPage() {
       setLoading(true);
       setLoadFailed(false);
       try {
-        const [menuRes, categoriesRes] = await Promise.all([
+        const [menuRes, categoriesRes, previewRes] = await Promise.all([
           fetch(`/api/company/sedes/${tenantId}/menu`),
           fetch(`/api/company/sedes/${tenantId}/menu/categories`),
+          fetch(`/api/company/sedes/${tenantId}/menu/preview-data`),
         ]);
 
         const menuBody = await menuRes.json().catch(() => ({}));
@@ -139,6 +168,8 @@ export default function OnlineMenuEditorPage() {
         const categoriesOk = categoriesRes.ok;
         const categoryBody = await categoriesRes.json().catch(() => ({}));
         const activeCategories = readCategoriesList(categoryBody);
+        const previewOk = previewRes.ok;
+        const previewBody = await previewRes.json().catch(() => ({}));
         const loadedSlug = readMenuSlug(menuBody);
         const loadedBlocks = readMenuBlocks(menuBody);
 
@@ -152,6 +183,8 @@ export default function OnlineMenuEditorPage() {
         setBlocks(loadedBlocks);
         setCategoryRows(activeCategories);
         setCategoriesFailed(categoriesOk === false);
+        setPreviewData(resolvePreviewData(previewOk, previewBody));
+        setPreviewFailed(previewOk === false);
         setPublishedAt(readPublishedAt(menuBody));
         setAlert(null);
         setLoading(false);
@@ -398,6 +431,8 @@ export default function OnlineMenuEditorPage() {
                 <PreviewPanel
                   previewUrl={`/${locale}/admin/${companyId}/menu/${tenantId}/preview`}
                   blocks={blocks}
+                  data={previewData}
+                  failed={previewFailed}
                 />
               </div>
 
