@@ -151,6 +151,60 @@ describe("normalizeMenuDocument", () => {
     expect(normalizeMenuDocument({ version: "1" }).version).toBe(MENU_SCHEMA_VERSION);
     expect(normalizeMenuDocument({ version: null }).version).toBe(MENU_SCHEMA_VERSION);
   });
+
+  // Garantia central de 1b-2: un documento guardado antes de que existieran
+  // `variant`/`columns` tiene que sobrevivir el round-trip de
+  // normalizeMenuDocument sin que ningun campo previo cambie de forma o valor.
+  // Los menus ya publicados se sirven hoy por QR a clientes reales: si este
+  // round-trip alterara un campo, cambiaria lo que ven esos clientes.
+  it("un documento publicado antes de 1b-2 sobrevive el round-trip sin cambiar ningun campo previo", () => {
+    const preExistingBlocks = [
+      { id: "h1", type: "hero", data: { title: "Pizzeria", subtitle: "Desde 1998" } },
+      {
+        id: "c-bebidas",
+        type: "category",
+        data: { categoryId: "bebidas", showPhotos: true, showDescriptions: false },
+      },
+      { id: "f1", type: "footer", data: { text: "Gracias", phone: "22334455", address: "Centro" } },
+    ];
+    const legacyDocument = {
+      version: 1,
+      draft: { blocks: preExistingBlocks },
+      published: { blocks: preExistingBlocks },
+      publishedAt: "2020-01-15T09:30:00.000Z",
+    };
+
+    const result = normalizeMenuDocument(legacyDocument);
+
+    const expectedBlocks = [
+      { id: "h1", type: "hero", visible: true, data: { title: "Pizzeria", subtitle: "Desde 1998" } },
+      {
+        id: "c-bebidas",
+        type: "category",
+        visible: true,
+        data: {
+          categoryId: "bebidas",
+          showPhotos: true,
+          showDescriptions: false,
+          variant: "sizeRows",
+          columns: 1,
+        },
+      },
+      {
+        id: "f1",
+        type: "footer",
+        visible: true,
+        data: { text: "Gracias", phone: "22334455", address: "Centro" },
+      },
+    ];
+
+    expect(result).toEqual({
+      version: 1,
+      draft: { blocks: expectedBlocks },
+      published: { blocks: expectedBlocks },
+      publishedAt: "2020-01-15T09:30:00.000Z",
+    });
+  });
 });
 
 describe("canPublish", () => {
@@ -455,9 +509,15 @@ describe("normalizeMenuDraft: variant y columns", () => {
     const { blocks } = normalizeMenuDraft({
       blocks: [
         { id: "h", type: "hero", data: { title: "Hola", variant: "sizeTable", columns: 2 } },
+        {
+          id: "f",
+          type: "footer",
+          data: { text: "Chau", phone: "", address: "", variant: "sizeTable", columns: 2 },
+        },
       ],
     });
 
     expect(blocks[0].data).toEqual({ title: "Hola", subtitle: "" });
+    expect(blocks[1].data).toEqual({ text: "Chau", phone: "", address: "" });
   });
 });
