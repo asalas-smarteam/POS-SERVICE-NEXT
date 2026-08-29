@@ -226,9 +226,9 @@ export function publishDraft(menu, publishedAtIso) {
     draft,
     // Copia estructural: si compartieran referencia, seguir editando el borrador
     // mutaria lo que ya esta publicado. JSON.parse(JSON.stringify(...)) es seguro
-    // aqui solo porque normalizeBlock ya redujo cada campo a string o boolean:
-    // quien toque normalizeBlock y le agregue un campo de otro tipo (Date, Map,
-    // etc.) tiene que revisar tambien esta copia.
+    // aqui solo porque normalizeBlock ya redujo cada campo a string, numero o
+    // boolean (columns incluido): quien toque normalizeBlock y le agregue un
+    // campo de otro tipo (Date, Map, etc.) tiene que revisar tambien esta copia.
     published: JSON.parse(JSON.stringify(draft)),
     publishedAt: publishedAtIso,
   };

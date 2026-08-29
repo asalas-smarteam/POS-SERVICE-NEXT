@@ -156,7 +156,11 @@ export function BlockCanvas({
     }
     // El aviso de categoria inactiva gana: un bloque que no va a aparecer en el
     // menu publico no necesita que ademas le expliquen como se veria.
-    if (fallbackBlockIds.has(block.id)) {
+    const fallbackReason = fallbackBlockIds.get(block.id);
+    if (fallbackReason === "noSizes") {
+      return t("sizeTableEmptyWarning");
+    }
+    if (fallbackReason === "notUniform") {
       return t("sizeTableFallbackWarning");
     }
     return null;
@@ -290,6 +294,7 @@ export function BlockCanvas({
                   title={titleFor(block)}
                   warning={warningFor(block)}
                   hasSizes={sizedCategoryIds.has(block.data.categoryId)}
+                  fellBackToPriceColumns={fallbackBlockIds.has(block.id)}
                   expanded={expandedId === block.id}
                   onToggleExpand={() => setExpandedId(expandedId === block.id ? null : block.id)}
                   onPatch={(patch) => onChange(updateBlockData(blocks, block.id, patch))}

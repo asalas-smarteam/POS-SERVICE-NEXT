@@ -75,10 +75,22 @@ function FooterFields({ data, onPatch }) {
   );
 }
 
-function CategoryFields({ data, hasSizes, onPatch }) {
+function CategoryFields({ data, hasSizes, fellBackToPriceColumns, onPatch }) {
   const t = useTranslations("OnlineMenu");
   const variant = normalizeVariant(data.variant);
   const variants = variantsForCategory(hasSizes);
+
+  // El gate mira las tres cosas porque son independientes entre si. Sin
+  // talles la categoria es plana y siempre gana la doble columna (esa es la
+  // unica presentacion que le queda, y apagar hasSizes con una variante con
+  // talles todavia elegida no puede dejar el control inalcanzable). Con
+  // talles, la variante elegida decide si columns tiene sentido -priceColumns
+  // ya usa todo el ancho- pero eso no alcanza: sizeTable puede caer a
+  // priceColumns en el renderizador cuando la tabla no representa a la
+  // mayoria de los platos, y ahi la variante EFECTIVA es la que manda, no la
+  // guardada. Ofrecer el checkbox en ese caso lo contradiria en la misma fila
+  // que ya avisa del fallback.
+  const showColumnsControl = hasSizes !== true || (supportsColumns(variant) && !fellBackToPriceColumns);
 
   return (
     <div className="space-y-3">
@@ -100,12 +112,13 @@ function CategoryFields({ data, hasSizes, onPatch }) {
           {t("showDescriptions")}
         </label>
         {/*
-          El control se esconde en priceColumns en vez de ofrecerse e ignorarse
-          despues: esa variante alinea los precios a lo ancho de la seccion y
-          partida en dos se vuelve ilegible. El valor guardado no se toca, asi
-          que volver a otra variante lo devuelve como estaba.
+          Se esconde, no se deshabilita, cuando la variante (elegida o
+          efectiva) no lo admite: esa combinacion alinea los precios a lo
+          ancho de la seccion y partida en dos se vuelve ilegible. El valor
+          guardado no se toca, asi que volver a una variante que si admite
+          columnas -o apagar hasSizes- lo devuelve como estaba.
         */}
-        {supportsColumns(variant) ? (
+        {showColumnsControl ? (
           <label className="flex items-center gap-2 text-xs text-slate-500">
             <input
               type="checkbox"
@@ -142,7 +155,18 @@ function CategoryFields({ data, hasSizes, onPatch }) {
   );
 }
 
-export function BlockRow({ block, title, warning, hasSizes, expanded, onToggleExpand, onPatch, onToggleVisible, onRemove }) {
+export function BlockRow({
+  block,
+  title,
+  warning,
+  hasSizes,
+  fellBackToPriceColumns,
+  expanded,
+  onToggleExpand,
+  onPatch,
+  onToggleVisible,
+  onRemove,
+}) {
   const t = useTranslations("OnlineMenu");
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: block.id,
@@ -240,7 +264,10 @@ export function BlockRow({ block, title, warning, hasSizes, expanded, onToggleEx
       </div>
 
       {warning ? (
-        <p className="border-t border-amber-300 bg-amber-50 px-3 py-1.5 text-xs text-amber-700 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-400">
+        <p
+          role="status"
+          className="border-t border-amber-300 bg-amber-50 px-3 py-1.5 text-xs text-amber-700 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-400"
+        >
           {warning}
         </p>
       ) : null}
@@ -250,7 +277,12 @@ export function BlockRow({ block, title, warning, hasSizes, expanded, onToggleEx
           {block.type === "hero" ? <HeroFields data={block.data} onPatch={onPatch} /> : null}
           {block.type === "footer" ? <FooterFields data={block.data} onPatch={onPatch} /> : null}
           {block.type === "category" ? (
-            <CategoryFields data={block.data} hasSizes={hasSizes} onPatch={onPatch} />
+            <CategoryFields
+              data={block.data}
+              hasSizes={hasSizes}
+              fellBackToPriceColumns={fellBackToPriceColumns}
+              onPatch={onPatch}
+            />
           ) : null}
         </div>
       ) : null}

@@ -1,4 +1,5 @@
 import { BLOCK_TYPES } from "@/lib/menu/menuSchema";
+import { DEFAULT_VARIANT } from "@/lib/menu/menuVariants";
 
 // Portada y pie son bloques como cualquier otro —se arrastran, se ocultan y se
 // quitan— pero uno solo de cada. Un menu con dos pies no significa nada, y
@@ -95,7 +96,13 @@ export function addBlock(blocks, type, data) {
         id: blockIdFor("category", { categoryId }),
         type: "category",
         visible: true,
-        data: { categoryId, showPhotos: true, showDescriptions: true },
+        data: {
+          categoryId,
+          showPhotos: true,
+          showDescriptions: true,
+          variant: DEFAULT_VARIANT,
+          columns: 1,
+        },
       },
     ];
   }

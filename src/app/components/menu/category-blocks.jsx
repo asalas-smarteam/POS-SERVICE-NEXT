@@ -172,7 +172,12 @@ export function PriceColumnsBlock({ label, dishes, sizeColumns, showDescriptions
       <h2 className="mb-4 text-lg font-semibold uppercase tracking-wide text-neutral-900">
         {label}
       </h2>
-      <div className="overflow-x-auto">
+      <div
+        tabIndex={0}
+        role="region"
+        aria-label={label}
+        className="overflow-x-auto"
+      >
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-neutral-200 text-xs uppercase tracking-wide text-neutral-500">

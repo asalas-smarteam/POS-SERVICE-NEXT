@@ -152,8 +152,16 @@ export default function OnlineMenuEditorPage() {
   // publico. Reimplementar la condicion aca -aunque diera lo mismo hoy- es
   // exactamente la divergencia que este modulo ya pago dos veces: el editor
   // diria una cosa y el visitante veria otra, sin error en ninguna capa.
+  //
+  // El valor por bloque no es un booleano sino el motivo del fallback:
+  // buildSizePriceTable cae a priceColumns tanto cuando las excepciones son
+  // mayoria (precios no uniformes) como cuando la tabla queda sin ningun
+  // talle (categoria vacia, o ningun talle llega a la mitad de los platos).
+  // Son dos avisos distintos para el dueno -"tus precios no son uniformes" no
+  // es cierto si no hay ni un plato- y `sizes` ya viene en el resultado para
+  // distinguirlos.
   const fallbackBlockIds = useMemo(() => {
-    const ids = new Set();
+    const ids = new Map();
     if (!previewData) {
       return ids;
     }
@@ -169,8 +177,9 @@ export default function OnlineMenuEditorPage() {
       }
       const products = maps.productsByCategory.get(block.data.categoryId) ?? [];
       const dishes = groupProductsBySize(products, maps.sizeOrderMap);
-      if (buildSizePriceTable(dishes, maps.sizeOrderMap).fellBack) {
-        ids.add(block.id);
+      const table = buildSizePriceTable(dishes, maps.sizeOrderMap);
+      if (table.fellBack) {
+        ids.set(block.id, table.sizes.length === 0 ? "noSizes" : "notUniform");
       }
     }
 
