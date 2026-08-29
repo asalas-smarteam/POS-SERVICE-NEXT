@@ -80,6 +80,28 @@ describe("buildSizePriceTable", () => {
     expect(result.sizes.map((size) => size.sizeId)).toEqual(["s2", "s3"]);
   });
 
+  // El caso arriesgado del desempate: un empate temprano en el recorrido de
+  // conteos (los dos primeros precios, unicos entre si) tiene que ser
+  // limpiado por un maximo estrictamente mayor que aparece despues (el
+  // precio que repiten los otros tres platos). Sin ese reset, el empate
+  // temprano queda pegado y el talle se cae de la tabla aunque tenga un
+  // precio mas frecuente real y sin ambiguedad.
+  it("un empate temprano no tumba al talle si un maximo posterior lo limpia", () => {
+    const result = buildSizePriceTable(
+      [
+        dish("a", [["s1", 1000], ["s2", 2000], ["s3", 3000]]),
+        dish("b", [["s1", 1500], ["s2", 2000], ["s3", 3000]]),
+        dish("c", [["s1", 3000], ["s2", 2000], ["s3", 3000]]),
+        dish("d", [["s1", 3000], ["s2", 2000], ["s3", 3000]]),
+        dish("e", [["s1", 3000], ["s2", 2000], ["s3", 3000]]),
+      ],
+      sizeOrder,
+    );
+
+    expect(result.sizes.find((size) => size.sizeId === "s1")?.price).toBe(3000);
+    expect(result.fellBack).toBe(false);
+  });
+
   it("cae cuando las excepciones superan a los platos que calzan", () => {
     const result = buildSizePriceTable(
       [
@@ -128,6 +150,33 @@ describe("buildSizePriceTable", () => {
     expect(result.sizes.map((size) => size.sizeId)).toEqual(["s1", "s2", "s3"]);
     expect(exceptionsOf(result).map((entry) => entry.name)).toEqual(["especial"]);
     expect(result.fellBack).toBe(false);
+  });
+
+  // El borde del piso de mayoria: "al menos la mitad" tiene que incluir la
+  // mitad exacta, no solo mas de la mitad.
+  it("un talle con exactamente la mitad de los platos entra en la tabla", () => {
+    const result = buildSizePriceTable(
+      [dish("a", [["s1", 1000]]), dish("b", [["s1", 1000]]), dish("c", []), dish("d", [])],
+      sizeOrder,
+    );
+
+    expect(result.sizes).toEqual([{ sizeId: "s1", label: "Pequeña", price: 1000 }]);
+  });
+
+  // El otro lado del mismo borde: menos de la mitad no alcanza.
+  it("un talle con menos de la mitad de los platos no entra en la tabla", () => {
+    const result = buildSizePriceTable(
+      [
+        dish("a", [["s1", 1000]]),
+        dish("b", [["s1", 1000]]),
+        dish("c", []),
+        dish("d", []),
+        dish("e", []),
+      ],
+      sizeOrder,
+    );
+
+    expect(result.sizes.map((size) => size.sizeId)).not.toContain("s1");
   });
 
   it("una categoria de un solo plato arma su tabla con ese plato", () => {
