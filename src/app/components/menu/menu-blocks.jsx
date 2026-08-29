@@ -1,6 +1,13 @@
 import { renderableBlocks } from "@/lib/menu/menuSchema";
 import { groupProductsBySize } from "@/lib/menu/groupProductsBySize";
-import { CategoryBlock, SizedCategoryBlock } from "@/components/menu/category-blocks";
+import {
+  CategoryBlock,
+  PriceColumnsBlock,
+  SizeBadgesBlock,
+  SizedCategoryBlock,
+  SizeTableBlock,
+} from "@/components/menu/category-blocks";
+import { buildSizePriceTable, sizeColumnsOf } from "@/lib/menu/sizePriceTable";
 
 export function HeroBlock({ data }) {
   if (!data.title && !data.subtitle) {
@@ -68,15 +75,70 @@ export function MenuBlockList({
     const category = categoryMap.get(block.data.categoryId);
     const categoryProducts = productsByCategory.get(block.data.categoryId) ?? [];
 
-    // El agrupado por talle es presentacional: lo decide el flag `hasSizes` de
-    // la categoria (el mismo que usa el resto del POS), no un campo nuevo del
-    // bloque. Una categoria sin talles se sigue renderando plana.
+    // El agrupado por talle lo sigue decidiendo el flag `hasSizes` de la
+    // categoria -el mismo que usa el resto del POS-, no la variante: una
+    // categoria sin talles no tiene nada que las cuatro variantes distingan, asi
+    // que se renderiza plana aunque tenga una variante guardada. Y la variante
+    // se guarda igual, porque hasSizes se puede encender en Ajustes despues de
+    // publicar y en ese momento la eleccion del dueno tiene que valer.
     if (category?.hasSizes) {
+      const dishes = groupProductsBySize(categoryProducts, sizeOrderMap);
+      const table =
+        block.data.variant === "sizeTable" ? buildSizePriceTable(dishes, sizeOrderMap) : null;
+
+      // La caida no es una excepcion que se maneje aparte: es la misma decision
+      // que el editor le muestra al dueno, tomada por el mismo modulo. Se
+      // resuelve aca, en una variable, y no con un return adentro de la rama de
+      // sizeTable, para que abajo haya UNA sola rama de priceColumns. Dos ramas
+      // identicas son dos ramas que manana divergen, y la que divergiria es la
+      // que ve el visitante.
+      const variant = table?.fellBack ? "priceColumns" : block.data.variant;
+
+      if (variant === "priceColumns") {
+        return (
+          <PriceColumnsBlock
+            key={block.id}
+            label={category.label ?? ""}
+            dishes={dishes}
+            sizeColumns={sizeColumnsOf(dishes, sizeOrderMap)}
+            showDescriptions={block.data.showDescriptions}
+            formatPrice={formatPrice}
+          />
+        );
+      }
+
+      if (variant === "sizeTable") {
+        return (
+          <SizeTableBlock
+            key={block.id}
+            label={category.label ?? ""}
+            table={table}
+            columns={block.data.columns}
+            showDescriptions={block.data.showDescriptions}
+            formatPrice={formatPrice}
+          />
+        );
+      }
+
+      if (variant === "sizeBadges") {
+        return (
+          <SizeBadgesBlock
+            key={block.id}
+            label={category.label ?? ""}
+            dishes={dishes}
+            columns={block.data.columns}
+            showPhotos={block.data.showPhotos}
+            showDescriptions={block.data.showDescriptions}
+            formatPrice={formatPrice}
+          />
+        );
+      }
+
       return (
         <SizedCategoryBlock
           key={block.id}
-          label={category?.label ?? ""}
-          dishes={groupProductsBySize(categoryProducts, sizeOrderMap)}
+          label={category.label ?? ""}
+          dishes={dishes}
           showPhotos={block.data.showPhotos}
           showDescriptions={block.data.showDescriptions}
           formatPrice={formatPrice}
