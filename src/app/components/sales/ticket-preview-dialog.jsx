@@ -55,7 +55,7 @@ export function TicketPreviewDialog({
         </DialogHeader>
 
         <div className="flex flex-col items-center gap-4">
-          <ScrollArea className="h-[520px] w-full rounded-lg border bg-muted/30 p-6">
+          <ScrollArea className="h-[45vh] w-full rounded-lg border bg-muted/30 p-4 sm:h-[520px] sm:p-6">
             <div ref={printRef}>
               <KitchenTicketContent
                 orderNumber={ticket.orderNumber}

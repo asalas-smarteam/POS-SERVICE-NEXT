@@ -313,7 +313,7 @@ export function OrderItemNotesDialog({ open, onOpenChange, item, onSave }) {
               {sortedModifiers.length > 0 ? (
                 <div className="space-y-2">
                   <p className="text-sm font-medium">{t("addedExtras")}</p>
-                  <ScrollArea className="h-[180px] pr-3">
+                  <ScrollArea className="h-[140px] pr-3 sm:h-[180px]">
                     <div className="space-y-2">
                       {sortedModifiers.map((modifier) => (
                         <div
@@ -376,7 +376,7 @@ export function OrderItemNotesDialog({ open, onOpenChange, item, onSave }) {
                   {t("ingredientsCount", { count: baseIngredients.length })}
                 </span>
               </div>
-              <ScrollArea className="h-[220px] pr-3">
+              <ScrollArea className="h-[160px] pr-3 sm:h-[220px]">
                 <div className="space-y-2">
                   {sortedModifiers.map((modifier) => (
                     <div

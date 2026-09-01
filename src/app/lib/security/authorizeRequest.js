@@ -67,3 +67,20 @@ export async function authorizeRequest(request, moduleName) {
 
   return payload;
 }
+
+// Segundo eje de permiso, mas fino que el modulo: hay acciones dentro de un
+// modulo contratado que igual son solo de administracion (cancelar una orden,
+// por ejemplo). El dueño que entra a una sede recibe token con role 'admin'
+// (ver /api/auth/switch-sede), asi que no hace falta listar 'owner' aparte.
+export function requireRole(payload, allowedRoles = []) {
+  const normalizedRole = String(payload?.role ?? '').toLowerCase();
+  const normalizedAllowed = allowedRoles.map((role) =>
+    String(role ?? '').toLowerCase()
+  );
+
+  if (!normalizedRole || !normalizedAllowed.includes(normalizedRole)) {
+    throw forbiddenError('Forbidden');
+  }
+
+  return payload;
+}

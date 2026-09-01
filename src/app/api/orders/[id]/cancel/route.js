@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { resolveTenant } from "@/lib/tenant/resolveTenant";
-import { authorizeRequest } from "@/lib/security/authorizeRequest";
+import { authorizeRequest, requireRole } from "@/lib/security/authorizeRequest";
 import { getTenantConnection } from "@/lib/db/connections";
 import { OrderModel } from "@/models/tenant/Order";
 import { releaseOrderTable } from "@/lib/tenant/tableAssignment";
@@ -16,7 +16,11 @@ export async function POST(req, { params }) {
     const { id: orderId } = await params;
 
     const tenant = await resolveTenant(req);
-    await authorizeRequest(req, "orders");
+    // Cancelar es una accion administrativa: un cajero puede tomar y cobrar
+    // ordenes, pero anularlas queda reservado al admin de la sede.
+    const auth = await authorizeRequest(req, "orders");
+    requireRole(auth, ["admin"]);
+
     const conn = await getTenantConnection(tenant.dbName);
     const Order = OrderModel(conn);
 

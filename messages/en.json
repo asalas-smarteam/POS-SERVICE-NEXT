@@ -480,6 +480,7 @@
     "cancelling": "Cancelling...",
     "managePayment": "Manage payment / Edit order",
     "cancelOrderError": "Could not cancel the order.",
+    "cancelOrderForbidden": "Only an administrator can cancel an order.",
     "remaining": "Remaining",
     "paymentStatus": "Payment status",
     "paidFull": "Paid",

@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useFeature } from "@/components/feature-gate";
+import { useAuthStore } from "../../../../../store/authStore";
 import { useOrderStore } from "../../../../../store/orderStore";
 import { useSettingsStore } from "../../../../../store/settingsStore";
 import { getTenantHeaders } from "../../../../../store/tenantHeaders";
@@ -93,6 +94,12 @@ export default function ActiveOrdersPage() {
   const params = useParams();
   const router = useRouter();
   const hydrateOrder = useOrderStore((state) => state.hydrateOrder);
+  // Cancelar es solo para administracion. Esto oculta el boton; quien decide de
+  // verdad es el guard de rol en POST /api/orders/[id]/cancel.
+  // El dueño que entra a una sede opera como ADMIN (ver /api/auth/switch-sede).
+  const isAdmin = useAuthStore(
+    (state) => String(state.user?.role ?? "").toLowerCase() === "admin"
+  );
   const { orderTypes, fetchSettings } = useSettingsStore((state) => ({
     orderTypes: state.orderTypes,
     fetchSettings: state.fetchSettings,
@@ -330,7 +337,7 @@ export default function ActiveOrdersPage() {
 
   const handleCancelOrder = useCallback(async () => {
     const orderId = selectedOrder?._id ?? selectedOrder?.id;
-    if (!orderId || isCancelling) {
+    if (!orderId || isCancelling || !isAdmin) {
       return;
     }
 
@@ -345,6 +352,11 @@ export default function ActiveOrdersPage() {
       });
       const body = await response.json().catch(() => ({}));
       if (!response.ok) {
+        // El 403 del guard de rol llega como "Forbidden": no sirve de nada
+        // mostrarselo al cajero tal cual.
+        if (response.status === 403) {
+          throw new Error(t("cancelOrderForbidden"));
+        }
         throw new Error(body?.error || t("cancelOrderError"));
       }
 
@@ -356,7 +368,7 @@ export default function ActiveOrdersPage() {
     } finally {
       setIsCancelling(false);
     }
-  }, [isCancelling, loadOrders, selectedOrder, t]);
+  }, [isAdmin, isCancelling, loadOrders, selectedOrder, t]);
 
   const renderContent = () => {
     if (loading) {
@@ -550,7 +562,7 @@ export default function ActiveOrdersPage() {
 
           {selectedOrderTicket ? (
             <div className="space-y-4">
-              <ScrollArea className="h-[420px] w-full rounded-lg border bg-muted/30 p-4">
+              <ScrollArea className="h-[40vh] w-full rounded-lg border bg-muted/30 p-4 sm:h-[420px]">
                 <KitchenTicketContent
                   orderNumber={selectedOrderTicket.orderNumber}
                   serviceTypeValue={selectedOrderTicket.serviceTypeValue}
@@ -565,9 +577,11 @@ export default function ActiveOrdersPage() {
                 <Button type="button" variant="outline" onClick={() => setActionDialogOpen(false)}>
                   {t("close")}
                 </Button>
-                <Button type="button" variant="destructive" onClick={handleCancelOrder} disabled={isCancelling}>
-                  {isCancelling ? t("cancelling") : t("cancelOrder")}
-                </Button>
+                {isAdmin ? (
+                  <Button type="button" variant="destructive" onClick={handleCancelOrder} disabled={isCancelling}>
+                    {isCancelling ? t("cancelling") : t("cancelOrder")}
+                  </Button>
+                ) : null}
                 <Button type="button" variant="secondary" onClick={() => setSplitDialogOpen(true)}>
                   {t("splitPay")}
                 </Button>
