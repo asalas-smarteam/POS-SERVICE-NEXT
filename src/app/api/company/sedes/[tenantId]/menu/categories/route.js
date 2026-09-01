@@ -23,7 +23,11 @@ export async function GET(req, { params }) {
       // error en ninguna capa. No "relajar" esto de vuelta a "!== false".
       categories: categories
         .filter((category) => category?.id && category.active === true)
-        .map((category) => ({ id: String(category.id), label: category.label ?? String(category.id) })),
+        .map((category) => ({
+          id: String(category.id),
+          label: category.label ?? String(category.id),
+          hasSizes: category.hasSizes === true,
+        })),
     });
   } catch (error) {
     const status = error?.status || 500;

@@ -140,13 +140,19 @@ describe("addBlock", () => {
     expect(addBlock([], "footer")[0].data).toEqual({ text: "", phone: "", address: "" });
   });
 
-  it("crea la categoria con fotos y descripciones prendidas", () => {
+  it("crea la categoria con fotos, descripciones y variante por defecto prendidas", () => {
     const result = addBlock([], "category", { categoryId: "c9" });
     expect(result[0]).toEqual({
       id: "category-c9",
       type: "category",
       visible: true,
-      data: { categoryId: "c9", showPhotos: true, showDescriptions: true },
+      data: {
+        categoryId: "c9",
+        showPhotos: true,
+        showDescriptions: true,
+        variant: "sizeRows",
+        columns: 1,
+      },
     });
   });
 

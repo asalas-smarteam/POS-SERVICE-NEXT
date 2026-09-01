@@ -60,7 +60,13 @@ describe("normalizeMenuDraft", () => {
       id: "c-postres",
       type: "category",
       visible: true,
-      data: { categoryId: "postres", showPhotos: true, showDescriptions: true },
+      data: {
+        categoryId: "postres",
+        showPhotos: true,
+        showDescriptions: true,
+        variant: "sizeRows",
+        columns: 1,
+      },
     });
   });
 
@@ -144,6 +150,60 @@ describe("normalizeMenuDocument", () => {
     expect(normalizeMenuDocument({ version: -1 }).version).toBe(MENU_SCHEMA_VERSION);
     expect(normalizeMenuDocument({ version: "1" }).version).toBe(MENU_SCHEMA_VERSION);
     expect(normalizeMenuDocument({ version: null }).version).toBe(MENU_SCHEMA_VERSION);
+  });
+
+  // Garantia central de 1b-2: un documento guardado antes de que existieran
+  // `variant`/`columns` tiene que sobrevivir el round-trip de
+  // normalizeMenuDocument sin que ningun campo previo cambie de forma o valor.
+  // Los menus ya publicados se sirven hoy por QR a clientes reales: si este
+  // round-trip alterara un campo, cambiaria lo que ven esos clientes.
+  it("un documento publicado antes de 1b-2 sobrevive el round-trip sin cambiar ningun campo previo", () => {
+    const preExistingBlocks = [
+      { id: "h1", type: "hero", data: { title: "Pizzeria", subtitle: "Desde 1998" } },
+      {
+        id: "c-bebidas",
+        type: "category",
+        data: { categoryId: "bebidas", showPhotos: true, showDescriptions: false },
+      },
+      { id: "f1", type: "footer", data: { text: "Gracias", phone: "22334455", address: "Centro" } },
+    ];
+    const legacyDocument = {
+      version: 1,
+      draft: { blocks: preExistingBlocks },
+      published: { blocks: preExistingBlocks },
+      publishedAt: "2020-01-15T09:30:00.000Z",
+    };
+
+    const result = normalizeMenuDocument(legacyDocument);
+
+    const expectedBlocks = [
+      { id: "h1", type: "hero", visible: true, data: { title: "Pizzeria", subtitle: "Desde 1998" } },
+      {
+        id: "c-bebidas",
+        type: "category",
+        visible: true,
+        data: {
+          categoryId: "bebidas",
+          showPhotos: true,
+          showDescriptions: false,
+          variant: "sizeRows",
+          columns: 1,
+        },
+      },
+      {
+        id: "f1",
+        type: "footer",
+        visible: true,
+        data: { text: "Gracias", phone: "22334455", address: "Centro" },
+      },
+    ];
+
+    expect(result).toEqual({
+      version: 1,
+      draft: { blocks: expectedBlocks },
+      published: { blocks: expectedBlocks },
+      publishedAt: "2020-01-15T09:30:00.000Z",
+    });
   });
 });
 
@@ -385,7 +445,13 @@ describe("renderableBlocks", () => {
         id: "c-bebidas",
         type: "category",
         visible: true,
-        data: { categoryId: "bebidas", showPhotos: true, showDescriptions: true },
+        data: {
+          categoryId: "bebidas",
+          showPhotos: true,
+          showDescriptions: true,
+          variant: "sizeRows",
+          columns: 1,
+        },
       },
     ]);
   });
@@ -394,5 +460,64 @@ describe("renderableBlocks", () => {
 describe("BLOCK_TYPES", () => {
   it("son exactamente los tres del alcance de 1a", () => {
     expect([...BLOCK_TYPES]).toEqual(["hero", "category", "footer"]);
+  });
+});
+
+describe("normalizeMenuDraft: variant y columns", () => {
+  const categoryBlock = (data) => ({
+    blocks: [{ id: "b1", type: "category", data: { categoryId: "pizzas", ...data } }],
+  });
+
+  // Es la garantia de compatibilidad entera de esta rama: un menu publicado
+  // antes de 1b-2 no tiene estos campos y tiene que renderizar identico.
+  it("un bloque sin variant ni columns recibe los defaults que reproducen el render actual", () => {
+    const { blocks } = normalizeMenuDraft(categoryBlock({}));
+
+    expect(blocks[0].data.variant).toBe("sizeRows");
+    expect(blocks[0].data.columns).toBe(1);
+  });
+
+  it("conserva una variante valida", () => {
+    const { blocks } = normalizeMenuDraft(categoryBlock({ variant: "sizeTable" }));
+
+    expect(blocks[0].data.variant).toBe("sizeTable");
+  });
+
+  it("cae al default con una variante desconocida", () => {
+    const { blocks } = normalizeMenuDraft(categoryBlock({ variant: "tarjetas" }));
+
+    expect(blocks[0].data.variant).toBe("sizeRows");
+  });
+
+  it("acepta columns 2", () => {
+    const { blocks } = normalizeMenuDraft(categoryBlock({ columns: 2 }));
+
+    expect(blocks[0].data.columns).toBe(2);
+  });
+
+  // Este modulo corre sobre el body de una request arbitraria. Solo el numero 2
+  // vale: la cadena "2", un 3 o un booleano caen a una columna, que es la
+  // presentacion que ya existia y por lo tanto la respuesta segura.
+  it("cualquier otro valor de columns cae a 1", () => {
+    for (const value of ["2", 3, 0, -1, true, null, undefined, {}]) {
+      const { blocks } = normalizeMenuDraft(categoryBlock({ columns: value }));
+      expect(blocks[0].data.columns).toBe(1);
+    }
+  });
+
+  it("los bloques hero y footer no ganan campos de presentacion", () => {
+    const { blocks } = normalizeMenuDraft({
+      blocks: [
+        { id: "h", type: "hero", data: { title: "Hola", variant: "sizeTable", columns: 2 } },
+        {
+          id: "f",
+          type: "footer",
+          data: { text: "Chau", phone: "", address: "", variant: "sizeTable", columns: 2 },
+        },
+      ],
+    });
+
+    expect(blocks[0].data).toEqual({ title: "Hola", subtitle: "" });
+    expect(blocks[1].data).toEqual({ text: "Chau", phone: "", address: "" });
   });
 });

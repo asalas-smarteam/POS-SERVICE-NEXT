@@ -1,3 +1,5 @@
+import { normalizeVariant } from "@/lib/menu/menuVariants";
+
 // Version del esquema de bloques. Es lo unico que no se puede agregar despues:
 // sin ella, migrar un menu ya publicado no tiene punto de apoyo.
 export const MENU_SCHEMA_VERSION = 1;
@@ -78,6 +80,11 @@ function normalizeBlock(raw, index) {
       categoryId,
       showPhotos: data.showPhotos !== false,
       showDescriptions: data.showDescriptions !== false,
+      variant: normalizeVariant(data.variant),
+      // Estricto (=== 2) y no un parseo: el editor manda un numero, y cualquier
+      // otra cosa que llegue por el body -"2", 3, true- cae a una columna, que
+      // es la presentacion que ya existia y por lo tanto la respuesta segura.
+      columns: data.columns === 2 ? 2 : 1,
     },
   };
 }
@@ -219,9 +226,9 @@ export function publishDraft(menu, publishedAtIso) {
     draft,
     // Copia estructural: si compartieran referencia, seguir editando el borrador
     // mutaria lo que ya esta publicado. JSON.parse(JSON.stringify(...)) es seguro
-    // aqui solo porque normalizeBlock ya redujo cada campo a string o boolean:
-    // quien toque normalizeBlock y le agregue un campo de otro tipo (Date, Map,
-    // etc.) tiene que revisar tambien esta copia.
+    // aqui solo porque normalizeBlock ya redujo cada campo a string, numero o
+    // boolean (columns incluido): quien toque normalizeBlock y le agregue un
+    // campo de otro tipo (Date, Map, etc.) tiene que revisar tambien esta copia.
     published: JSON.parse(JSON.stringify(draft)),
     publishedAt: publishedAtIso,
   };
